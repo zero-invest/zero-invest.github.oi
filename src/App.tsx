@@ -346,12 +346,6 @@ function HomePage({ funds, syncedAt, loading, error }: { funds: FundViewModel[];
           <p className="hero__lead">
             自动估值不是 T-1 原值本身，而是“以最近官方净值为锚、叠加场内当日涨跌幅修正”的当日指示估值。日净值与基础资料按天缓存，场内价格与汇率走免费接口；如果你通过主入口启动，后台会每 60 秒重抓一次数据。
           </p>
-          <div className="hero__note">
-            <strong>免责声明</strong>
-            <p>
-              本页面仅用于基金溢价率观察与估值研究，不构成任何投资建议，也不保证数据实时、完整或绝对准确。页面打开后会每 60 秒自动拉取一次最新运行时数据；如果站点刚发布了新功能、新样式或新代码，通常仍需要手动刷新页面一次，浏览器才会拿到最新版本。
-            </p>
-          </div>
         </div>
         <div className="hero__facts hero__facts--compact">
           <div className="hero__fact hero__fact--accent">
@@ -374,6 +368,12 @@ function HomePage({ funds, syncedAt, loading, error }: { funds: FundViewModel[];
             <span>最近同步</span>
             <strong>{syncedAt ? formatDateTime(syncedAt) : '等待同步'}</strong>
           </div>
+        </div>
+        <div className="hero__note">
+          <strong>免责声明</strong>
+          <p>
+            本页面仅用于基金溢价率观察与估值研究，不构成任何投资建议，也不保证数据实时、完整或绝对准确。页面打开后会每 60 秒自动拉取一次最新运行时数据；如果站点刚发布了新功能、新样式或新代码，通常仍需要手动刷新页面一次，浏览器才会拿到最新版本。
+          </p>
         </div>
       </section>
 

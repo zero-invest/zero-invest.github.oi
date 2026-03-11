@@ -109,7 +109,7 @@ input:focus {
 }
 
 .hero--wide {
-  grid-template-columns: minmax(0, 1.65fr) minmax(320px, 0.95fr);
+  grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.95fr);
 }
 
 .hero__copy {
@@ -148,12 +148,13 @@ input:focus {
 
 .hero__lead {
   margin: 0;
-  max-width: 22ch;
+  max-width: 34ch;
   font-size: 1.08rem;
 }
 
 .hero__note {
-  max-width: 44rem;
+  grid-column: 1 / -1;
+  max-width: none;
   padding: 0.95rem 1.1rem;
   border-radius: 18px;
   background: linear-gradient(135deg, rgba(15, 118, 110, 0.08), rgba(244, 239, 230, 0.65));
