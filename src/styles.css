@@ -175,6 +175,34 @@ input:focus {
   font-size: 0.95rem;
 }
 
+.hero__promo {
+  display: grid;
+  gap: 0.35rem;
+  margin-top: 0.9rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid rgba(15, 118, 110, 0.12);
+}
+
+.hero__promo-label {
+  display: inline-flex;
+  width: fit-content;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  background: rgba(15, 118, 110, 0.12);
+  color: #0f766e;
+  font-size: 0.82rem;
+}
+
+.hero__promo strong {
+  color: #1f2937;
+  font-size: 1.1rem;
+}
+
+.hero__promo p {
+  margin: 0;
+  font-size: 0.92rem;
+}
+
 .hero p,
 .panel__header p,
 .table-card__header p,

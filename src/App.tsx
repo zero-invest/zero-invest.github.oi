@@ -374,6 +374,11 @@ function HomePage({ funds, syncedAt, loading, error }: { funds: FundViewModel[];
           <p>
             本页面仅用于基金溢价率观察与估值研究，不构成任何投资建议，也不保证数据实时、完整或绝对准确。页面打开后会每 60 秒自动拉取一次最新运行时数据；如果站点刚发布了新功能、新样式或新代码，通常仍需要手动刷新页面一次，浏览器才会拿到最新版本。
           </p>
+          <div className="hero__promo">
+            <span className="hero__promo-label">公众号</span>
+            <strong>利奥的笔记</strong>
+            <p>后续更新说明、误差复盘和新增基金支持会优先整理到公众号，微信搜索“利奥的笔记”即可找到。</p>
+          </div>
         </div>
       </section>
 
