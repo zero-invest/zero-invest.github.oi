@@ -377,6 +377,10 @@ function HomePage({ funds, syncedAt, loading, error }: { funds: FundViewModel[];
         首页展示的累计访客和累计访问是匿名粗略计数，只适合当前免费阶段判断有没有人持续打开，不代表严格口径的日活、留存或付费意愿。
       </section>
 
+      <section className="panel notice-panel">
+        免责声明：本页面仅用于基金溢价率观察与估值研究，不构成任何投资建议，也不保证数据实时、完整或绝对准确。页面打开后会每 60 秒自动拉取一次最新运行时数据；但如果站点本身刚发布了新功能、新样式或新代码，通常仍需要你手动刷新页面一次，浏览器才会拿到最新版本。
+      </section>
+
       <FundTable funds={funds} formatCurrency={formatCurrency} formatPercent={formatPercent} />
 
       <section className="panel notice-panel">
