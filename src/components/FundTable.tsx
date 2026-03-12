@@ -8,9 +8,12 @@ interface FundTableProps {
   funds: FundViewModel[];
   formatCurrency: (value: number) => string;
   formatPercent: (value: number) => string;
+  title: string;
+  description: string;
+  pagePath: string;
 }
 
-export function FundTable({ funds, formatCurrency, formatPercent }: FundTableProps) {
+export function FundTable({ funds, formatCurrency, formatPercent, title, description, pagePath }: FundTableProps) {
   const [sortKey, setSortKey] = useState<SortKey>('premiumRate');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const tableRef = useRef<HTMLTableElement | null>(null);
@@ -132,8 +135,8 @@ export function FundTable({ funds, formatCurrency, formatPercent }: FundTablePro
   return (
     <section className="table-card fund-table-card">
       <div className="table-card__header">
-        <h3>基金溢价率列表</h3>
-        <p>自动估值口径：以最近官方净值为锚，结合场内当日涨跌幅和该基金自己的历史误差修正。点击表头可排序。</p>
+        <h3>{title}</h3>
+        <p>{description}</p>
       </div>
 
       <div
@@ -181,7 +184,7 @@ export function FundTable({ funds, formatCurrency, formatPercent }: FundTablePro
               return (
                 <tr key={fund.runtime.code}>
                   <td>
-                    <Link className="fund-table__link" to={`/fund/${fund.runtime.code}`}>
+                    <Link className="fund-table__link" to={`/fund/${fund.runtime.code}?from=${pagePath}`}>
                       {fund.runtime.code}
                     </Link>
                   </td>
@@ -195,7 +198,7 @@ export function FundTable({ funds, formatCurrency, formatPercent }: FundTablePro
                   <td>{formatCurrency(fund.runtime.officialNavT1)}</td>
                   <td>{fund.runtime.navDate || '--'}</td>
                   <td>{`${fund.runtime.marketDate || '--'} ${fund.runtime.marketTime || ''}`.trim()}</td>
-                  <td>{formatBpsFromPercent(fund.model.meanAbsError)}</td>
+                  <td>{formatPercent(fund.model.meanAbsError)}</td>
                   <td>{fund.runtime.purchaseLimit || fund.runtime.purchaseStatus || '待校验'}</td>
                 </tr>
               );
@@ -205,10 +208,6 @@ export function FundTable({ funds, formatCurrency, formatPercent }: FundTablePro
       </div>
     </section>
   );
-}
-
-function formatBpsFromPercent(value: number) {
-  return `${(value * 10000).toFixed(1)} bp`;
 }
 
 function getChangeRate(marketPrice: number, previousClose: number) {

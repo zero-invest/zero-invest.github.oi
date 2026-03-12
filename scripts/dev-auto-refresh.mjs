@@ -8,6 +8,53 @@ const nodeExecutable = process.execPath;
 const nodeDir = path.dirname(nodeExecutable);
 const viteBin = path.join(projectRoot, 'node_modules', 'vite', 'bin', 'vite.js');
 let syncing = false;
+const FAST_SYNC_INTERVAL = 60_000;
+const SLOW_SYNC_INTERVAL = 15 * 60_000;
+
+function getZonedClock(date, timeZone) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    weekday: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).formatToParts(date);
+
+  const weekday = parts.find((item) => item.type === 'weekday')?.value ?? 'Sun';
+  const hour = Number(parts.find((item) => item.type === 'hour')?.value ?? '0');
+  const minute = Number(parts.find((item) => item.type === 'minute')?.value ?? '0');
+
+  return {
+    weekday,
+    minutes: hour * 60 + minute,
+  };
+}
+
+function isWeekday(weekday) {
+  return ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'].includes(weekday);
+}
+
+function isCnTradingSession(date) {
+  const clock = getZonedClock(date, 'Asia/Shanghai');
+  if (!isWeekday(clock.weekday)) {
+    return false;
+  }
+
+  return (clock.minutes >= 9 * 60 + 30 && clock.minutes < 11 * 60 + 30) || (clock.minutes >= 13 * 60 && clock.minutes < 15 * 60);
+}
+
+function isUsTradingSession(date) {
+  const clock = getZonedClock(date, 'America/New_York');
+  if (!isWeekday(clock.weekday)) {
+    return false;
+  }
+
+  return clock.minutes >= 9 * 60 + 30 && clock.minutes < 16 * 60;
+}
+
+function getSyncInterval(now = new Date()) {
+  return isCnTradingSession(now) || isUsTradingSession(now) ? FAST_SYNC_INTERVAL : SLOW_SYNC_INTERVAL;
+}
 
 function runCommand(command, args, options = {}) {
   return new Promise((resolve, reject) => {
@@ -66,12 +113,14 @@ async function main() {
   vite.stdout?.on('data', (chunk) => handleOutput(chunk, process.stdout));
   vite.stderr?.on('data', (chunk) => handleOutput(chunk, process.stderr));
 
-  const timer = setInterval(() => {
-    void syncOnce();
-  }, 60_000);
+  let timer = setTimeout(function scheduleNext() {
+    void syncOnce().finally(() => {
+      timer = setTimeout(scheduleNext, getSyncInterval());
+    });
+  }, getSyncInterval());
 
   const shutdown = () => {
-    clearInterval(timer);
+    clearTimeout(timer);
     vite.kill();
     process.exit(0);
   };
@@ -79,7 +128,7 @@ async function main() {
   process.on('SIGINT', shutdown);
   process.on('SIGTERM', shutdown);
   vite.on('exit', (code) => {
-    clearInterval(timer);
+    clearTimeout(timer);
     process.exit(code ?? 0);
   });
 }

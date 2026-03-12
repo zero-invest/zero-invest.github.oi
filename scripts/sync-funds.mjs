@@ -1,5 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { load } from 'cheerio';
 import catalog from '../src/data/fundCatalog.json' with { type: 'json' };
 
 const projectRoot = process.cwd();
@@ -7,10 +8,15 @@ const outputPath = path.join(projectRoot, 'public', 'generated', 'funds-runtime.
 const dailyCacheDir = path.join(projectRoot, '.cache', 'fund-sync', 'daily');
 const intradayCacheDir = path.join(projectRoot, '.cache', 'fund-sync', 'intraday');
 const watchlistStatePath = path.join(projectRoot, '.cache', 'fund-sync', 'watchlist-state.json');
+const holdingsDisclosurePath = path.join(projectRoot, '.cache', 'fund-sync', 'holdings-disclosures.json');
 const now = new Date();
 const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-const WATCHLIST_STATE_VERSION = 3;
-const MAX_LEAD_MOVE = 0.08;
+const WATCHLIST_STATE_VERSION = 5;
+const MAX_MARKET_MOVE = 0.08;
+const MAX_PROXY_MOVE = 0.15;
+const MAX_CLOSE_GAP = 0.2;
+const MAX_FX_MOVE = 0.05;
+const JOURNAL_RETENTION_DAYS = 90;
 const HOLDINGS_161128 = [
   { ticker: 'NVDA', name: '英伟达', currency: 'USD' },
   { ticker: 'AAPL', name: '苹果', currency: 'USD' },
@@ -23,12 +29,113 @@ const HOLDINGS_161128 = [
   { ticker: 'CSCO', name: '思科', currency: 'USD' },
   { ticker: 'IBM', name: 'IBM', currency: 'USD' },
 ];
+const PROXY_BASKETS = {
+  'us-tech-large': {
+    name: '美股科技篮子',
+    components: [
+      { ticker: 'QQQ', name: 'Invesco QQQ Trust', weight: 0.7 },
+      { ticker: 'XLK', name: 'Technology Select Sector SPDR', weight: 0.3 },
+    ],
+  },
+  'us-semiconductor': {
+    name: '半导体篮子',
+    components: [{ ticker: 'SOXX', name: 'iShares Semiconductor ETF', weight: 1 }],
+  },
+  'us-commodities': {
+    name: '大宗商品篮子',
+    components: [{ ticker: 'DBC', name: 'Invesco DB Commodity Index Tracking Fund', weight: 1 }],
+  },
+  'us-gold': {
+    name: '黄金篮子',
+    components: [{ ticker: 'GLD', name: 'SPDR Gold Shares', weight: 1 }],
+  },
+  'us-silver': {
+    name: '白银篮子',
+    components: [{ ticker: 'SLV', name: 'iShares Silver Trust', weight: 1 }],
+  },
+  'us-precious-metals': {
+    name: '贵金属篮子',
+    components: [
+      { ticker: 'GLD', name: 'SPDR Gold Shares', weight: 0.75 },
+      { ticker: 'SLV', name: 'iShares Silver Trust', weight: 0.25 },
+    ],
+  },
+  'us-oil': {
+    name: '原油篮子',
+    components: [
+      { ticker: 'USO', name: 'United States Oil Fund', weight: 0.75 },
+      { ticker: 'XLE', name: 'Energy Select Sector SPDR', weight: 0.25 },
+    ],
+  },
+  'us-oil-upstream': {
+    name: '油气上游篮子',
+    components: [
+      { ticker: 'XOP', name: 'SPDR S&P Oil & Gas E&P ETF', weight: 0.7 },
+      { ticker: 'XLE', name: 'Energy Select Sector SPDR', weight: 0.3 },
+    ],
+  },
+  'us-sandp500': {
+    name: '标普500篮子',
+    components: [{ ticker: 'SPY', name: 'SPDR S&P 500 ETF Trust', weight: 1 }],
+  },
+  'us-overseas-tech': {
+    name: '海外科技篮子',
+    components: [
+      { ticker: 'IXN', name: 'iShares Global Tech ETF', weight: 0.35 },
+      { ticker: 'XLK', name: 'Technology Select Sector SPDR', weight: 0.65 },
+    ],
+  },
+  'us-nasdaq100': {
+    name: '纳指100篮子',
+    components: [{ ticker: 'QQQ', name: 'Invesco QQQ Trust', weight: 1 }],
+  },
+};
 let intradayPromise = null;
+
+function clamp(value, limit) {
+  return Math.max(-limit, Math.min(limit, value));
+}
+
+function getWeightedProxyReturn(runtime) {
+  const proxyQuotes = runtime.proxyQuotes ?? [];
+  const totalWeight = proxyQuotes.reduce((sum, item) => sum + item.weight, 0);
+
+  if (totalWeight <= 0) {
+    return 0;
+  }
+
+  return proxyQuotes.reduce((sum, item) => {
+    const localReturn = item.previousClose > 0 ? item.currentPrice / item.previousClose - 1 : 0;
+    return sum + localReturn * (item.weight / totalWeight);
+  }, 0);
+}
+
+function getFxReturn(runtime) {
+  const currentRate = runtime.fx?.currentRate ?? 0;
+  const previousCloseRate = runtime.fx?.previousCloseRate ?? 0;
+  return currentRate > 0 && previousCloseRate > 0 ? currentRate / previousCloseRate - 1 : 0;
+}
+
+function toIsoDateWithOffset(days) {
+  const value = new Date();
+  value.setDate(value.getDate() + days);
+  return value.toISOString().slice(0, 10);
+}
+
+function pruneJournal(journal) {
+  const cutoffDate = toIsoDateWithOffset(-JOURNAL_RETENTION_DAYS);
+
+  return {
+    snapshots: (journal.snapshots ?? []).filter((item) => item.estimateDate >= cutoffDate),
+    errors: (journal.errors ?? []).filter((item) => item.date >= cutoffDate),
+  };
+}
 
 function getDefaultWatchlistModel() {
   return {
     alpha: 0,
     betaLead: 0.38,
+    betaGap: 0,
     learningRate: 0.24,
     sampleCount: 0,
     meanAbsError: 0,
@@ -54,25 +161,28 @@ function normalizePersistedState(entry, sourceVersion) {
   return {
     modelVersion: WATCHLIST_STATE_VERSION,
     model: sourceVersion === WATCHLIST_STATE_VERSION ? { ...getDefaultWatchlistModel(), ...(entry.model ?? {}) } : getDefaultWatchlistModel(),
-    journal: {
+    journal: pruneJournal({
       snapshots: entry.journal?.snapshots ?? [],
       errors: entry.journal?.errors ?? [],
-    },
+    }),
   };
 }
 
 function estimateWatchlistFund(runtime, model) {
   const anchorNav = runtime.officialNavT1;
-  const rawLeadReturn = runtime.previousClose > 0 ? runtime.marketPrice / runtime.previousClose - 1 : 0;
-  const leadReturn = Math.max(-MAX_LEAD_MOVE, Math.min(MAX_LEAD_MOVE, rawLeadReturn));
+  const rawLeadReturn = runtime.estimateMode === 'proxy' ? getWeightedProxyReturn(runtime) : runtime.previousClose > 0 ? runtime.marketPrice / runtime.previousClose - 1 : 0;
+  const leadReturn = clamp(rawLeadReturn, runtime.estimateMode === 'proxy' ? MAX_PROXY_MOVE : MAX_MARKET_MOVE);
+  const rawCloseGapReturn = runtime.estimateMode === 'proxy' ? getFxReturn(runtime) : anchorNav > 0 && runtime.previousClose > 0 ? runtime.previousClose / anchorNav - 1 : 0;
+  const closeGapReturn = clamp(rawCloseGapReturn, runtime.estimateMode === 'proxy' ? MAX_FX_MOVE : MAX_CLOSE_GAP);
   const learnedBiasReturn = model.alpha;
-  const impliedReturn = learnedBiasReturn + model.betaLead * leadReturn;
+  const impliedReturn = learnedBiasReturn + model.betaLead * leadReturn + model.betaGap * closeGapReturn;
   const estimatedNav = anchorNav * (1 + impliedReturn);
   const premiumRate = estimatedNav > 0 ? runtime.marketPrice / estimatedNav - 1 : 0;
 
   return {
     anchorNav,
     leadReturn,
+    closeGapReturn,
     learnedBiasReturn,
     impliedReturn,
     estimatedNav,
@@ -82,11 +192,12 @@ function estimateWatchlistFund(runtime, model) {
 
 function reconcileJournal(runtime, currentModel, currentJournal) {
   const actualNavByDate = new Map(runtime.navHistory.map((item) => [item.date, item.nav]));
-  const resolvedDates = new Set((currentJournal.errors ?? []).map((item) => item.date));
+  const baseJournal = pruneJournal(currentJournal);
+  const resolvedDates = new Set(baseJournal.errors.map((item) => item.date));
   let model = { ...getDefaultWatchlistModel(), ...currentModel };
-  const nextErrors = [...(currentJournal.errors ?? [])];
+  const nextErrors = [...baseJournal.errors];
 
-  for (const snapshot of currentJournal.snapshots ?? []) {
+  for (const snapshot of baseJournal.snapshots) {
     if (resolvedDates.has(snapshot.estimateDate)) {
       continue;
     }
@@ -98,18 +209,20 @@ function reconcileJournal(runtime, currentModel, currentJournal) {
 
     const targetReturn = snapshot.anchorNav > 0 ? actualNav / snapshot.anchorNav - 1 : 0;
     const predictedReturn = snapshot.impliedReturn;
-    const error = targetReturn - predictedReturn;
+    const residualError = targetReturn - predictedReturn;
+    const displayError = actualNav > 0 ? snapshot.estimatedNav / actualNav - 1 : 0;
     const nextSampleCount = model.sampleCount + 1;
     const adaptiveRate = model.learningRate / Math.sqrt(nextSampleCount);
     const nextMae =
       model.sampleCount === 0
-        ? Math.abs(error)
-        : (model.meanAbsError * model.sampleCount + Math.abs(error)) / nextSampleCount;
+        ? Math.abs(displayError)
+        : (model.meanAbsError * model.sampleCount + Math.abs(displayError)) / nextSampleCount;
 
     model = {
       ...model,
-      alpha: model.alpha + adaptiveRate * error,
-      betaLead: model.betaLead + adaptiveRate * error * snapshot.leadReturn,
+      alpha: model.alpha + adaptiveRate * residualError,
+      betaLead: model.betaLead + adaptiveRate * residualError * snapshot.leadReturn,
+      betaGap: model.betaGap + adaptiveRate * residualError * snapshot.closeGapReturn,
       sampleCount: nextSampleCount,
       meanAbsError: nextMae,
       lastUpdatedAt: new Date().toISOString(),
@@ -120,8 +233,8 @@ function reconcileJournal(runtime, currentModel, currentJournal) {
       estimatedNav: snapshot.estimatedNav,
       actualNav,
       premiumRate: snapshot.premiumRate,
-      error,
-      absError: Math.abs(error),
+      error: displayError,
+      absError: Math.abs(displayError),
     });
     resolvedDates.add(snapshot.estimateDate);
   }
@@ -130,10 +243,10 @@ function reconcileJournal(runtime, currentModel, currentJournal) {
 
   return {
     model,
-    journal: {
-      snapshots: currentJournal.snapshots ?? [],
+    journal: pruneJournal({
+      snapshots: baseJournal.snapshots,
       errors: nextErrors,
-    },
+    }),
   };
 }
 
@@ -144,7 +257,7 @@ function recordEstimateSnapshot(journal, runtime, estimate) {
     return journal;
   }
 
-  return {
+  return pruneJournal({
     ...journal,
     snapshots: [
       ...snapshots,
@@ -155,11 +268,12 @@ function recordEstimateSnapshot(journal, runtime, estimate) {
         premiumRate: estimate.premiumRate,
         anchorNav: estimate.anchorNav,
         leadReturn: estimate.leadReturn,
+        closeGapReturn: estimate.closeGapReturn,
         impliedReturn: estimate.impliedReturn,
         createdAt: new Date().toISOString(),
       },
     ].sort((left, right) => left.estimateDate.localeCompare(right.estimateDate)),
-  };
+  });
 }
 
 function getQuoteSymbol(code) {
@@ -241,6 +355,87 @@ function parseBasicInfo(html, fallbackName) {
     name: titleName || fallbackName,
     fundType: extractField(html, '基金类型'),
     benchmark: extractField(html, '业绩比较基准'),
+  };
+}
+
+function parseNumber(value) {
+  const normalized = value.replace(/,/g, '').replace(/--/g, '').trim();
+  const parsed = Number(normalized.replace(/%$/g, ''));
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function parseHoldingsDisclosure(html) {
+  const $ = load(html);
+  const compactText = $.root().text().replace(/\s+/g, ' ').trim();
+  const reportMatch = compactText.match(/(\d{4}年[1-4]季度股票投资明细).*?截止至：\s*(\d{4}-\d{2}-\d{2})/);
+  const table = $('table').first();
+
+  if (!table.length) {
+    return {
+      disclosedHoldingsTitle: '',
+      disclosedHoldingsReportDate: '',
+      disclosedHoldings: [],
+    };
+  }
+
+  const disclosedHoldings = table
+    .find('tr')
+    .map((_, row) => {
+      const cells = $(row)
+        .find('td')
+        .map((__, cell) => $(cell).text().replace(/\s+/g, ' ').trim())
+        .get()
+        .filter(Boolean);
+
+      if (cells.length < 6 || !/^\d+$/.test(cells[0])) {
+        return null;
+      }
+
+      return {
+        ticker: cells[1],
+        name: cells[2],
+        currentPrice: cells.length >= 9 ? parseNumber(cells[3]) : undefined,
+        weight: parseNumber(cells[cells.length - 3]),
+        shares: parseNumber(cells[cells.length - 2]),
+        marketValue: parseNumber(cells[cells.length - 1]),
+      };
+    })
+    .get()
+    .filter(Boolean)
+    .slice(0, 10);
+
+  return {
+    disclosedHoldingsTitle: reportMatch?.[1] ?? '',
+    disclosedHoldingsReportDate: reportMatch?.[2] ?? '',
+    disclosedHoldings,
+  };
+}
+
+function updateDisclosureHistory(historyByCode, runtime) {
+  if (!runtime.disclosedHoldings?.length || !runtime.disclosedHoldingsReportDate) {
+    return historyByCode;
+  }
+
+  const current = historyByCode[runtime.code] ?? [];
+  const alreadyRecorded = current.some(
+    (item) => item.reportDate === runtime.disclosedHoldingsReportDate && item.title === runtime.disclosedHoldingsTitle,
+  );
+
+  if (alreadyRecorded) {
+    return historyByCode;
+  }
+
+  return {
+    ...historyByCode,
+    [runtime.code]: [
+      ...current,
+      {
+        reportDate: runtime.disclosedHoldingsReportDate,
+        title: runtime.disclosedHoldingsTitle,
+        holdings: runtime.disclosedHoldings,
+        capturedAt: new Date().toISOString(),
+      },
+    ].sort((left, right) => left.reportDate.localeCompare(right.reportDate)).slice(-8),
   };
 }
 
@@ -371,17 +566,19 @@ async function getDailyFundData(entry) {
     return { ...cached, cacheMode: 'daily-cache' };
   }
 
-  const [basicHtml, pingzhongData, fundHtml] = await Promise.all([
+  const [basicHtml, pingzhongData, fundHtml, holdingsHtml] = await Promise.all([
     fetchText(`https://fundf10.eastmoney.com/jbgk_${entry.code}.html`, {}, 'utf-8'),
     fetchText(`https://fund.eastmoney.com/pingzhongdata/${entry.code}.js?v=${Date.now()}`, {
       referer: `https://fund.eastmoney.com/${entry.code}.html`,
     }, 'gb18030'),
     fetchText(`https://fund.eastmoney.com/${entry.code}.html`, {}, 'utf-8'),
+    fetchText(`https://fundf10.eastmoney.com/ccmx_${entry.code}.html`, {}, 'utf-8').catch(() => ''),
   ]);
 
   const pingzhong = parsePingzhongData(pingzhongData);
   const basic = parseBasicInfo(basicHtml, pingzhong.name);
   const purchase = parsePurchaseStatus(fundHtml);
+  const holdingsDisclosure = parseHoldingsDisclosure(holdingsHtml);
   const latestNav = pingzhong.navHistory[0] ?? { date: '', nav: 0 };
   const payload = {
     fetchedDate: today,
@@ -393,6 +590,9 @@ async function getDailyFundData(entry) {
     navHistory: pingzhong.navHistory,
     purchaseStatus: purchase.purchaseStatus,
     purchaseLimit: purchase.purchaseLimit,
+    disclosedHoldingsTitle: holdingsDisclosure.disclosedHoldingsTitle,
+    disclosedHoldingsReportDate: holdingsDisclosure.disclosedHoldingsReportDate,
+    disclosedHoldings: holdingsDisclosure.disclosedHoldings,
   };
 
   await writeJson(cachePath, payload);
@@ -401,15 +601,17 @@ async function getDailyFundData(entry) {
 
 async function loadIntradayData() {
   const cachePath = path.join(intradayCacheDir, `${today}.json`);
-  const cached = await readJson(cachePath, { funds: {}, fx: null, holdings161128: [] });
+  const cached = await readJson(cachePath, { funds: {}, fx: null, holdings161128: [], proxyQuotes: [] });
 
   try {
     const fundSymbols = catalog.map((item) => getQuoteSymbol(item.code)).join(',');
     const holdingSymbols = HOLDINGS_161128.map((item) => `us${item.ticker}`).join(',');
-    const [fundQuotesRaw, fxRaw, holdingsRaw] = await Promise.all([
+    const proxySymbols = [...new Set(Object.values(PROXY_BASKETS).flatMap((item) => item.components.map((component) => `us${component.ticker}`)))].join(',');
+    const [fundQuotesRaw, fxRaw, holdingsRaw, proxyRaw] = await Promise.all([
       fetchText(`https://qt.gtimg.cn/q=${fundSymbols}`, { referer: 'https://gu.qq.com/' }, 'gb18030'),
       fetchText('https://hq.sinajs.cn/list=USDCNY,fx_susdcny', { referer: 'https://finance.sina.com.cn/' }, 'gb18030'),
       fetchText(`https://qt.gtimg.cn/q=${holdingSymbols}`, { referer: 'https://gu.qq.com/' }, 'gb18030'),
+      fetchText(`https://qt.gtimg.cn/q=${proxySymbols}`, { referer: 'https://gu.qq.com/' }, 'gb18030'),
     ]);
 
     const funds = {};
@@ -432,6 +634,10 @@ async function loadIntradayData() {
       funds,
       fx: parseFxQuote(fxRaw),
       holdings161128: parseUsQuotes(holdingsRaw).map((item) => ({
+        ...item,
+        currency: 'USD',
+      })),
+      proxyQuotes: parseUsQuotes(proxyRaw).map((item) => ({
         ...item,
         currency: 'USD',
       })),
@@ -466,11 +672,31 @@ async function syncFund(entry) {
   };
   const holdingQuotes = entry.code === '161128' ? intradayData.holdings161128 ?? [] : [];
   const holdingsMeta = holdingQuotes[0] ?? null;
+  const proxyConfig = entry.proxyBasketKey ? PROXY_BASKETS[entry.proxyBasketKey] : null;
+  const proxyQuotes = proxyConfig
+    ? proxyConfig.components
+        .map((component) => {
+          const matched = (intradayData.proxyQuotes ?? []).find((item) => item.ticker.toUpperCase() === component.ticker.toUpperCase());
+          if (!matched) {
+            return null;
+          }
+
+          return {
+            ...matched,
+            name: component.name,
+            weight: component.weight,
+          };
+        })
+        .filter(Boolean)
+    : [];
+  const proxyMeta = proxyQuotes[0] ?? null;
 
   return {
     code: entry.code,
     priority: entry.priority,
     detailMode: entry.detailMode,
+    pageCategory: entry.pageCategory,
+    estimateMode: entry.estimateMode,
     name: dailyData.name || entry.code,
     fundType: dailyData.fundType,
     benchmark: dailyData.benchmark,
@@ -484,10 +710,17 @@ async function syncFund(entry) {
     marketSource: quote.marketSource,
     purchaseStatus: dailyData.purchaseStatus,
     purchaseLimit: dailyData.purchaseLimit,
+    disclosedHoldingsTitle: dailyData.disclosedHoldingsTitle,
+    disclosedHoldingsReportDate: dailyData.disclosedHoldingsReportDate,
+    disclosedHoldings: dailyData.disclosedHoldings,
     fx: intradayData.fx,
     holdingQuotes,
     holdingsQuoteDate: holdingsMeta?.quoteDate || '',
     holdingsQuoteTime: holdingsMeta?.quoteTime || '',
+    proxyBasketName: proxyConfig?.name || '',
+    proxyQuotes,
+    proxyQuoteDate: proxyMeta?.quoteDate || '',
+    proxyQuoteTime: proxyMeta?.quoteTime || '',
     cacheMode: intradayData.cacheMode === 'intraday-cache' ? 'intraday-cache' : dailyData.cacheMode,
   };
 }
@@ -498,6 +731,7 @@ async function main() {
 
   const funds = [];
   const rawStateCache = await readJson(watchlistStatePath, {});
+  let holdingsHistoryByCode = await readJson(holdingsDisclosurePath, {});
   const sourceVersion = rawStateCache.__meta?.version ?? 1;
   const stateByCode = {};
 
@@ -510,6 +744,7 @@ async function main() {
       const journal = recordEstimateSnapshot(reconciled.journal, runtime, estimate);
 
       funds.push(runtime);
+      holdingsHistoryByCode = updateDisclosureHistory(holdingsHistoryByCode, runtime);
       stateByCode[entry.code] = {
         modelVersion: WATCHLIST_STATE_VERSION,
         model: reconciled.model,
@@ -533,6 +768,8 @@ async function main() {
     },
     ...stateByCode,
   });
+
+  await writeJson(holdingsDisclosurePath, holdingsHistoryByCode);
 
   await fs.mkdir(path.dirname(outputPath), { recursive: true });
   await fs.writeFile(

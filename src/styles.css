@@ -154,6 +154,29 @@ input:focus {
   line-height: 1.65;
 }
 
+.page-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.page-tab {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.68rem 1rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(15, 118, 110, 0.14);
+  color: #33504b;
+  transition: background 140ms ease, color 140ms ease, border-color 140ms ease;
+}
+
+.page-tab--active {
+  background: linear-gradient(135deg, rgba(15, 118, 110, 0.14), rgba(244, 239, 230, 0.9));
+  border-color: rgba(15, 118, 110, 0.28);
+  color: #0f766e;
+}
+
 .hero__note {
   grid-column: 1 / -1;
   max-width: none;
@@ -181,6 +204,16 @@ input:focus {
   margin-top: 0.9rem;
   padding-top: 0.9rem;
   border-top: 1px solid rgba(15, 118, 110, 0.12);
+}
+
+.hero__bulletins {
+  display: grid;
+  gap: 0.45rem;
+  margin-top: 0.85rem;
+}
+
+.hero__bulletins p {
+  margin: 0;
 }
 
 .hero__promo-label {

@@ -63,6 +63,31 @@ export function cloneInitialScenario(runtime?: FundRuntimeData): FundScenario {
   next.navDate = runtime.navDate || next.navDate;
   next.officialNavT1 = runtime.officialNavT1 || next.officialNavT1;
   next.latestMarketPrice = runtime.marketPrice || next.latestMarketPrice;
+  next.reportDate = runtime.disclosedHoldingsReportDate || next.reportDate;
+
+  if (runtime.disclosedHoldings?.length) {
+    const disclosedMap = new Map(runtime.disclosedHoldings.map((item) => [item.ticker.toUpperCase(), item]));
+    let disclosedWeightSum = 0;
+
+    next.holdings = next.holdings.map((holding) => {
+      const disclosed = disclosedMap.get(holding.ticker.toUpperCase());
+      if (!disclosed) {
+        return holding;
+      }
+
+      disclosedWeightSum += disclosed.weight;
+
+      return {
+        ...holding,
+        name: disclosed.name || holding.name,
+        weight: disclosed.weight > 0 ? disclosed.weight : holding.weight,
+      };
+    });
+
+    if (next.proxyBuckets[0]) {
+      next.proxyBuckets[0].weight = Math.max(0, Number((next.stockAllocation - disclosedWeightSum).toFixed(2)));
+    }
+  }
 
   if (runtime.fx?.currentRate) {
     next.fx.currentRate = runtime.fx.currentRate;

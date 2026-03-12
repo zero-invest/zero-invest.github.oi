@@ -9,6 +9,7 @@ interface LineChartProps {
   secondary?: ChartPoint[];
   primaryLabel: string;
   secondaryLabel?: string;
+  valueFormatter?: (value: number) => string;
 }
 
 function buildPoints(points: ChartPoint[], width: number, height: number, min: number, max: number) {
@@ -40,7 +41,7 @@ function buildTicks(min: number, max: number) {
   return [max, middle, min];
 }
 
-export function LineChart({ title, primary, secondary, primaryLabel, secondaryLabel }: LineChartProps) {
+export function LineChart({ title, primary, secondary, primaryLabel, secondaryLabel, valueFormatter }: LineChartProps) {
   const allValues = [...primary, ...(secondary ?? [])].map((item) => item.value);
   const min = allValues.length > 0 ? Math.min(...allValues) : 0;
   const max = allValues.length > 0 ? Math.max(...allValues) : 1;
@@ -51,6 +52,7 @@ export function LineChart({ title, primary, secondary, primaryLabel, secondaryLa
   const primaryPoints = buildPoints(primary, width, height, min, max);
   const secondaryPoints = buildPoints(secondary ?? [], width, height, min, max);
   const ticks = buildTicks(min, max);
+  const formatTick = valueFormatter ?? ((value: number) => value.toFixed(4));
 
   return (
     <div className="chart-card">
@@ -78,7 +80,7 @@ export function LineChart({ title, primary, secondary, primaryLabel, secondaryLa
                 <g key={`${title}-tick-${index}`}>
                   <line x1="52" y1={y} x2={width - 12} y2={y} className="chart-grid-line" />
                   <text x="0" y={y + 4} className="chart-axis-label">
-                    {tick.toFixed(4)}
+                    {formatTick(tick)}
                   </text>
                 </g>
               );

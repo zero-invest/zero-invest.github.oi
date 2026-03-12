@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Link, Navigate, Route, Routes, useParams } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
+import { Link, Navigate, Route, Routes, useLocation, useParams } from 'react-router-dom';
 import { FundTable } from './components/FundTable';
 import { EditableHoldingsTable } from './components/EditableHoldingsTable';
 import { LineChart } from './components/LineChart';
@@ -8,9 +8,82 @@ import { cloneInitialScenario, defaultCalibration } from './data/funds';
 import { estimateScenario, trainCalibration } from './lib/estimator';
 import { readFundJournal, readWatchlistModel, writeFundJournal, writeWatchlistModel } from './lib/storage';
 import { estimateWatchlistFund, reconcileJournal, recordEstimateSnapshot } from './lib/watchlist';
-import type { CalibrationModel, FundRuntimeData, FundScenario, FundViewModel, RuntimePayload } from './types';
+import type { CalibrationModel, FundRuntimeData, FundScenario, FundViewModel, PageCategory, RuntimePayload } from './types';
 
 const DETAIL_CALIBRATION_PREFIX = 'premium-estimator:detailed-calibration:';
+const FAST_SYNC_INTERVAL = 60_000;
+const SLOW_SYNC_INTERVAL = 15 * 60_000;
+const PAGE_OPTIONS: Array<{ key: PageCategory; path: string; label: string; lead: string; tableTitle: string; tableDescription: string }> = [
+  {
+    key: 'qdii-lof',
+    path: '/qdii-lof',
+    label: 'QDII 的 LOF',
+    lead: 'QDII 官方净值通常会慢一个到两个交易日，具体以净值日期列为准。本页预估净值不再用场内价格驱动，而是按海外代理篮子和 USD/CNY 变化推算，场内价只用来计算溢价率。',
+    tableTitle: 'QDII LOF 列表',
+    tableDescription: '本页预估口径是 最近官方净值锚点 + 海外代理篮子涨跌幅 + USD/CNY 变化，不再把场内价格当成净值驱动。点击表头可排序。',
+  },
+  {
+    key: 'domestic-lof',
+    path: '/domestic-lof',
+    label: '国内 LOF',
+    lead: '这一页放国内 LOF 和联接 LOF。净值锚点一般就是最近交易日官方净值，预估仍主要参考场内日内信号；像白银这类商品 LOF 则改用对应海外代理品种和汇率推算。',
+    tableTitle: '国内 LOF 列表',
+    tableDescription: '国内 LOF 默认按最近官方净值锚点加场内日内信号推算；商品类例外会改用对应代理品种。点击表头可排序。',
+  },
+  {
+    key: 'etf',
+    path: '/etf',
+    label: 'ETF 类',
+    lead: '这一页单独放 ETF 类基金。当前纳入的 ETF 都是跨境品种，所以同样按海外代理篮子和 USD/CNY 变化推算净值，场内价格只负责显示溢价率。',
+    tableTitle: 'ETF 类列表',
+    tableDescription: 'ETF 页当前以跨境 ETF 为主，预估净值按海外代理篮子和汇率推算，场内价格不参与净值驱动。点击表头可排序。',
+  },
+];
+
+function getZonedClock(date: Date, timeZone: string) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    weekday: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).formatToParts(date);
+
+  const weekday = parts.find((item) => item.type === 'weekday')?.value ?? 'Sun';
+  const hour = Number(parts.find((item) => item.type === 'hour')?.value ?? '0');
+  const minute = Number(parts.find((item) => item.type === 'minute')?.value ?? '0');
+
+  return {
+    weekday,
+    minutes: hour * 60 + minute,
+  };
+}
+
+function isWeekday(weekday: string) {
+  return ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'].includes(weekday);
+}
+
+function isCnTradingSession(date: Date) {
+  const clock = getZonedClock(date, 'Asia/Shanghai');
+  if (!isWeekday(clock.weekday)) {
+    return false;
+  }
+
+  return (clock.minutes >= 9 * 60 + 30 && clock.minutes < 11 * 60 + 30) || (clock.minutes >= 13 * 60 && clock.minutes < 15 * 60);
+}
+
+function isUsTradingSession(date: Date) {
+  const clock = getZonedClock(date, 'America/New_York');
+  if (!isWeekday(clock.weekday)) {
+    return false;
+  }
+
+  return clock.minutes >= 9 * 60 + 30 && clock.minutes < 16 * 60;
+}
+
+function getRuntimeRefreshInterval(now = new Date()) {
+  return isCnTradingSession(now) || isUsTradingSession(now) ? FAST_SYNC_INTERVAL : SLOW_SYNC_INTERVAL;
+}
 
 function formatCurrency(value: number): string {
   return value.toFixed(4);
@@ -43,6 +116,28 @@ function formatDateTime(value: string): string {
 function formatRuntimeTime(date: string, time: string): string {
   const merged = `${date || '--'} ${time || ''}`.trim();
   return merged || '--';
+}
+
+function getPageOption(pageCategory: PageCategory) {
+  return PAGE_OPTIONS.find((item) => item.key === pageCategory) ?? PAGE_OPTIONS[0];
+}
+
+function getEstimateDriverLabels(runtime: FundRuntimeData) {
+  return runtime.estimateMode === 'proxy'
+    ? {
+        summary: `该基金当前按 ${runtime.proxyBasketName || '代理篮子'} + USD/CNY 推算净值，场内价格只用于计算溢价率。`,
+        primaryFactor: '代理篮子涨跌幅',
+        secondaryFactor: 'USD/CNY 变化',
+      }
+    : {
+        summary: '该基金当前按最近官方净值锚点、场内日内涨跌幅和误差历史做盘中指示估值。',
+        primaryFactor: '场内涨跌幅',
+        secondaryFactor: '昨收相对净值偏离',
+      };
+}
+
+function getProxyChange(currentPrice: number, previousClose: number) {
+  return previousClose > 0 ? currentPrice / previousClose - 1 : 0;
 }
 
 function readStoredCalibration(code: string): CalibrationModel {
@@ -119,9 +214,9 @@ function DetailedEstimatorPanel({ fund }: { fund: FundViewModel }) {
     <section className="detail-stack">
       <section className="metrics-grid">
         <MetricCard
-          label="持仓模式估值"
+          label="持仓模式当日预估净值"
           value={formatCurrency(result.correctedEstimatedNav)}
-          hint={`基于 ${scenario.officialNavT1.toFixed(4)} 的细颗粒度估值`}
+          hint={`以最近官方净值 ${scenario.officialNavT1.toFixed(4)} 为锚推算当日未公布净值`}
           tone="neutral"
         />
         <MetricCard
@@ -133,13 +228,13 @@ function DetailedEstimatorPanel({ fund }: { fund: FundViewModel }) {
         <MetricCard
           label="持仓模式溢价率"
           value={formatPercent(result.premiumRate)}
-          hint={result.premiumRate >= 0 ? '价格高于持仓模式估值' : '价格低于持仓模式估值'}
+          hint={result.premiumRate >= 0 ? '价格高于当日预估净值' : '价格低于当日预估净值'}
           tone={premiumTone}
         />
         <MetricCard
           label="细模型修正"
           value={formatBps(result.learnedBiasReturn)}
-          hint={`样本数 ${calibration.sampleCount}，平均绝对误差 ${formatBps(calibration.meanAbsError)}`}
+          hint={`样本数 ${calibration.sampleCount}，平均绝对误差 ${formatPercent(calibration.meanAbsError)}`}
           tone={result.learnedBiasReturn >= 0 ? 'positive' : 'negative'}
         />
       </section>
@@ -170,7 +265,7 @@ function DetailedEstimatorPanel({ fund }: { fund: FundViewModel }) {
         </div>
         <div className="control-grid">
           <label>
-            <span>官方 T-1 净值</span>
+            <span>最近官方净值锚点</span>
             <input
               type="number"
               value={scenario.officialNavT1}
@@ -336,21 +431,34 @@ function DetailedEstimatorPanel({ fund }: { fund: FundViewModel }) {
   );
 }
 
-function HomePage({ funds, syncedAt, loading, error }: { funds: FundViewModel[]; syncedAt: string; loading: boolean; error: string }) {
+function HomePage({ funds, syncedAt, loading, error, pageCategory }: { funds: FundViewModel[]; syncedAt: string; loading: boolean; error: string; pageCategory: PageCategory }) {
+  const pageOption = getPageOption(pageCategory);
+  const visibleFunds = useMemo(() => funds.filter((item) => item.runtime.pageCategory === pageCategory), [funds, pageCategory]);
+  const proxyDrivenCount = visibleFunds.filter((item) => item.runtime.estimateMode === 'proxy').length;
+
   return (
     <main className="page">
       <section className="hero panel hero--wide">
         <div className="hero__copy">
           <span className="eyebrow">本地缓存 + 免费行情 + 每基金独立模型</span>
           <h1>溢价率日常看板</h1>
-          <p className="hero__lead">
-            自动估值不是 T-1 原值本身，而是“以最近官方净值为锚、叠加场内当日涨跌幅修正”的当日指示估值。日净值与基础资料按天缓存，场内价格与汇率走免费接口；如果你通过主入口启动，后台会每 60 秒重抓一次数据。
-          </p>
+          <div className="page-tabs" role="tablist" aria-label="基金分类页面">
+            {PAGE_OPTIONS.map((item) => (
+              <Link key={item.key} className={`page-tab${item.key === pageCategory ? ' page-tab--active' : ''}`} to={item.path}>
+                {item.label}
+              </Link>
+            ))}
+          </div>
+          <p className="hero__lead">{pageOption.lead}</p>
         </div>
         <div className="hero__facts hero__facts--compact">
           <div className="hero__fact hero__fact--accent">
-            <span>跟踪基金数</span>
-            <strong>{funds.length}</strong>
+            <span>当前页基金数</span>
+            <strong>{visibleFunds.length}</strong>
+          </div>
+          <div className="hero__fact">
+            <span>代理估值数</span>
+            <strong>{proxyDrivenCount}</strong>
           </div>
           <div className="hero__fact">
             <span>累计访客</span>
@@ -370,10 +478,14 @@ function HomePage({ funds, syncedAt, loading, error }: { funds: FundViewModel[];
           </div>
         </div>
         <div className="hero__note">
-          <strong>免责声明</strong>
+          <strong>公告栏</strong>
           <p>
-            本页面仅用于基金溢价率观察与估值研究，不构成任何投资建议，也不保证数据实时、完整或绝对准确。页面打开后会每 60 秒自动拉取一次最新运行时数据；如果站点刚发布了新功能、新样式或新代码，通常仍需要手动刷新页面一次，浏览器才会拿到最新版本。
+            本页面仅用于基金溢价率观察与估值研究，不构成任何投资建议，也不保证数据实时、完整或绝对准确。
           </p>
+          <div className="hero__bulletins">
+            <p>限购状态暂时不准，请忽略，具体以基金公司公告和销售页面为准。</p>
+            <p>如需增加基金、增加功能或提供建议，可搜索公众号“利奥的笔记”加群反馈。</p>
+          </div>
           <div className="hero__promo">
             <span className="hero__promo-label">公众号</span>
             <strong>利奥的笔记</strong>
@@ -384,10 +496,17 @@ function HomePage({ funds, syncedAt, loading, error }: { funds: FundViewModel[];
 
       {error ? <section className="panel notice-panel">{error}</section> : null}
 
-      <FundTable funds={funds} formatCurrency={formatCurrency} formatPercent={formatPercent} />
+      <FundTable
+        funds={visibleFunds}
+        formatCurrency={formatCurrency}
+        formatPercent={formatPercent}
+        title={pageOption.tableTitle}
+        description={pageOption.tableDescription}
+        pagePath={pageOption.path}
+      />
 
       <section className="panel notice-panel">
-        首页显示的是列表主看板。自动估值口径是最近官方净值锚定后的当日指示值，主要参考场内当日涨跌幅，而不是直接把场内溢价喂回估值。点击基金代码进入详情页后，可以看误差折线、独立修正模型；161128 还会额外显示持仓级估值实验室、USD/CNY 时间和夜间美股持仓报价。
+        首页显示的是列表主看板。净值列展示最近一次已公布的官方净值，具体是 T-1 还是 T-2 直接看净值日期列；估值列展示的是当前预估净值。QDII 和跨境 ETF 页面已经改成海外代理篮子加汇率驱动，不再拿场内价格去反推净值。点击基金代码进入详情页后，可以看误差折线、独立修正模型；161128 还会额外显示持仓级估值实验室、前十大持仓公告、USD/CNY 时间和夜间美股持仓报价。
       </section>
     </main>
   );
@@ -395,6 +514,7 @@ function HomePage({ funds, syncedAt, loading, error }: { funds: FundViewModel[];
 
 function DetailPage({ funds, syncedAt, loading }: { funds: FundViewModel[]; syncedAt: string; loading: boolean }) {
   const params = useParams();
+  const location = useLocation();
   const fund = funds.find((item) => item.runtime.code === params.code);
 
   if (loading) {
@@ -409,20 +529,26 @@ function DetailPage({ funds, syncedAt, loading }: { funds: FundViewModel[]; sync
     return <Navigate to="/" replace />;
   }
 
+  const fromPath = new URLSearchParams(location.search).get('from');
+  const backPath = PAGE_OPTIONS.some((item) => item.path === fromPath) ? fromPath ?? '/qdii-lof' : '/qdii-lof';
+  const driverLabels = getEstimateDriverLabels(fund.runtime);
+  const recentProxyQuotes = fund.runtime.proxyQuotes ?? [];
+
   const historyPoints = fund.journal.errors.slice(-20);
+  const recentErrors = [...fund.journal.errors].slice(-20).reverse();
   const estimatedSeries = historyPoints.map((item) => ({ label: item.date, value: item.estimatedNav }));
   const actualSeries = historyPoints.map((item) => ({ label: item.date, value: item.actualNav }));
   const errorSeries = historyPoints.map((item) => ({ label: item.date, value: item.error }));
   const premiumTone = fund.estimate.premiumRate > 0 ? 'positive' : 'negative';
   const actualNavByDate = new Map(fund.runtime.navHistory.map((item) => [item.date, item.nav]));
-  const recentSnapshots = [...fund.journal.snapshots].slice(-5).reverse();
-  const recentNavHistory = fund.runtime.navHistory.slice(0, 5);
+  const recentSnapshots = [...fund.journal.snapshots].slice(-20).reverse();
+  const recentNavHistory = fund.runtime.navHistory.slice(0, 20);
 
   return (
     <main className="page">
       <section className="detail-header panel">
         <div>
-          <Link className="back-link" to="/">
+          <Link className="back-link" to={backPath}>
             返回看板
           </Link>
           <span className="eyebrow">{fund.runtime.code} 详情</span>
@@ -450,7 +576,7 @@ function DetailPage({ funds, syncedAt, loading }: { funds: FundViewModel[]; sync
       </section>
 
       <section className="metrics-grid">
-        <MetricCard label="自动估值" value={formatCurrency(fund.estimate.estimatedNav)} hint={`估值日期 ${fund.runtime.marketDate || fund.runtime.navDate || '--'}`} tone="neutral" />
+        <MetricCard label="当日预估净值" value={formatCurrency(fund.estimate.estimatedNav)} hint={`以 ${fund.runtime.navDate || '--'} 最近官方净值为锚`} tone="neutral" />
         <MetricCard
           label="场内价格"
           value={formatCurrency(fund.runtime.marketPrice)}
@@ -466,7 +592,7 @@ function DetailPage({ funds, syncedAt, loading }: { funds: FundViewModel[]; sync
         <MetricCard
           label="自动溢价率"
           value={formatPercent(fund.estimate.premiumRate)}
-          hint={fund.estimate.premiumRate >= 0 ? '价格高于自动估值' : '价格低于自动估值'}
+          hint={fund.estimate.premiumRate >= 0 ? '价格高于当日预估净值' : '价格低于当日预估净值'}
           tone={premiumTone}
         />
       </section>
@@ -474,7 +600,7 @@ function DetailPage({ funds, syncedAt, loading }: { funds: FundViewModel[]; sync
       <section className="panel summary-strip summary-strip--stacked">
         <div>
           <span>模型 MAE</span>
-          <strong>{formatBps(fund.model.meanAbsError)}</strong>
+          <strong>{formatPercent(fund.model.meanAbsError)}</strong>
         </div>
         <div>
           <span>模型样本数</span>
@@ -486,7 +612,7 @@ function DetailPage({ funds, syncedAt, loading }: { funds: FundViewModel[]; sync
         <div className="split-panel__column">
           <div className="panel__header">
             <h2>自动模型说明</h2>
-            <p>当前自动模型按该基金自己的场内当日涨跌幅和误差历史单独学习，不和其他基金混参。它估的是“以最近官方净值为锚的当日指示估值”，不是已经公布的真实净值。</p>
+            <p>{driverLabels.summary} 它估的是“以最近官方净值为锚的当日预估净值”，不是已经公布出来的官方净值本身。</p>
           </div>
           <div className="coefficient-grid">
             <div>
@@ -498,8 +624,16 @@ function DetailPage({ funds, syncedAt, loading }: { funds: FundViewModel[]; sync
               <strong>{fund.model.betaLead.toFixed(4)}</strong>
             </div>
             <div>
-              <span>场内领先收益</span>
+              <span>betaGap</span>
+              <strong>{fund.model.betaGap.toFixed(4)}</strong>
+            </div>
+            <div>
+              <span>{driverLabels.primaryFactor}</span>
               <strong>{formatPercent(fund.estimate.leadReturn)}</strong>
+            </div>
+            <div>
+              <span>{driverLabels.secondaryFactor}</span>
+              <strong>{formatPercent(fund.estimate.closeGapReturn)}</strong>
             </div>
             <div>
               <span>最近训练</span>
@@ -510,7 +644,7 @@ function DetailPage({ funds, syncedAt, loading }: { funds: FundViewModel[]; sync
         <div className="split-panel__column">
           <div className="panel__header">
             <h2>误差入口</h2>
-            <p>这里可以直接看昨天估值和后来真实净值之间的差距。样本会持续累积，方便你判断模型是否靠谱。</p>
+            <p>这里直接看估值相对真实净值的偏差百分比。样本会持续累积，方便你判断模型是否靠谱。</p>
           </div>
           <div className="summary-strip summary-strip--stacked">
             <div>
@@ -518,14 +652,74 @@ function DetailPage({ funds, syncedAt, loading }: { funds: FundViewModel[]; sync
               <strong>{fund.journal.errors.length}</strong>
             </div>
             <div>
-              <span>最近误差</span>
-              <strong>{historyPoints.length > 0 ? formatBps(historyPoints[historyPoints.length - 1].error) : '--'}</strong>
+              <span>最近估值误差</span>
+              <strong>{historyPoints.length > 0 ? formatPercent(historyPoints[historyPoints.length - 1].error) : '--'}</strong>
             </div>
           </div>
         </div>
       </section>
 
       <section className="mini-data-grid">
+        {fund.runtime.estimateMode === 'proxy' && recentProxyQuotes.length > 0 ? (
+          <section className="chart-card">
+            <div className="chart-card__header">
+              <h3>代理篮子</h3>
+              <div className="muted-text">{fund.runtime.proxyBasketName || '代理篮子'} {formatRuntimeTime(fund.runtime.proxyQuoteDate || '', fund.runtime.proxyQuoteTime || '')}</div>
+            </div>
+            <div className="table-scroll">
+              <table className="mini-data-table">
+                <thead>
+                  <tr>
+                    <th>代码</th>
+                    <th>名称</th>
+                    <th>权重</th>
+                    <th>涨跌幅</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {recentProxyQuotes.map((item) => (
+                    <tr key={item.ticker}>
+                      <td>{item.ticker}</td>
+                      <td>{item.name}</td>
+                      <td>{formatPercent(item.weight)}</td>
+                      <td className={getProxyChange(item.currentPrice, item.previousClose) >= 0 ? 'tone-positive' : 'tone-negative'}>{formatPercent(getProxyChange(item.currentPrice, item.previousClose))}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        ) : null}
+
+        {fund.runtime.disclosedHoldings?.length ? (
+          <section className="chart-card">
+            <div className="chart-card__header">
+              <h3>最新前十大持仓公告</h3>
+              <div className="muted-text">{fund.runtime.disclosedHoldingsTitle || '基金持仓'} {fund.runtime.disclosedHoldingsReportDate ? `截止至 ${fund.runtime.disclosedHoldingsReportDate}` : ''}</div>
+            </div>
+            <div className="table-scroll">
+              <table className="mini-data-table">
+                <thead>
+                  <tr>
+                    <th>代码</th>
+                    <th>名称</th>
+                    <th>权重</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {fund.runtime.disclosedHoldings.map((item) => (
+                    <tr key={`${item.ticker}-${item.name}`}>
+                      <td>{item.ticker}</td>
+                      <td>{item.name}</td>
+                      <td>{item.weight.toFixed(2)}%</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        ) : null}
+
         <section className="chart-card">
           <div className="chart-card__header">
             <h3>最近估值记录</h3>
@@ -540,6 +734,7 @@ function DetailPage({ funds, syncedAt, loading }: { funds: FundViewModel[]; sync
                     <th>估值</th>
                     <th>场内价</th>
                     <th>对应真实净值</th>
+                    <th>误差</th>
                     <th>状态</th>
                   </tr>
                 </thead>
@@ -547,6 +742,7 @@ function DetailPage({ funds, syncedAt, loading }: { funds: FundViewModel[]; sync
                   {recentSnapshots.map((item) => {
                     const actualNav = actualNavByDate.get(item.estimateDate);
                     const hasActual = typeof actualNav === 'number';
+                    const estimateError = hasActual && actualNav > 0 ? item.estimatedNav / actualNav - 1 : undefined;
 
                     return (
                       <tr key={item.estimateDate}>
@@ -554,6 +750,9 @@ function DetailPage({ funds, syncedAt, loading }: { funds: FundViewModel[]; sync
                         <td>{formatCurrency(item.estimatedNav)}</td>
                         <td>{formatCurrency(item.marketPrice)}</td>
                         <td>{formatOptionalCurrency(actualNav)}</td>
+                        <td className={typeof estimateError === 'number' ? (estimateError >= 0 ? 'tone-positive' : 'tone-negative') : 'muted-text'}>
+                          {typeof estimateError === 'number' ? formatPercent(estimateError) : '--'}
+                        </td>
                         <td className={hasActual ? 'tone-positive' : 'muted-text'}>{hasActual ? '已结算' : '待净值'}</td>
                       </tr>
                     );
@@ -568,8 +767,41 @@ function DetailPage({ funds, syncedAt, loading }: { funds: FundViewModel[]; sync
 
         <section className="chart-card">
           <div className="chart-card__header">
+            <h3>最近误差记录</h3>
+            <div className="muted-text">误差口径为 估值 / 真实净值 - 1，直接用百分比看偏离</div>
+          </div>
+          {recentErrors.length > 0 ? (
+            <div className="table-scroll">
+              <table className="mini-data-table">
+                <thead>
+                  <tr>
+                    <th>结算日期</th>
+                    <th>估值</th>
+                    <th>真实净值</th>
+                    <th>误差</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {recentErrors.map((item) => (
+                    <tr key={item.date}>
+                      <td>{item.date}</td>
+                      <td>{formatCurrency(item.estimatedNav)}</td>
+                      <td>{formatCurrency(item.actualNav)}</td>
+                      <td className={item.error >= 0 ? 'tone-positive' : 'tone-negative'}>{formatPercent(item.error)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="mini-data-empty">还没有已结算的误差记录。</div>
+          )}
+        </section>
+
+        <section className="chart-card">
+          <div className="chart-card__header">
             <h3>最近抓到的官方净值</h3>
-            <div className="muted-text">这里展示同步脚本当前抓到的最近几天净值</div>
+            <div className="muted-text">这里展示同步脚本当前抓到的最近一个多月净值</div>
           </div>
           <div className="table-scroll">
             <table className="mini-data-table">
@@ -593,8 +825,8 @@ function DetailPage({ funds, syncedAt, loading }: { funds: FundViewModel[]; sync
       </section>
 
       <section className="chart-grid">
-        <LineChart title="估值与真实净值" primary={estimatedSeries} secondary={actualSeries} primaryLabel="昨日估值" secondaryLabel="后续真实净值" />
-        <LineChart title="误差折线" primary={errorSeries} primaryLabel="误差" />
+        <LineChart title="估值与真实净值" primary={estimatedSeries} secondary={actualSeries} primaryLabel="昨日估值" secondaryLabel="后续真实净值" valueFormatter={formatCurrency} />
+        <LineChart title="估值误差折线" primary={errorSeries} primaryLabel="误差" valueFormatter={formatPercent} />
       </section>
 
       {fund.runtime.detailMode === 'holdings' ? <DetailedEstimatorPanel fund={fund} /> : null}
@@ -664,13 +896,15 @@ export default function App() {
 
     void loadRuntime();
 
-    const timer = window.setInterval(() => {
-      void loadRuntime();
-    }, 60_000);
+    let timer = window.setTimeout(function scheduleNext() {
+      void loadRuntime().finally(() => {
+        timer = window.setTimeout(scheduleNext, getRuntimeRefreshInterval());
+      });
+    }, getRuntimeRefreshInterval());
 
     return () => {
       active = false;
-      window.clearInterval(timer);
+      window.clearTimeout(timer);
     };
   }, []);
 
@@ -679,7 +913,10 @@ export default function App() {
       <div className="background-orb background-orb--amber" />
       <div className="background-orb background-orb--teal" />
       <Routes>
-        <Route path="/" element={<HomePage funds={funds} syncedAt={syncedAt} loading={loading} error={error} />} />
+        <Route path="/" element={<Navigate to="/qdii-lof" replace />} />
+        <Route path="/domestic-lof" element={<HomePage funds={funds} syncedAt={syncedAt} loading={loading} error={error} pageCategory="domestic-lof" />} />
+        <Route path="/qdii-lof" element={<HomePage funds={funds} syncedAt={syncedAt} loading={loading} error={error} pageCategory="qdii-lof" />} />
+        <Route path="/etf" element={<HomePage funds={funds} syncedAt={syncedAt} loading={loading} error={error} pageCategory="etf" />} />
         <Route path="/fund/:code" element={<DetailPage funds={funds} syncedAt={syncedAt} loading={loading} />} />
       </Routes>
     </div>

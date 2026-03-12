@@ -8,12 +8,56 @@ import type {
 
 const DEFAULT_LEARNING_RATE = 0.24;
 const DEFAULT_BETA_LEAD = 0.38;
-const MAX_LEAD_MOVE = 0.08;
+const MAX_MARKET_MOVE = 0.08;
+const MAX_PROXY_MOVE = 0.15;
+const MAX_CLOSE_GAP = 0.2;
+const MAX_FX_MOVE = 0.05;
+const JOURNAL_RETENTION_DAYS = 90;
+
+function clamp(value: number, limit: number): number {
+  return Math.max(-limit, Math.min(limit, value));
+}
+
+function getWeightedProxyReturn(runtime: FundRuntimeData): number {
+  const proxyQuotes = runtime.proxyQuotes ?? [];
+  const totalWeight = proxyQuotes.reduce((sum, item) => sum + item.weight, 0);
+
+  if (totalWeight <= 0) {
+    return 0;
+  }
+
+  return proxyQuotes.reduce((sum, item) => {
+    const localReturn = item.previousClose > 0 ? item.currentPrice / item.previousClose - 1 : 0;
+    return sum + localReturn * (item.weight / totalWeight);
+  }, 0);
+}
+
+function getFxReturn(runtime: FundRuntimeData): number {
+  const currentRate = runtime.fx?.currentRate ?? 0;
+  const previousCloseRate = runtime.fx?.previousCloseRate ?? 0;
+  return currentRate > 0 && previousCloseRate > 0 ? currentRate / previousCloseRate - 1 : 0;
+}
+
+function toIsoDateWithOffset(days: number): string {
+  const value = new Date();
+  value.setDate(value.getDate() + days);
+  return value.toISOString().slice(0, 10);
+}
+
+function pruneJournal(journal: FundJournal): FundJournal {
+  const cutoffDate = toIsoDateWithOffset(-JOURNAL_RETENTION_DAYS);
+
+  return {
+    snapshots: journal.snapshots.filter((item) => item.estimateDate >= cutoffDate),
+    errors: journal.errors.filter((item) => item.date >= cutoffDate),
+  };
+}
 
 export function getDefaultWatchlistModel(): WatchlistModel {
   return {
     alpha: 0,
     betaLead: DEFAULT_BETA_LEAD,
+    betaGap: 0,
     learningRate: DEFAULT_LEARNING_RATE,
     sampleCount: 0,
     meanAbsError: 0,
@@ -32,16 +76,19 @@ export function estimateWatchlistFund(
   model: WatchlistModel,
 ): WatchlistEstimateResult {
   const anchorNav = runtime.officialNavT1;
-  const rawLeadReturn = runtime.previousClose > 0 ? runtime.marketPrice / runtime.previousClose - 1 : 0;
-  const leadReturn = Math.max(-MAX_LEAD_MOVE, Math.min(MAX_LEAD_MOVE, rawLeadReturn));
+  const rawLeadReturn = runtime.estimateMode === 'proxy' ? getWeightedProxyReturn(runtime) : runtime.previousClose > 0 ? runtime.marketPrice / runtime.previousClose - 1 : 0;
+  const leadReturn = clamp(rawLeadReturn, runtime.estimateMode === 'proxy' ? MAX_PROXY_MOVE : MAX_MARKET_MOVE);
+  const rawCloseGapReturn = runtime.estimateMode === 'proxy' ? getFxReturn(runtime) : anchorNav > 0 && runtime.previousClose > 0 ? runtime.previousClose / anchorNav - 1 : 0;
+  const closeGapReturn = clamp(rawCloseGapReturn, runtime.estimateMode === 'proxy' ? MAX_FX_MOVE : MAX_CLOSE_GAP);
   const learnedBiasReturn = model.alpha;
-  const impliedReturn = learnedBiasReturn + model.betaLead * leadReturn;
+  const impliedReturn = learnedBiasReturn + model.betaLead * leadReturn + model.betaGap * closeGapReturn;
   const estimatedNav = anchorNav * (1 + impliedReturn);
   const premiumRate = estimatedNav > 0 ? runtime.marketPrice / estimatedNav - 1 : 0;
 
   return {
     anchorNav,
     leadReturn,
+    closeGapReturn,
     learnedBiasReturn,
     impliedReturn,
     estimatedNav,
@@ -55,11 +102,12 @@ export function reconcileJournal(
   currentJournal: FundJournal,
 ): { model: WatchlistModel; journal: FundJournal } {
   const actualNavByDate = new Map(runtime.navHistory.map((item) => [item.date, item.nav]));
-  const resolvedDates = new Set(currentJournal.errors.map((item) => item.date));
-  let model = { ...currentModel };
-  const nextErrors = [...currentJournal.errors];
+  const baseJournal = pruneJournal(currentJournal);
+  const resolvedDates = new Set(baseJournal.errors.map((item) => item.date));
+  let model = { ...getDefaultWatchlistModel(), ...currentModel };
+  const nextErrors = [...baseJournal.errors];
 
-  for (const snapshot of currentJournal.snapshots) {
+  for (const snapshot of baseJournal.snapshots) {
     if (resolvedDates.has(snapshot.estimateDate)) {
       continue;
     }
@@ -71,18 +119,20 @@ export function reconcileJournal(
 
     const targetReturn = snapshot.anchorNav > 0 ? actualNav / snapshot.anchorNav - 1 : 0;
     const predictedReturn = snapshot.impliedReturn;
-    const error = targetReturn - predictedReturn;
+    const residualError = targetReturn - predictedReturn;
+    const displayError = actualNav > 0 ? snapshot.estimatedNav / actualNav - 1 : 0;
     const nextSampleCount = model.sampleCount + 1;
     const adaptiveRate = model.learningRate / Math.sqrt(nextSampleCount);
     const nextMae =
       model.sampleCount === 0
-        ? Math.abs(error)
-        : (model.meanAbsError * model.sampleCount + Math.abs(error)) / nextSampleCount;
+        ? Math.abs(displayError)
+        : (model.meanAbsError * model.sampleCount + Math.abs(displayError)) / nextSampleCount;
 
     model = {
       ...model,
-      alpha: model.alpha + adaptiveRate * error,
-      betaLead: model.betaLead + adaptiveRate * error * snapshot.leadReturn,
+      alpha: model.alpha + adaptiveRate * residualError,
+      betaLead: model.betaLead + adaptiveRate * residualError * snapshot.leadReturn,
+      betaGap: model.betaGap + adaptiveRate * residualError * snapshot.closeGapReturn,
       sampleCount: nextSampleCount,
       meanAbsError: nextMae,
       lastUpdatedAt: new Date().toISOString(),
@@ -93,8 +143,8 @@ export function reconcileJournal(
       estimatedNav: snapshot.estimatedNav,
       actualNav,
       premiumRate: snapshot.premiumRate,
-      error,
-      absError: Math.abs(error),
+      error: displayError,
+      absError: Math.abs(displayError),
     };
 
     nextErrors.push(errorPoint);
@@ -105,10 +155,10 @@ export function reconcileJournal(
 
   return {
     model,
-    journal: {
-      ...currentJournal,
+    journal: pruneJournal({
+      ...baseJournal,
       errors: nextErrors,
-    },
+    }),
   };
 }
 
@@ -123,7 +173,7 @@ export function recordEstimateSnapshot(
     return journal;
   }
 
-  return {
+  return pruneJournal({
     ...journal,
     snapshots: [
       ...journal.snapshots,
@@ -134,9 +184,10 @@ export function recordEstimateSnapshot(
         premiumRate: estimate.premiumRate,
         anchorNav: estimate.anchorNav,
         leadReturn: estimate.leadReturn,
+        closeGapReturn: estimate.closeGapReturn,
         impliedReturn: estimate.impliedReturn,
         createdAt: new Date().toISOString(),
       },
     ].sort((left, right) => left.estimateDate.localeCompare(right.estimateDate)),
-  };
+  });
 }
