@@ -16,7 +16,7 @@ const PUBLISHED_RUNTIME_URLS = [
 const now = new Date();
 const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 const WATCHLIST_STATE_VERSION = 5;
-const DAILY_CACHE_VERSION = 10;
+const DAILY_CACHE_VERSION = 11;
 const MAX_MARKET_MOVE = 0.08;
 const MAX_PROXY_MOVE = 0.15;
 const MAX_CLOSE_GAP = 0.2;
@@ -99,6 +99,35 @@ const RELATED_ETF_FALLBACKS = {
   '501011': '560080',
 };
 const SUPPLEMENTAL_NOTICE_HOLDINGS = {
+  '160216': [
+    { ticker: 'CPER', aliases: ['United States Copper Index Fund'] },
+    { ticker: 'GLD', aliases: ['SPDR Gold Shares ETF', 'SPDR Gold ETF'] },
+    { ticker: 'GLDM', aliases: ['SPDR Gold MiniShares Trust', 'MiniShares Trust'] },
+    { ticker: 'SGOL', aliases: ['abrdn Physical Gold Shares ETF', 'abrdn Physical Gold ETF'] },
+    { ticker: 'UGL', aliases: ['ProShares Ultra Gold ETF'] },
+    { ticker: 'COPX', aliases: ['Global X Copper Miners ETF'] },
+    { ticker: 'DBB', aliases: ['Invesco DB Base Metals Fund'] },
+    { ticker: 'GDXU', aliases: ['MicroSectors Gold Miners 3X Leveraged ETN', 'Gold Miners 3X Leveraged ETN'] },
+  ],
+  '161116': [
+    { ticker: 'GLD', aliases: ['SPDR Gold Shares ETF'] },
+    { ticker: 'SGOL', aliases: ['abrdn Physical Gold Shares ETF'] },
+    { ticker: 'GLDM', aliases: ['SPDR Gold MiniShares ETF Trust', 'SPDR Gold MiniShares Trust'] },
+    { ticker: 'IAU', aliases: ['iShares Gold Trust ETF', 'iShares Gold Trust'] },
+    { ticker: 'UGL', aliases: ['ProShares Ultra Gold ETF'] },
+  ],
+  '164701': [
+    { ticker: 'UGL', aliases: ['ProShares Ultra Gold ETF'] },
+    { ticker: 'GLDM', aliases: ['SPDR Gold MiniShares Trust'] },
+    { ticker: 'GLD', aliases: ['SPDR Gold Shares ETF'] },
+    { ticker: 'AAAU', aliases: ['Goldman Sachs Physical Gold ETF'] },
+    { ticker: 'SIVR', aliases: ['abrdn Physical Silver Shares ETF'] },
+  ],
+  '160719': [
+    { ticker: 'GLD', aliases: ['SPDR Gold Shares ETF'] },
+    { ticker: 'SGOL', aliases: ['abrdn Physical Gold Shares ETF', 'Physical Gold Shares ETF'] },
+    { ticker: 'IAU', aliases: ['iShares Gold Trust ETF', 'iShares Gold Trust'] },
+  ],
   '501312': [
     { ticker: 'ARKK', aliases: ['ARK Innovation ETF'] },
     { ticker: 'ARKG', aliases: ['ARK Genomic Revolution ETF'] },
@@ -110,6 +139,17 @@ const SUPPLEMENTAL_NOTICE_HOLDINGS = {
     { ticker: 'XLK', aliases: ['Technology Select Sector SPDR ETF'] },
     { ticker: 'SMH', aliases: ['VanEck Semiconductor ETF'] },
     { ticker: 'FINX', aliases: ['Global X FinTech ETF', 'FinTech ETF'] },
+  ],
+  '501018': [
+    { ticker: 'USO', aliases: ['United States Oil Fund LP', 'United States Oil ETF', 'United States Oil'] },
+    { ticker: 'BNO', aliases: ['United States Brent Oil Fund LP', 'Brent Oil Fund LP'] },
+  ],
+  '161129': [
+    { ticker: 'DBO', aliases: ['Invesco DB Oil Fund'] },
+  ],
+  '160723': [
+    { ticker: 'USO', aliases: ['United States Oil Fund LP', 'United States Oil ETF'] },
+    { ticker: 'BNO', aliases: ['United States Brent Oil Fund LP', 'Brent Oil Fund LP'] },
   ],
 };
 let intradayPromise = null;
@@ -694,6 +734,10 @@ function parseJsonpPayload(content) {
 
 function normalizeNoticeTextLines(text) {
   return String(text || '')
+    .replace(/(?=§\d)/g, '\n')
+    .replace(/(?=5\.\d\b)/g, '\n')
+    .replace(/([0-9])\s+(?=[0-9,.])/g, '$1')
+    .replace(/([,.])\s+(?=[0-9])/g, '$1')
     .split(/\r?\n/)
     .map((line) => line.replace(/\s+/g, ' ').trim())
     .filter(Boolean);
@@ -751,10 +795,8 @@ function parseCnReportDate(text) {
 }
 
 function parseNoticeFundHoldingsDisclosure(noticeTitle, noticeContent, aliases, quoteByTicker) {
-  const lines = normalizeNoticeTextLines(noticeContent);
-  const start = lines.findIndex((line) => /^5\.9\b/.test(line));
-  const end = lines.findIndex((line, index) => index > start && /^5\.10\b/.test(line));
-  if (start < 0 || end < 0) {
+  const sectionMatch = String(noticeContent || '').match(/5\.9\b([\s\S]*?)5\.10\b/);
+  if (!sectionMatch) {
     return {
       disclosedHoldingsTitle: '',
       disclosedHoldingsReportDate: '',
@@ -762,7 +804,7 @@ function parseNoticeFundHoldingsDisclosure(noticeTitle, noticeContent, aliases, 
     };
   }
 
-  const block = lines.slice(start + 1, end);
+  const block = normalizeNoticeTextLines(sectionMatch[1]);
   const holdings = [];
   let pendingNameLines = [];
 
