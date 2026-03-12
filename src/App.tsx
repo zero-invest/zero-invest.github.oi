@@ -105,6 +105,10 @@ function formatOptionalCurrency(value?: number): string {
   return typeof value === 'number' && Number.isFinite(value) ? formatCurrency(value) : '--';
 }
 
+function formatOptionalChangeRate(value?: number): string {
+  return typeof value === 'number' && Number.isFinite(value) ? formatPercent(value) : '--';
+}
+
 function formatDateTime(value: string): string {
   if (!value) {
     return '--';
@@ -123,18 +127,18 @@ function getPageOption(pageCategory: PageCategory) {
 }
 
 function getEstimateDriverLabels(runtime: FundRuntimeData) {
-  return runtime.estimateMode === 'proxy'
+  return runtime.disclosedHoldings?.length && runtime.holdingQuotes?.length
+    ? {
+        summary: '该基金当前优先按最近披露前十大持仓的盘中涨跌幅推算净值；海外持仓会同步计入 USD/CNY 变化，场内价格只用于计算溢价率。',
+        primaryFactor: '前十大持仓涨跌幅',
+        secondaryFactor: runtime.pageCategory === 'qdii-lof' ? 'USD/CNY 变化' : '学习修正项',
+      }
+    : runtime.estimateMode === 'proxy'
     ? {
         summary: `该基金当前按 ${runtime.proxyBasketName || '代理篮子'} + USD/CNY 推算净值，场内价格只用于计算溢价率。`,
         primaryFactor: '代理篮子涨跌幅',
         secondaryFactor: 'USD/CNY 变化',
       }
-    : runtime.disclosedHoldings?.length && runtime.holdingQuotes?.length
-      ? {
-          summary: '该基金当前优先按最近披露前十大持仓的盘中涨跌幅推算净值；海外持仓会同步计入 USD/CNY 变化，场内价格只用于计算溢价率。',
-          primaryFactor: '前十大持仓涨跌幅',
-          secondaryFactor: runtime.pageCategory === 'qdii-lof' ? 'USD/CNY 变化' : '学习修正项',
-        }
     : {
         summary: '该基金当前按最近官方净值锚点、场内日内涨跌幅和误差历史做盘中指示估值。',
         primaryFactor: '场内涨跌幅',
@@ -702,7 +706,10 @@ function DetailPage({ funds, syncedAt, loading }: { funds: FundViewModel[]; sync
           <section className="chart-card">
             <div className="chart-card__header">
               <h3>最新前十大持仓公告</h3>
-              <div className="muted-text">{fund.runtime.disclosedHoldingsTitle || '基金持仓'} {fund.runtime.disclosedHoldingsReportDate ? `截止至 ${fund.runtime.disclosedHoldingsReportDate}` : ''}</div>
+              <div className="muted-text">
+                {fund.runtime.disclosedHoldingsTitle || '基金持仓'} {fund.runtime.disclosedHoldingsReportDate ? `截止至 ${fund.runtime.disclosedHoldingsReportDate}` : ''}
+                {fund.runtime.holdingsQuoteDate ? `，行情时间 ${formatRuntimeTime(fund.runtime.holdingsQuoteDate, fund.runtime.holdingsQuoteTime || '')}` : ''}
+              </div>
             </div>
             <div className="table-scroll">
               <table className="mini-data-table">
@@ -711,6 +718,8 @@ function DetailPage({ funds, syncedAt, loading }: { funds: FundViewModel[]; sync
                     <th>代码</th>
                     <th>名称</th>
                     <th>权重</th>
+                    <th>现价</th>
+                    <th>涨跌幅</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -719,6 +728,8 @@ function DetailPage({ funds, syncedAt, loading }: { funds: FundViewModel[]; sync
                       <td>{item.ticker}</td>
                       <td>{item.name}</td>
                       <td>{item.weight.toFixed(2)}%</td>
+                      <td>{formatOptionalCurrency(item.currentPrice)}</td>
+                      <td className={typeof item.changeRate === 'number' ? (item.changeRate >= 0 ? 'tone-positive' : 'tone-negative') : 'muted-text'}>{formatOptionalChangeRate(item.changeRate)}</td>
                     </tr>
                   ))}
                 </tbody>

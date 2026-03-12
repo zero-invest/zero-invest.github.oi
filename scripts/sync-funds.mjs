@@ -2,6 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { load } from 'cheerio';
 import catalog from '../src/data/fundCatalog.json' with { type: 'json' };
+import { parseNoticeHoldingsDisclosure } from './notice-parsers/registry.mjs';
 
 const projectRoot = process.cwd();
 const outputPath = path.join(projectRoot, 'public', 'generated', 'funds-runtime.json');
@@ -16,7 +17,7 @@ const PUBLISHED_RUNTIME_URLS = [
 const now = new Date();
 const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 const WATCHLIST_STATE_VERSION = 5;
-const DAILY_CACHE_VERSION = 14;
+const DAILY_CACHE_VERSION = 18;
 const MAX_MARKET_MOVE = 0.08;
 const MAX_PROXY_MOVE = 0.15;
 const MAX_CLOSE_GAP = 0.2;
@@ -143,6 +144,15 @@ const SUPPLEMENTAL_NOTICE_HOLDINGS = {
   '501018': [
     { ticker: 'USO', aliases: ['United States Oil Fund LP', 'United States Oil ETF', 'United States Oil'] },
     { ticker: 'BNO', aliases: ['United States Brent Oil Fund LP', 'Brent Oil Fund LP'] },
+  ],
+  '501225': [
+    { ticker: 'SMH', aliases: ['VanEck Semiconductor ETF'] },
+    { ticker: 'SOXQ', aliases: ['Invesco PHLX Semiconductor ETF', 'PHLX Semiconductor ETF'] },
+    { ticker: 'SOXX', aliases: ['iShares Semiconductor ETF'] },
+    { ticker: 'PSI', aliases: ['Invesco Dynamic Semiconductors ETF', 'Dynamic Semiconductors ETF'] },
+    { ticker: '159995', aliases: ['华夏国证半导体芯片ETF', '国证半导体芯片 ETF'] },
+    { ticker: '512760', aliases: ['国泰CES半导体芯片行业ETF', 'CES 半导体芯片行业 ETF'] },
+    { ticker: '159560', aliases: ['景顺长城中证芯片产业ETF', '中证芯片产业 ETF'] },
   ],
   '161129': [
     { ticker: 'DBO', aliases: ['Invesco DB Oil Fund', 'Invesco DB Oil'] },
@@ -732,132 +742,6 @@ function parseJsonpPayload(content) {
   }
 }
 
-function normalizeNoticeTextLines(text) {
-  return String(text || '')
-    .replace(/(?=§\d)/g, '\n')
-    .replace(/(?=5\.\d\b)/g, '\n')
-    .replace(/([0-9])\s+(?=[0-9,.])/g, '$1')
-    .replace(/([,.])\s+(?=[0-9])/g, '$1')
-    .split(/\r?\n/)
-    .map((line) => line.replace(/\s+/g, ' ').trim())
-    .filter(Boolean);
-}
-
-function normalizeAsciiWords(value) {
-  return String(value || '')
-    .toUpperCase()
-    .replace(/&AMP;|＆/g, ' & ')
-    .replace(/[^A-Z0-9&]+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-function matchesAliasByWordOrder(rawName, alias) {
-  const normalizedName = normalizeAsciiWords(rawName);
-  const words = normalizeAsciiWords(alias).split(' ').filter(Boolean);
-  if (!normalizedName || !words.length) {
-    return false;
-  }
-
-  let cursor = 0;
-  for (const word of words) {
-    const index = normalizedName.indexOf(word, cursor);
-    if (index < 0) {
-      return false;
-    }
-    cursor = index + word.length;
-  }
-
-  return true;
-}
-
-function resolveSupplementalHolding(rawName, candidates) {
-  const matched = candidates
-    .flatMap((candidate) => candidate.aliases.map((alias) => ({ candidate, alias })))
-    .filter((entry) => matchesAliasByWordOrder(rawName, entry.alias))
-    .sort((left, right) => right.alias.length - left.alias.length)[0];
-
-  return matched
-    ? {
-        ticker: matched.candidate.ticker,
-        name: matched.alias,
-      }
-    : null;
-}
-
-function parseCnReportDate(text) {
-  const match = String(text || '').match(/(\d{4})\s*年\s*(\d{1,2})\s*月\s*(\d{1,2})\s*日/);
-  if (!match) {
-    return '';
-  }
-
-  return `${match[1]}-${String(match[2]).padStart(2, '0')}-${String(match[3]).padStart(2, '0')}`;
-}
-
-function parseNoticeFundHoldingsDisclosure(noticeTitle, noticeContent, aliases, quoteByTicker) {
-  const sectionMatch = String(noticeContent || '').match(/5\.9\b([\s\S]*?)5\.10\b/);
-  if (!sectionMatch) {
-    return {
-      disclosedHoldingsTitle: '',
-      disclosedHoldingsReportDate: '',
-      disclosedHoldings: [],
-    };
-  }
-
-  const block = normalizeNoticeTextLines(sectionMatch[1]);
-  const holdings = [];
-  let pendingNameLines = [];
-
-  for (let index = 0; index < block.length; index += 1) {
-    const line = block[index];
-    if (!line || /^公允价值|^序号|^（%）|^注[:：]/.test(line)) {
-      continue;
-    }
-
-    const rowMatch = line.match(/^(\d{1,2})\s+(.+?)\s+([\d,]+\.\d{2})\s+(\d+\.\d{2})$/);
-    if (!rowMatch) {
-      pendingNameLines.push(line);
-      continue;
-    }
-
-    const [, rankText, inlineName, marketValueText, weightText] = rowMatch;
-    const nameParts = [...pendingNameLines.slice(-2), inlineName];
-    pendingNameLines = [];
-
-    let lookaheadCount = 0;
-    while (lookaheadCount < 2 && index + 1 < block.length && !/^\d{1,2}\s+/.test(block[index + 1]) && !/^注[:：]/.test(block[index + 1])) {
-      nameParts.push(block[index + 1]);
-      index += 1;
-      lookaheadCount += 1;
-    }
-
-    const rawName = nameParts.join(' ').replace(/\s+/g, ' ').trim();
-    const resolved = resolveSupplementalHolding(rawName, aliases);
-    if (!resolved) {
-      continue;
-    }
-
-    const quote = quoteByTicker.get(resolved.ticker.toUpperCase());
-    holdings.push({
-      rank: Number(rankText),
-      ticker: resolved.ticker,
-      name: resolved.name,
-      weight: parseNumber(weightText),
-      marketValue: parseNumber(marketValueText),
-      currentPrice: quote?.currentPrice,
-      changeRate: quote?.changeRate,
-    });
-  }
-
-  const titleMatch = String(noticeTitle || '').match(/(\d{4}年第[1-4]季度)报告/);
-
-  return {
-    disclosedHoldingsTitle: titleMatch ? `${titleMatch[1]}前十名基金投资明细` : noticeTitle || '',
-    disclosedHoldingsReportDate: parseCnReportDate(noticeContent),
-    disclosedHoldings: holdings.sort((left, right) => left.rank - right.rank).slice(0, 10).map(({ rank, ...item }) => item),
-  };
-}
-
 async function fetchNoticeHoldingsDisclosure(code) {
   const aliases = SUPPLEMENTAL_NOTICE_HOLDINGS[code];
   if (!aliases?.length) {
@@ -875,7 +759,7 @@ async function fetchNoticeHoldingsDisclosure(code) {
     return null;
   }
 
-  const quoteByTicker = await fetchOverseasHoldingQuoteMap(aliases.map((item) => item.ticker));
+  const quoteByTicker = await fetchSupplementalHoldingQuoteMap(aliases.map((item) => item.ticker));
 
   for (const report of reports) {
     const artCode = report?.ID;
@@ -890,7 +774,12 @@ async function fetchNoticeHoldingsDisclosure(code) {
         'utf-8',
       );
       const contentPayload = JSON.parse(contentResponse);
-      const parsed = parseNoticeFundHoldingsDisclosure(report.TITLE, contentPayload?.data?.notice_content ?? '', aliases, quoteByTicker);
+      const parsed = parseNoticeHoldingsDisclosure(code, {
+        noticeTitle: report.TITLE,
+        noticeContent: contentPayload?.data?.notice_content ?? '',
+        aliases,
+        quoteByTicker,
+      });
       if (parsed.disclosedHoldings.length) {
         return parsed;
       }
@@ -1108,24 +997,20 @@ function updateDisclosureHistory(historyByCode, runtime) {
   }
 
   const current = historyByCode[runtime.code] ?? [];
-  const alreadyRecorded = current.some(
-    (item) => item.reportDate === runtime.disclosedHoldingsReportDate && item.title === runtime.disclosedHoldingsTitle,
-  );
-
-  if (alreadyRecorded) {
-    return historyByCode;
-  }
+  const nextEntry = {
+    reportDate: runtime.disclosedHoldingsReportDate,
+    title: runtime.disclosedHoldingsTitle,
+    holdings: runtime.disclosedHoldings,
+    capturedAt: new Date().toISOString(),
+  };
 
   return {
     ...historyByCode,
     [runtime.code]: [
-      ...current,
-      {
-        reportDate: runtime.disclosedHoldingsReportDate,
-        title: runtime.disclosedHoldingsTitle,
-        holdings: runtime.disclosedHoldings,
-        capturedAt: new Date().toISOString(),
-      },
+      ...current.filter(
+        (item) => item.reportDate !== runtime.disclosedHoldingsReportDate || item.title !== runtime.disclosedHoldingsTitle,
+      ),
+      nextEntry,
     ].sort((left, right) => left.reportDate.localeCompare(right.reportDate)).slice(-8),
   };
 }
@@ -1143,6 +1028,12 @@ function compareDisclosureFreshness(left, right) {
   const rightDate = right?.disclosedHoldingsReportDate ?? '';
   if (leftDate !== rightDate) {
     return leftDate.localeCompare(rightDate);
+  }
+
+  const leftQuotedCount = (left?.disclosedHoldings ?? []).filter((item) => Number.isFinite(item?.currentPrice) && item.currentPrice > 0).length;
+  const rightQuotedCount = (right?.disclosedHoldings ?? []).filter((item) => Number.isFinite(item?.currentPrice) && item.currentPrice > 0).length;
+  if (leftQuotedCount !== rightQuotedCount) {
+    return leftQuotedCount - rightQuotedCount;
   }
 
   return (left?.disclosedHoldings?.length ?? 0) - (right?.disclosedHoldings?.length ?? 0);
@@ -1267,6 +1158,83 @@ function parseUsQuotes(raw) {
       return match ? parseUsQuoteRow(match[1]) : null;
     })
     .filter(Boolean);
+}
+
+function getSupplementalQuoteSymbol(ticker) {
+  const normalized = String(ticker || '').toUpperCase();
+  if (!normalized) {
+    return '';
+  }
+
+  if (isUsHoldingTicker(normalized)) {
+    return `us${normalized}`;
+  }
+
+  if (/^0\d{4}$/.test(normalized)) {
+    return `hk${normalized}`;
+  }
+
+  if (/^\d{6}$/.test(normalized)) {
+    return `${normalized.startsWith('5') || normalized.startsWith('6') ? 'sh' : 'sz'}${normalized}`;
+  }
+
+  return '';
+}
+
+function parseSupplementalStandardQuoteRow(rawRow) {
+  const fields = rawRow.split('~');
+  const dateTimeRaw = fields.find((field) => /^\d{14}$/.test(field)) || '';
+
+  return {
+    name: fields[1] || '',
+    ticker: fields[2] || '',
+    currentPrice: Number(fields[3]) || 0,
+    previousClose: Number(fields[4]) || 0,
+    quoteDate: dateTimeRaw.length >= 8 ? `${dateTimeRaw.slice(0, 4)}-${dateTimeRaw.slice(4, 6)}-${dateTimeRaw.slice(6, 8)}` : '',
+    quoteTime: dateTimeRaw.length >= 14 ? `${dateTimeRaw.slice(8, 10)}:${dateTimeRaw.slice(10, 12)}:${dateTimeRaw.slice(12, 14)}` : '',
+  };
+}
+
+async function fetchSupplementalHoldingQuoteMap(tickers) {
+  const normalizedTickers = [...new Set(tickers.map((item) => String(item || '').toUpperCase()).filter(Boolean))];
+  const usTickers = normalizedTickers.filter(isUsHoldingTicker);
+  const nonUsSymbols = [...new Set(normalizedTickers.map((item) => getSupplementalQuoteSymbol(item)).filter((item) => item && !item.startsWith('us')))];
+
+  const quoteByTicker = await fetchOverseasHoldingQuoteMap(usTickers);
+  if (!nonUsSymbols.length) {
+    return quoteByTicker;
+  }
+
+  const response = await fetchText(`https://qt.gtimg.cn/q=${nonUsSymbols.join(',')}`, { referer: 'https://gu.qq.com/' }, 'gb18030');
+  const localQuotes = response
+    .split(';')
+    .map((row) => row.trim())
+    .filter(Boolean)
+    .map((row) => {
+      const match = row.match(/^v_([a-z]+)([^=]+)="([^"]+)"$/i);
+      if (!match) {
+        return null;
+      }
+
+      const [, , rawTicker, rawPayload] = match;
+      const parsed = parseSupplementalStandardQuoteRow(rawPayload);
+      return {
+        ticker: String(parsed.ticker || rawTicker).toUpperCase(),
+        currentPrice: parsed.currentPrice,
+        previousClose: parsed.previousClose,
+      };
+    })
+    .filter(Boolean)
+    .filter((item) => item.currentPrice > 0 && item.previousClose > 0);
+
+  for (const item of localQuotes) {
+    quoteByTicker.set(item.ticker, {
+      currentPrice: item.currentPrice,
+      changeRate: item.previousClose > 0 ? item.currentPrice / item.previousClose - 1 : 0,
+    });
+  }
+
+  return quoteByTicker;
 }
 
 async function pruneIntradayCache() {
