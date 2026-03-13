@@ -17,7 +17,7 @@ const PUBLISHED_RUNTIME_URLS = [
 const now = new Date();
 const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 const WATCHLIST_STATE_VERSION = 5;
-const DAILY_CACHE_VERSION = 18;
+const DAILY_CACHE_VERSION = 21;
 const MAX_MARKET_MOVE = 0.08;
 const MAX_PROXY_MOVE = 0.15;
 const MAX_CLOSE_GAP = 0.2;
@@ -159,7 +159,12 @@ const SUPPLEMENTAL_NOTICE_HOLDINGS = {
   ],
   '160723': [
     { ticker: 'USO', aliases: ['United States Oil Fund LP', 'United States Oil ETF'] },
+    { ticker: 'WTI_ETC', aliases: ['WisdomTree WTI Crude Oil', 'WisdomTree WTI Crude Oil ETC'] },
+    { ticker: 'SIMPLEX_WTI', aliases: ['Simplex WTI ETF'] },
+    { ticker: 'BRENT_ETC', aliases: ['WisdomTree Brent Crude Oil', 'WisdomTree Brent Crude Oil ETC'] },
     { ticker: 'BNO', aliases: ['United States Brent Oil Fund LP', 'Brent Oil Fund LP'] },
+    { ticker: '1699', aliases: ['NEXT FUNDS NOMURA Crude Oil Long Index Linked Exchange Traded', 'NEXT FUNDS NOMURA Crude Oil Long Index Linked ETF'] },
+    { ticker: 'BRENT_BBG_ETC', aliases: ['WisdomTree Bloomberg Brent Crude Oil'] },
   ],
 };
 let intradayPromise = null;
@@ -1023,6 +1028,31 @@ function normalizeDisclosureEntry(disclosure) {
   };
 }
 
+function patchKnownDisclosureGaps(code, disclosure) {
+  const normalized = normalizeDisclosureEntry(disclosure);
+
+  if (
+    code === '160723'
+    && normalized.disclosedHoldingsReportDate === '2025-12-31'
+    && !normalized.disclosedHoldings.some((item) => item?.ticker === '1699')
+  ) {
+    return {
+      ...normalized,
+      disclosedHoldings: [
+        ...normalized.disclosedHoldings,
+        {
+          ticker: '1699',
+          name: 'NEXT FUNDS NOMURA Crude Oil Long Index Linked ETF',
+          weight: 14.29,
+          marketValue: 65062509.79,
+        },
+      ].sort((left, right) => (right.weight ?? 0) - (left.weight ?? 0)),
+    };
+  }
+
+  return normalized;
+}
+
 function compareDisclosureFreshness(left, right) {
   const leftDate = left?.disclosedHoldingsReportDate ?? '';
   const rightDate = right?.disclosedHoldingsReportDate ?? '';
@@ -1287,7 +1317,10 @@ async function getDailyFundData(entry, holdingsHistoryByCode = {}) {
     (best, item) => pickPreferredDisclosure(best, item),
     normalizeDisclosureEntry(null),
   );
-  const resolvedHoldingsDisclosure = pickPreferredDisclosure(finalHoldingsDisclosure, historicalHoldingsDisclosure);
+  const resolvedHoldingsDisclosure = patchKnownDisclosureGaps(
+    entry.code,
+    pickPreferredDisclosure(finalHoldingsDisclosure, historicalHoldingsDisclosure),
+  );
   const latestNav = pingzhong.navHistory[0] ?? { date: '', nav: 0 };
   const payload = {
     cacheVersion: DAILY_CACHE_VERSION,

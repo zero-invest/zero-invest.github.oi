@@ -13,6 +13,7 @@ import type { CalibrationModel, FundRuntimeData, FundScenario, FundViewModel, Pa
 const DETAIL_CALIBRATION_PREFIX = 'premium-estimator:detailed-calibration:';
 const FAST_SYNC_INTERVAL = 60_000;
 const SLOW_SYNC_INTERVAL = 15 * 60_000;
+const MULTI_ALGO_CODES = new Set(['161128', '160719', '160723']);
 const PAGE_OPTIONS: Array<{ key: PageCategory; path: string; label: string; lead: string; tableTitle: string; tableDescription: string }> = [
   {
     key: 'qdii-lof',
@@ -182,6 +183,138 @@ function getEstimateDriverLabels(runtime: FundRuntimeData) {
         primaryFactor: '场内涨跌幅',
         secondaryFactor: '昨收相对净值偏离',
       };
+}
+
+interface AlgoVariant {
+  key: string;
+  label: string;
+  alpha: number;
+  betaLead: number;
+  betaGap: number;
+}
+
+interface AlgoScore {
+  variant: AlgoVariant;
+  sampleCount: number;
+  maeAll: number;
+  mae30: number;
+  maeRecent: number;
+  estimatedNav: number;
+  premiumRate: number;
+}
+
+function buildAlgoVariants(fund: FundViewModel): AlgoVariant[] {
+  const main = {
+    key: 'main',
+    label: '当前主模型',
+    alpha: fund.model.alpha,
+    betaLead: fund.model.betaLead,
+    betaGap: fund.model.betaGap,
+  };
+
+  return [
+    main,
+    {
+      key: 'baseline-v1',
+      label: '基线 v1（固定系数）',
+      alpha: 0,
+      betaLead: 0.38,
+      betaGap: 0,
+    },
+    {
+      key: 'stable-v1',
+      label: '稳健 v1（低灵敏）',
+      alpha: main.alpha * 0.8,
+      betaLead: main.betaLead * 0.82,
+      betaGap: main.betaGap * 0.7,
+    },
+    {
+      key: 'aggressive-v1',
+      label: '激进 v1（高灵敏）',
+      alpha: main.alpha,
+      betaLead: main.betaLead * 1.15,
+      betaGap: main.betaGap * 1.1,
+    },
+  ];
+}
+
+function computeAlgoScores(fund: FundViewModel): AlgoScore[] {
+  const variants = buildAlgoVariants(fund);
+  const snapshotsByDate = new Map(fund.journal.snapshots.map((item) => [item.estimateDate, item]));
+  const settledRows = fund.journal.errors
+    .map((errorPoint) => {
+      const snapshot = snapshotsByDate.get(errorPoint.date);
+      if (!snapshot || !Number.isFinite(errorPoint.actualNav) || errorPoint.actualNav <= 0 || snapshot.anchorNav <= 0) {
+        return null;
+      }
+
+      return {
+        actualNav: errorPoint.actualNav,
+        anchorNav: snapshot.anchorNav,
+        leadReturn: snapshot.leadReturn,
+        closeGapReturn: snapshot.closeGapReturn,
+      };
+    })
+    .filter(
+      (item): item is { actualNav: number; anchorNav: number; leadReturn: number; closeGapReturn: number } => Boolean(item),
+    );
+
+  const recentRows7 = settledRows.slice(-7);
+  const recentRows30 = settledRows.slice(-30);
+
+  return variants
+    .map((variant) => {
+      const estimateReturn = variant.alpha + variant.betaLead * fund.estimate.leadReturn + variant.betaGap * fund.estimate.closeGapReturn;
+      const estimatedNav = fund.estimate.anchorNav > 0 ? fund.estimate.anchorNav * (1 + estimateReturn) : 0;
+      const premiumRate = estimatedNav > 0 ? fund.runtime.marketPrice / estimatedNav - 1 : 0;
+
+      const allErrors = settledRows.map((row) => {
+        const predictedReturn = variant.alpha + variant.betaLead * row.leadReturn + variant.betaGap * row.closeGapReturn;
+        const predictedNav = row.anchorNav * (1 + predictedReturn);
+        return Math.abs(predictedNav / row.actualNav - 1);
+      });
+      const recentErrors = recentRows7.map((row) => {
+        const predictedReturn = variant.alpha + variant.betaLead * row.leadReturn + variant.betaGap * row.closeGapReturn;
+        const predictedNav = row.anchorNav * (1 + predictedReturn);
+        return Math.abs(predictedNav / row.actualNav - 1);
+      });
+      const last30Errors = recentRows30.map((row) => {
+        const predictedReturn = variant.alpha + variant.betaLead * row.leadReturn + variant.betaGap * row.closeGapReturn;
+        const predictedNav = row.anchorNav * (1 + predictedReturn);
+        return Math.abs(predictedNav / row.actualNav - 1);
+      });
+
+      const maeAll = allErrors.length > 0 ? allErrors.reduce((sum, value) => sum + value, 0) / allErrors.length : NaN;
+      const mae30 = last30Errors.length > 0 ? last30Errors.reduce((sum, value) => sum + value, 0) / last30Errors.length : NaN;
+      const maeRecent = recentErrors.length > 0 ? recentErrors.reduce((sum, value) => sum + value, 0) / recentErrors.length : NaN;
+
+      return {
+        variant,
+        sampleCount: settledRows.length,
+        maeAll,
+        mae30,
+        maeRecent,
+        estimatedNav,
+        premiumRate,
+      };
+    })
+    .sort((left, right) => {
+      const leftScore = Number.isFinite(left.mae30) ? left.mae30 : Number.POSITIVE_INFINITY;
+      const rightScore = Number.isFinite(right.mae30) ? right.mae30 : Number.POSITIVE_INFINITY;
+      if (leftScore !== rightScore) {
+        return leftScore - rightScore;
+      }
+
+      const leftRecent = Number.isFinite(left.maeRecent) ? left.maeRecent : Number.POSITIVE_INFINITY;
+      const rightRecent = Number.isFinite(right.maeRecent) ? right.maeRecent : Number.POSITIVE_INFINITY;
+      if (leftRecent !== rightRecent) {
+        return leftRecent - rightRecent;
+      }
+
+      const leftAll = Number.isFinite(left.maeAll) ? left.maeAll : Number.POSITIVE_INFINITY;
+      const rightAll = Number.isFinite(right.maeAll) ? right.maeAll : Number.POSITIVE_INFINITY;
+      return leftAll - rightAll;
+    });
 }
 
 function getProxyChange(currentPrice: number, previousClose: number) {
@@ -610,6 +743,8 @@ function DetailPage({ funds, syncedAt, loading }: { funds: FundViewModel[]; sync
   const errorByDate = new Map(fund.journal.errors.map((item) => [item.date, item]));
   const recentSnapshots = [...fund.journal.snapshots].slice(-20).reverse();
   const recentNavHistory = fund.runtime.navHistory.slice(0, 20);
+  const showMultiAlgoBoard = MULTI_ALGO_CODES.has(fund.runtime.code);
+  const algoScores = showMultiAlgoBoard ? computeAlgoScores(fund) : [];
 
   return (
     <main className="page">
@@ -679,6 +814,45 @@ function DetailPage({ funds, syncedAt, loading }: { funds: FundViewModel[]; sync
           <strong>{fund.model.sampleCount}</strong>
         </div>
       </section>
+
+      {showMultiAlgoBoard ? (
+        <section className="chart-card">
+          <div className="chart-card__header">
+            <h3>多算法并行观察（内测）</h3>
+            <div className="muted-text">阶段目标：单基金日估值误差 &lt; 1%，长期目标 0.1%。当前按近30天平均误差优先排序。</div>
+          </div>
+          <div className="table-scroll">
+            <table className="mini-data-table">
+              <thead>
+                <tr>
+                  <th>算法</th>
+                  <th>当前估值</th>
+                  <th>当前溢价率</th>
+                  <th>近30天 MAE</th>
+                  <th>全样本 MAE</th>
+                  <th>近7样本 MAE</th>
+                  <th>样本数</th>
+                  <th>参数 (alpha / betaLead / betaGap)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {algoScores.map((item, index) => (
+                  <tr key={item.variant.key}>
+                    <td>{index === 0 ? `#1 ${item.variant.label}` : item.variant.label}</td>
+                    <td>{formatCurrency(item.estimatedNav)}</td>
+                    <td className={item.premiumRate >= 0 ? 'tone-positive' : 'tone-negative'}>{formatPercent(item.premiumRate)}</td>
+                    <td>{Number.isFinite(item.mae30) ? formatPercent(item.mae30) : '--'}</td>
+                    <td>{Number.isFinite(item.maeAll) ? formatPercent(item.maeAll) : '--'}</td>
+                    <td>{Number.isFinite(item.maeRecent) ? formatPercent(item.maeRecent) : '--'}</td>
+                    <td>{item.sampleCount}</td>
+                    <td>{`${item.variant.alpha.toFixed(4)} / ${item.variant.betaLead.toFixed(4)} / ${item.variant.betaGap.toFixed(4)}`}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      ) : null}
 
       <section className="panel split-panel">
         <div className="split-panel__column">
@@ -1013,7 +1187,9 @@ export default function App() {
           <Route path="/domestic-lof" element={<HomePage funds={funds} syncedAt={syncedAt} loading={loading} error={error} pageCategory="domestic-lof" />} />
           <Route path="/qdii-lof" element={<HomePage funds={funds} syncedAt={syncedAt} loading={loading} error={error} pageCategory="qdii-lof" />} />
           <Route path="/etf" element={<HomePage funds={funds} syncedAt={syncedAt} loading={loading} error={error} pageCategory="etf" />} />
+          <Route path="/detail/:code" element={<DetailPage funds={funds} syncedAt={syncedAt} loading={loading} />} />
           <Route path="/fund/:code" element={<DetailPage funds={funds} syncedAt={syncedAt} loading={loading} />} />
+          <Route path="*" element={<Navigate to="/qdii-lof" replace />} />
         </Routes>
       </AppErrorBoundary>
     </div>

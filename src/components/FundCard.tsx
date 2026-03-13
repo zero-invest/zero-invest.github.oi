@@ -1,4 +1,3 @@
-import { Link } from 'react-router-dom';
 import type { FundViewModel } from '../types';
 
 interface FundCardProps {
@@ -11,7 +10,7 @@ export function FundCard({ fund, formatCurrency, formatPercent }: FundCardProps)
   const premiumTone = fund.estimate.premiumRate > 0 ? 'positive' : 'negative';
 
   return (
-    <Link className="fund-card" to={`/fund/${fund.runtime.code}`}>
+    <a className="fund-card" href={`#/fund/${fund.runtime.code}`}>
       <div className="fund-card__topline">
         <span>{fund.runtime.code}</span>
         <span className={`pill pill--${premiumTone}`}>{fund.runtime.detailMode === 'holdings' ? '精细模式' : '独立模型'}</span>
@@ -36,6 +35,6 @@ export function FundCard({ fund, formatCurrency, formatPercent }: FundCardProps)
           <strong>{formatPercent(fund.model.meanAbsError)}</strong>
         </div>
       </div>
-    </Link>
+    </a>
   );
 }

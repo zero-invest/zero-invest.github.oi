@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
 import type { FundViewModel } from '../types';
 
 type SortKey = 'code' | 'premiumRate' | 'estimatedNav' | 'marketPrice' | 'officialNavT1' | 'meanAbsError' | 'changeRate';
@@ -184,9 +183,9 @@ export function FundTable({ funds, formatCurrency, formatPercent, title, descrip
               return (
                 <tr key={fund.runtime.code}>
                   <td>
-                    <Link className="fund-table__link" to={`/fund/${fund.runtime.code}?from=${pagePath}`}>
+                    <a className="fund-table__link" href={`#/fund/${fund.runtime.code}?from=${pagePath}`}>
                       {fund.runtime.code}
-                    </Link>
+                    </a>
                   </td>
                   <td>
                     {fund.runtime.name}

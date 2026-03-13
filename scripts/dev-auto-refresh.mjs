@@ -10,6 +10,8 @@ const viteBin = path.join(projectRoot, 'node_modules', 'vite', 'bin', 'vite.js')
 let syncing = false;
 const FAST_SYNC_INTERVAL = 60_000;
 const SLOW_SYNC_INTERVAL = 15 * 60_000;
+const DEV_HOST = '127.0.0.1';
+const DEV_PORT = '4173';
 
 function getZonedClock(date, timeZone) {
   const parts = new Intl.DateTimeFormat('en-US', {
@@ -99,11 +101,13 @@ async function main() {
     throw new Error(`Vite 未安装，缺少文件: ${viteBin}`);
   }
 
-  const vite = spawn(nodeExecutable, [viteBin, '--host', '0.0.0.0', '--open'], {
+  const vite = spawn(nodeExecutable, [viteBin, '--host', DEV_HOST, '--port', DEV_PORT, '--open'], {
     cwd: projectRoot,
     stdio: ['ignore', 'pipe', 'pipe'],
     shell: false,
   });
+
+  process.stdout.write(`[auto-refresh] local url: http://${DEV_HOST}:${DEV_PORT}/#/qdii-lof\n`);
 
   const handleOutput = (chunk, writer) => {
     const text = chunk.toString();

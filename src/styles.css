@@ -405,6 +405,7 @@ label span {
   position: fixed;
   top: 0;
   z-index: 40;
+  pointer-events: none;
   display: none;
   grid-template-columns: var(--fund-table-columns);
   gap: 0;

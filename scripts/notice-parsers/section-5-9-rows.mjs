@@ -37,24 +37,20 @@ export function parseNoticeHoldingsBySection59Rows({ noticeTitle, noticeContent,
     const nameParts = [...pendingNameLines.slice(-2), inlineName];
     pendingNameLines = [];
 
-    let lookaheadCount = 0;
-    while (lookaheadCount < 2 && index + 1 < block.length && !/^\d{1,2}\s+/.test(block[index + 1]) && !/^注[:：]/.test(block[index + 1])) {
+    while (index + 1 < block.length && !/^\d{1,2}\s+/.test(block[index + 1]) && !/^注[:：]/.test(block[index + 1])) {
       nameParts.push(block[index + 1]);
       index += 1;
-      lookaheadCount += 1;
     }
 
     const rawName = nameParts.join(' ').replace(/\s+/g, ' ').trim();
     const resolved = resolveSupplementalHolding(rawName, aliases);
-    if (!resolved) {
-      continue;
-    }
-
-    const quote = quoteByTicker.get(resolved.ticker.toUpperCase());
+    const ticker = resolved?.ticker ?? `UNMAPPED_${rankText}`;
+    const name = resolved?.name ?? rawName;
+    const quote = resolved ? quoteByTicker.get(resolved.ticker.toUpperCase()) : undefined;
     holdings.push({
       rank: Number(rankText),
-      ticker: resolved.ticker,
-      name: resolved.name,
+      ticker,
+      name,
       weight: parseNumber(weightText),
       marketValue: parseNumber(marketValueText),
       currentPrice: quote?.currentPrice,
