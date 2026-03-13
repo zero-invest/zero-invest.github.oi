@@ -32,6 +32,14 @@ const RANK_HOLDING_MAP = {
     6: { ticker: 'BNO', name: 'United States Brent Oil Fund LP' },
     7: { ticker: 'UBS_CMCI_OIL', name: 'UBS CMCI Oil SF ETF' },
   },
+  '161129': {
+    1: { ticker: 'WTI_ETC', name: 'WisdomTree WTI Crude Oil ETC' },
+    2: { ticker: 'BRENT_ETC', name: 'WisdomTree Brent Crude Oil ETC' },
+    3: { ticker: 'DBO', name: 'Invesco DB Oil Fund ETF' },
+    4: { ticker: 'SIMPLEX_WTI', name: 'Simplex WTI ETF' },
+    5: { ticker: '1699', name: 'NEXT FUNDS NOMURA Crude Oil Long Index Linked ETF' },
+    6: { ticker: '03175', name: 'Samsung S&P GSCI Crude Oil ER Futures ETF' },
+  },
 };
 
 export function parseNoticeHoldingsBySection59RankMap({ code, noticeTitle, noticeContent, quoteByTicker }) {

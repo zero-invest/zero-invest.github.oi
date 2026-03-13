@@ -19,7 +19,6 @@ export function parseNoticeHoldingsBySection59Rows({ noticeTitle, noticeContent,
 
   const block = normalizeNoticeTextLines(sectionMatch[1]);
   const holdings = [];
-  let pendingNameLines = [];
 
   for (let index = 0; index < block.length; index += 1) {
     const line = block[index];
@@ -27,22 +26,26 @@ export function parseNoticeHoldingsBySection59Rows({ noticeTitle, noticeContent,
       continue;
     }
 
-    const rowMatch = line.match(/^(\d{1,2})\s+(.+?)\s+([\d,]+\.\d{2})\s*(\d+\.\d{2})$/);
-    if (!rowMatch) {
-      pendingNameLines.push(line);
+    const rankMatch = line.match(/^(\d{1,2})\s+(.+)$/);
+    if (!rankMatch) {
       continue;
     }
 
-    const [, rankText, inlineName, marketValueText, weightText] = rowMatch;
-    const nameParts = [...pendingNameLines.slice(-2), inlineName];
-    pendingNameLines = [];
+    const rankText = rankMatch[1];
+    const rowParts = [rankMatch[2]];
 
     while (index + 1 < block.length && !/^\d{1,2}\s+/.test(block[index + 1]) && !/^注[:：]/.test(block[index + 1])) {
-      nameParts.push(block[index + 1]);
+      rowParts.push(block[index + 1]);
       index += 1;
     }
 
-    const rawName = nameParts.join(' ').replace(/\s+/g, ' ').trim();
+    const rowText = rowParts.join(' ').replace(/\s+/g, ' ').trim();
+    const rowMatch = rowText.match(/^(.*)\s+([\d,]+(?:\.\d+)?)\s+(\d+(?:\.\d+)?)(?:\s*%?)?$/);
+    if (!rowMatch) {
+      continue;
+    }
+
+    const [, rawName, marketValueText, weightText] = rowMatch;
     const resolved = resolveSupplementalHolding(rawName, aliases);
     const ticker = resolved?.ticker ?? `UNMAPPED_${rankText}`;
     const name = resolved?.name ?? rawName;

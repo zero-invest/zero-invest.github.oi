@@ -68,8 +68,57 @@ function getWeightedHoldingReturn(runtime: FundRuntimeData): number {
   return weightedQuotes.reduce((sum, item) => sum + item.localReturn * (item.weight / totalWeight), 0);
 }
 
-function hasHoldingsSignal(runtime: FundRuntimeData): boolean {
-  return (runtime.disclosedHoldings?.length ?? 0) > 0 && (runtime.holdingQuotes?.length ?? 0) > 0;
+function getAnnouncedHoldingsCoverageWeight(runtime: FundRuntimeData): number {
+  const disclosedHoldings = runtime.disclosedHoldings ?? [];
+  if (!disclosedHoldings.length) {
+    return 0;
+  }
+
+  const quotedTickers = new Set(
+    (runtime.holdingQuotes ?? [])
+      .filter((item) => Number.isFinite(item.currentPrice) && item.currentPrice > 0 && Number.isFinite(item.previousClose) && item.previousClose > 0)
+      .map((item) => item.ticker.toUpperCase()),
+  );
+
+  const requiredHoldings = disclosedHoldings.slice(0, Math.min(10, disclosedHoldings.length));
+  const coveredWeight = requiredHoldings.reduce((sum, item) => {
+    if (!quotedTickers.has(String(item.ticker || '').toUpperCase())) {
+      return sum;
+    }
+
+    return sum + Math.max(0, Number(item.weight) || 0);
+  }, 0);
+
+  return Math.max(0, Math.min(1, coveredWeight / 100));
+}
+
+function hasAnnouncedHoldingsSignal(runtime: FundRuntimeData): boolean {
+  const disclosedHoldings = runtime.disclosedHoldings ?? [];
+  const requiredCount = Math.min(10, disclosedHoldings.length);
+  if (requiredCount <= 0) {
+    return false;
+  }
+
+  const quotedTickers = new Set(
+    (runtime.holdingQuotes ?? [])
+      .filter((item) => Number.isFinite(item.currentPrice) && item.currentPrice > 0 && Number.isFinite(item.previousClose) && item.previousClose > 0)
+      .map((item) => item.ticker.toUpperCase()),
+  );
+
+  const coveredCount = disclosedHoldings
+    .slice(0, requiredCount)
+    .filter((item) => quotedTickers.has(String(item.ticker || '').toUpperCase())).length;
+
+  return coveredCount >= requiredCount;
+}
+
+function getBlendedLeadReturn(runtime: FundRuntimeData): number {
+  const holdingsCoverage = getAnnouncedHoldingsCoverageWeight(runtime);
+  const holdingsReturn = getWeightedHoldingReturn(runtime);
+  const proxyReturn = getWeightedProxyReturn(runtime);
+  const proxyWeight = runtime.estimateMode === 'proxy' ? 1 - holdingsCoverage : 0;
+
+  return holdingsReturn * (1 - proxyWeight) + proxyReturn * proxyWeight;
 }
 
 function hasUsdHoldingSignal(runtime: FundRuntimeData): boolean {
@@ -146,12 +195,12 @@ export function estimateWatchlistFund(
   model: WatchlistModel,
 ): WatchlistEstimateResult {
   const anchorNav = runtime.officialNavT1;
-  const useHoldingsEstimate = hasHoldingsSignal(runtime);
+  const useHoldingsEstimate = hasAnnouncedHoldingsSignal(runtime);
   const useProxyEstimate = runtime.estimateMode === 'proxy' && !useHoldingsEstimate;
   const rawLeadReturn = useProxyEstimate
     ? getWeightedProxyReturn(runtime)
     : useHoldingsEstimate
-      ? getWeightedHoldingReturn(runtime)
+      ? getBlendedLeadReturn(runtime)
       : runtime.previousClose > 0
         ? runtime.marketPrice / runtime.previousClose - 1
         : 0;
@@ -159,7 +208,7 @@ export function estimateWatchlistFund(
   const rawCloseGapReturn = useProxyEstimate
     ? getFxReturn(runtime)
     : useHoldingsEstimate
-      ? hasUsdHoldingSignal(runtime)
+      ? hasUsdHoldingSignal(runtime) || (runtime.estimateMode === 'proxy' && (runtime.proxyQuotes?.length ?? 0) > 0)
         ? getFxReturn(runtime)
         : 0
       : anchorNav > 0 && runtime.previousClose > 0

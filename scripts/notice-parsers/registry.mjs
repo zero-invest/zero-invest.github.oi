@@ -10,7 +10,7 @@ const NOTICE_PARSER_REGISTRY = [
   },
   {
     id: 'section-5-9-rank-map',
-    fundCodes: ['160719', '160723', '501018'],
+    fundCodes: ['160719', '160723', '501018', '161129'],
     parse: parseNoticeHoldingsBySection59RankMap,
   },
   {

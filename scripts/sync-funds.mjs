@@ -17,7 +17,7 @@ const PUBLISHED_RUNTIME_URLS = [
 const now = new Date();
 const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 const WATCHLIST_STATE_VERSION = 5;
-const DAILY_CACHE_VERSION = 32;
+const DAILY_CACHE_VERSION = 39;
 const MAX_MARKET_MOVE = 0.08;
 const MAX_PROXY_MOVE = 0.15;
 const MAX_CLOSE_GAP = 0.2;
@@ -46,6 +46,13 @@ const PROXY_BASKETS = {
   'us-semiconductor': {
     name: '半导体篮子',
     components: [{ ticker: 'SOXX', name: 'iShares Semiconductor ETF', weight: 1 }],
+  },
+  'cn-kr-semiconductor': {
+    name: '中韩半导体篮子',
+    components: [
+      { ticker: '159995', name: '华夏国证半导体芯片ETF', weight: 0.5 },
+      { ticker: 'SOXX', name: 'iShares Semiconductor ETF', weight: 0.5 },
+    ],
   },
   'us-commodities': {
     name: '大宗商品篮子',
@@ -98,6 +105,17 @@ const PROXY_BASKETS = {
 };
 const RELATED_ETF_FALLBACKS = {
   '501011': '560080',
+  '161130': '159696',
+};
+const ARCHIVE_HOLDING_TICKER_MAP = {
+  'BRK_B': { ticker: 'BRK.B' },
+  'BP.': { ticker: 'BP' },
+  'TTEFP': { ticker: 'TTE' },
+  'ENBCN': { ticker: 'ENB' },
+  'CNQCN': { ticker: 'CNQ' },
+};
+const SPECIAL_QUOTE_SYMBOL_MAP = {
+  RIGD: 'ukRIGD',
 };
 const SUPPLEMENTAL_NOTICE_HOLDINGS = {
   '160216': [
@@ -115,6 +133,7 @@ const SUPPLEMENTAL_NOTICE_HOLDINGS = {
     { ticker: 'SGOL', aliases: ['abrdn Physical Gold Shares ETF'] },
     { ticker: 'GLDM', aliases: ['SPDR Gold MiniShares ETF Trust', 'SPDR Gold MiniShares Trust'] },
     { ticker: 'IAU', aliases: ['iShares Gold Trust ETF', 'iShares Gold Trust'] },
+    { ticker: 'UBS_GOLD', quoteTicker: 'GLD', aliases: ['UBS Gold ETF'] },
     { ticker: 'UGL', aliases: ['ProShares Ultra Gold ETF'] },
   ],
   '164701': [
@@ -128,6 +147,12 @@ const SUPPLEMENTAL_NOTICE_HOLDINGS = {
     { ticker: 'GLD', aliases: ['SPDR Gold Shares ETF'] },
     { ticker: 'SGOL', aliases: ['abrdn Physical Gold Shares ETF', 'Physical Gold Shares ETF'] },
     { ticker: 'IAU', aliases: ['iShares Gold Trust ETF', 'iShares Gold Trust'] },
+    { ticker: 'SWISSCANTO_GOLD', quoteTicker: 'GLD', aliases: ['Swisscanto CH Gold ETF'] },
+    { ticker: 'ETF_SECURITIES_GOLD', quoteTicker: 'GLD', aliases: ['ETF Securities Gold ETF'] },
+    { ticker: 'ISHARES_GOLD_CH', quoteTicker: 'GLD', aliases: ['iShares Gold ETF CH'] },
+  ],
+  '513310': [
+    { ticker: '005930', quoteTicker: 'SOXX', aliases: ['SamsungElectronics', 'Samsung Electronics'] },
   ],
   '501312': [
     { ticker: 'ARKK', aliases: ['ARK Innovation ETF'] },
@@ -159,9 +184,15 @@ const SUPPLEMENTAL_NOTICE_HOLDINGS = {
     { ticker: '159995', aliases: ['华夏国证半导体芯片ETF', '国证半导体芯片 ETF'] },
     { ticker: '512760', aliases: ['国泰CES半导体芯片行业ETF', 'CES 半导体芯片行业 ETF'] },
     { ticker: '159560', aliases: ['景顺长城中证芯片产业ETF', '中证芯片产业 ETF'] },
+    { ticker: '2644', quoteTicker: 'SOXX', aliases: ['Global X Semiconductor ETF/Jap'] },
   ],
   '161129': [
+    { ticker: 'WTI_ETC', quoteTicker: 'USO', aliases: ['WisdomTree WTI Crude Oil ETC'] },
+    { ticker: 'BRENT_ETC', quoteTicker: 'BNO', aliases: ['WisdomTree Brent Crude Oil ETC'] },
     { ticker: 'DBO', aliases: ['Invesco DB Oil Fund', 'Invesco DB Oil'] },
+    { ticker: 'SIMPLEX_WTI', quoteTicker: 'USO', aliases: ['Simplex WTI ETF'] },
+    { ticker: '1699', quoteTicker: 'USO', aliases: ['NEXT FUNDS NOMURA Crude Oil Long Index Linked ETF'] },
+    { ticker: '03175', aliases: ['Samsung S&P GSCI Crude Oil ER Futures ETF', 'F SAMSUNG OIL'] },
   ],
   '160723': [
     { ticker: 'USO', aliases: ['United States Oil Fund LP', 'United States Oil ETF'] },
@@ -225,8 +256,55 @@ function getWeightedHoldingReturn(runtime) {
   return weightedQuotes.reduce((sum, item) => sum + item.lineReturn * (item.weight / totalWeight), 0);
 }
 
+function getAnnouncedHoldingsCoverageWeight(runtime) {
+  const disclosedHoldings = runtime.disclosedHoldings ?? [];
+  if (!disclosedHoldings.length) {
+    return 0;
+  }
+
+  const quotedTickers = new Set(
+    (runtime.holdingQuotes ?? [])
+      .filter((item) => Number.isFinite(item.currentPrice) && item.currentPrice > 0 && Number.isFinite(item.previousClose) && item.previousClose > 0)
+      .map((item) => item.ticker.toUpperCase()),
+  );
+  const requiredHoldings = disclosedHoldings.slice(0, Math.min(10, disclosedHoldings.length));
+  const coveredWeight = requiredHoldings.reduce((sum, item) => {
+    if (!quotedTickers.has(String(item.ticker || '').toUpperCase())) {
+      return sum;
+    }
+
+    return sum + Math.max(0, Number(item.weight) || 0);
+  }, 0);
+
+  return Math.max(0, Math.min(1, coveredWeight / 100));
+}
+
 function hasHoldingsSignal(runtime) {
-  return (runtime.disclosedHoldings?.length ?? 0) > 0 && (runtime.holdingQuotes?.length ?? 0) > 0;
+  const disclosedHoldings = runtime.disclosedHoldings ?? [];
+  const requiredCount = Math.min(10, disclosedHoldings.length);
+  if (requiredCount <= 0) {
+    return false;
+  }
+
+  const quotedTickers = new Set(
+    (runtime.holdingQuotes ?? [])
+      .filter((item) => Number.isFinite(item.currentPrice) && item.currentPrice > 0 && Number.isFinite(item.previousClose) && item.previousClose > 0)
+      .map((item) => item.ticker.toUpperCase()),
+  );
+  const coveredCount = disclosedHoldings
+    .slice(0, requiredCount)
+    .filter((item) => quotedTickers.has(String(item.ticker || '').toUpperCase())).length;
+
+  return coveredCount >= requiredCount;
+}
+
+function getBlendedHoldingLeadReturn(runtime) {
+  const holdingsCoverage = getAnnouncedHoldingsCoverageWeight(runtime);
+  const holdingsReturn = getWeightedHoldingReturn(runtime);
+  const proxyReturn = getWeightedProxyReturn(runtime);
+  const proxyWeight = runtime.estimateMode === 'proxy' ? 1 - holdingsCoverage : 0;
+
+  return holdingsReturn * (1 - proxyWeight) + proxyReturn * proxyWeight;
 }
 
 function hasUsdHoldingSignal(runtime) {
@@ -324,7 +402,7 @@ function estimateWatchlistFund(runtime, model) {
   const rawLeadReturn = useProxyEstimate
     ? getWeightedProxyReturn(runtime)
     : useHoldingsEstimate
-      ? getWeightedHoldingReturn(runtime)
+      ? getBlendedHoldingLeadReturn(runtime)
       : runtime.previousClose > 0
         ? runtime.marketPrice / runtime.previousClose - 1
         : 0;
@@ -332,7 +410,7 @@ function estimateWatchlistFund(runtime, model) {
   const rawCloseGapReturn = useProxyEstimate
     ? getFxReturn(runtime)
     : useHoldingsEstimate
-      ? hasUsdHoldingSignal(runtime)
+      ? hasUsdHoldingSignal(runtime) || (runtime.estimateMode === 'proxy' && (runtime.proxyQuotes?.length ?? 0) > 0)
         ? getFxReturn(runtime)
         : 0
       : anchorNav > 0 && runtime.previousClose > 0
@@ -612,7 +690,7 @@ function extractField(html, label) {
 }
 
 function extractRelatedEtfCode(html) {
-  const linkMatch = html.match(/href=['"]https?:\/\/fund\.eastmoney\.com\/(\d{6})\.html['"][^>]*>查看相关ETF/i);
+  const linkMatch = html.match(/href=['"]https?:\/\/fund\.eastmoney\.com\/(\d{6})\.html['"][^>]*>查看\s*相关ETF/i);
   return linkMatch?.[1] ?? '';
 }
 
@@ -960,12 +1038,29 @@ function parseNumber(value) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+function normalizeUsQuoteTicker(value) {
+  return String(value || '')
+    .toUpperCase()
+    .replace(/_/g, '.')
+    .replace(/\.$/, '')
+    .trim();
+}
+
+function normalizeArchiveHoldingTicker(value) {
+  const rawTicker = String(value || '').toUpperCase().trim();
+  if (!rawTicker) {
+    return '';
+  }
+
+  return ARCHIVE_HOLDING_TICKER_MAP[rawTicker]?.ticker ?? rawTicker;
+}
+
 function isHoldingTicker(value) {
-  return /^[0-9A-Z]{1,10}$/.test(value);
+  return /^[0-9A-Z._-]{1,12}$/.test(String(value || '').toUpperCase().trim());
 }
 
 function isUsHoldingTicker(value) {
-  return /^[A-Z]{1,5}$/.test(value);
+  return /^[A-Z]{1,5}(?:\.[A-Z])?$/.test(normalizeUsQuoteTicker(value));
 }
 
 function parseHoldingsDisclosure(html, quoteByTicker = new Map()) {
@@ -1012,11 +1107,15 @@ function parseHoldingsDisclosure(html, quoteByTicker = new Map()) {
         return null;
       }
 
+      const rawTicker = String(cells[1] || '').toUpperCase();
+      const ticker = normalizeArchiveHoldingTicker(rawTicker);
+      const quote = quoteByTicker.get(ticker) ?? quoteByTicker.get(rawTicker);
+
       return {
-        ticker: cells[1],
+        ticker,
         name: cells[2],
-        currentPrice: quoteByTicker.get(cells[1].toUpperCase())?.currentPrice,
-        changeRate: quoteByTicker.get(cells[1].toUpperCase())?.changeRate,
+        currentPrice: quote?.currentPrice,
+        changeRate: quote?.changeRate,
         weight: parseNumber(cells[cells.length - 3]),
         shares: parseNumber(cells[cells.length - 2]),
         marketValue: parseNumber(cells[cells.length - 1]),
@@ -1140,7 +1239,7 @@ function extractHoldingSecids(html) {
           .get()
           .filter(Boolean);
 
-        return cells.length >= 6 && /^\d+$/.test(cells[0]) && isHoldingTicker(cells[1]);
+        return cells.length >= 6 && /^\d+$/.test(cells[0]) && Boolean(cells[1]);
       });
   }).first();
 
@@ -1153,10 +1252,12 @@ function extractHoldingSecids(html) {
         .get()
         .filter(Boolean);
 
-      if (cells.length < 7 || !/^\d+$/.test(cells[0]) || !isHoldingTicker(cells[1])) {
+      if (cells.length < 7 || !/^\d+$/.test(cells[0]) || !cells[1]) {
         return null;
       }
 
+      const rawTicker = String(cells[1] || '').toUpperCase();
+      const ticker = normalizeArchiveHoldingTicker(rawTicker);
       const href = $(row).find('td').eq(1).find('a').attr('href') ?? '';
       const secidMatch = href.match(/unify\/r\/([0-9.]+)/i);
       if (!secidMatch) {
@@ -1164,7 +1265,8 @@ function extractHoldingSecids(html) {
       }
 
       return {
-        ticker: cells[1].toUpperCase(),
+        ticker,
+        rawTicker,
         secid: secidMatch[1],
       };
     })
@@ -1180,23 +1282,37 @@ async function fetchHoldingQuoteMap(secidEntries) {
 
   const secids = [...new Set(secidEntries.map((item) => item.secid))].join(',');
   const response = await fetchText(
-    `https://push2.eastmoney.com/api/qt/ulist.np/get?fltt=2&invt=2&fields=f2,f3,f12,f14,f9&ut=267f9ad526dbe6b0262ab19316f5a25b&secids=${secids}`,
+    `https://push2.eastmoney.com/api/qt/ulist.np/get?fltt=2&invt=2&fields=f2,f3,f12,f13,f14,f9&ut=267f9ad526dbe6b0262ab19316f5a25b&secids=${secids}`,
     { referer: 'https://fundf10.eastmoney.com/' },
     'utf-8',
   );
   const payload = JSON.parse(response);
-
-  return new Map(
-    (payload.data?.diff ?? [])
-      .filter((item) => item?.f12)
-      .map((item) => [
-        String(item.f12).toUpperCase(),
-        {
-          currentPrice: Number(item.f2) || 0,
-          changeRate: Number(item.f3) / 100 || 0,
-        },
-      ]),
+  const tickersBySecid = new Map(
+    secidEntries.map((item) => [item.secid, item]),
   );
+
+  const quoteByTicker = new Map();
+  for (const item of payload.data?.diff ?? []) {
+    if (!item?.f12 || !item?.f13) {
+      continue;
+    }
+
+    const quote = {
+      currentPrice: Number(item.f2) || 0,
+      changeRate: Number(item.f3) / 100 || 0,
+    };
+    const secid = `${item.f13}.${item.f12}`;
+    const matched = tickersBySecid.get(secid);
+    if (matched?.rawTicker) {
+      quoteByTicker.set(String(matched.rawTicker).toUpperCase(), quote);
+    }
+    if (matched?.ticker) {
+      quoteByTicker.set(String(matched.ticker).toUpperCase(), quote);
+    }
+    quoteByTicker.set(String(item.f12).toUpperCase(), quote);
+  }
+
+  return quoteByTicker;
 }
 
 async function fetchHoldingsDisclosure(code) {
@@ -1403,7 +1519,133 @@ function patchKnownDisclosureGaps(code, disclosure) {
     };
   }
 
+  if (
+    code === '160216'
+    && normalized.disclosedHoldingsReportDate === '2025-12-31'
+    && normalized.disclosedHoldings.some((item) => String(item?.ticker ?? '').startsWith('UNMAPPED_'))
+  ) {
+    const replacements = [
+      { ticker: 'GLD', name: 'SPDR Gold Shares ETF' },
+      { ticker: 'UGL', name: 'ProShares Ultra Gold ETF' },
+      { ticker: 'COPX', name: 'Global X Copper Miners ETF' },
+      { ticker: 'DBB', name: 'Invesco DB Base Metals Fund' },
+      { ticker: 'GDXU', name: 'MicroSectors Gold Miners 3X Leveraged ETN' },
+    ];
+
+    let unmappedIndex = 0;
+    return {
+      ...normalized,
+      disclosedHoldings: normalized.disclosedHoldings.map((item) => {
+        if (!String(item?.ticker ?? '').startsWith('UNMAPPED_')) {
+          return item;
+        }
+
+        const replacement = replacements[unmappedIndex];
+        unmappedIndex += 1;
+        return replacement
+          ? {
+              ...item,
+              ticker: replacement.ticker,
+              name: replacement.name,
+            }
+          : item;
+      }),
+    };
+  }
+
+  if (
+    code === '161116'
+    && normalized.disclosedHoldingsReportDate === '2025-12-31'
+    && normalized.disclosedHoldings.some((item) => String(item?.ticker ?? '').startsWith('UNMAPPED_'))
+  ) {
+    const replacements = [
+      { ticker: 'GLD', name: 'SPDR Gold Shares ETF' },
+      { ticker: 'GLDM', name: 'SPDR Gold MiniShares Trust' },
+      { ticker: 'IAU', name: 'iShares Gold Trust ETF' },
+      { ticker: 'SGOL', name: 'abrdn Physical Gold Shares ETF' },
+      { ticker: 'UBS_GOLD', name: 'UBS Gold ETF' },
+      { ticker: 'UGL', name: 'ProShares Ultra Gold ETF' },
+    ];
+
+    return {
+      ...normalized,
+      disclosedHoldings: normalized.disclosedHoldings.map((item, index) => ({
+        ...item,
+        ticker: replacements[index]?.ticker ?? item.ticker,
+        name: replacements[index]?.name ?? item.name,
+      })),
+    };
+  }
+
   return normalized;
+}
+
+async function hydrateSupplementalDisclosureQuotes(code, disclosure) {
+  const normalized = normalizeDisclosureEntry(disclosure);
+  const aliases = SUPPLEMENTAL_NOTICE_HOLDINGS[code] ?? [];
+  if (!aliases.length || !normalized.disclosedHoldings.length) {
+    return normalized;
+  }
+
+  const quoteByTicker = await fetchSupplementalHoldingQuoteMap(aliases).catch(() => new Map());
+  if (!quoteByTicker.size) {
+    return normalized;
+  }
+
+  return {
+    ...normalized,
+    disclosedHoldings: normalized.disclosedHoldings.map((item) => {
+      if (Number.isFinite(item?.currentPrice) && item.currentPrice > 0 && Number.isFinite(item?.changeRate)) {
+        return item;
+      }
+
+      const quote = quoteByTicker.get(String(item?.ticker ?? '').toUpperCase());
+      return quote
+        ? {
+            ...item,
+            currentPrice: quote.currentPrice,
+            changeRate: quote.changeRate,
+          }
+        : item;
+    }),
+  };
+}
+
+async function hydrateDirectDisclosureQuotes(disclosure) {
+  const normalized = normalizeDisclosureEntry(disclosure);
+  if (!normalized.disclosedHoldings.length) {
+    return normalized;
+  }
+
+  const aliasEntries = normalized.disclosedHoldings
+    .map((item) => ({ ticker: String(item?.ticker ?? '').toUpperCase() }))
+    .filter((item) => item.ticker);
+  if (!aliasEntries.length) {
+    return normalized;
+  }
+
+  const quoteByTicker = await fetchSupplementalHoldingQuoteMap(aliasEntries).catch(() => new Map());
+  if (!quoteByTicker.size) {
+    return normalized;
+  }
+
+  return {
+    ...normalized,
+    disclosedHoldings: normalized.disclosedHoldings.map((item) => {
+      if (Number.isFinite(item?.currentPrice) && item.currentPrice > 0 && Number.isFinite(item?.changeRate)) {
+        return item;
+      }
+
+      const quote = quoteByTicker.get(String(item?.ticker ?? '').toUpperCase());
+      return quote
+        ? {
+            ...item,
+            currentPrice: quote.currentPrice,
+            changeRate: quote.changeRate,
+          }
+        : item;
+    }),
+  };
 }
 
 function compareDisclosureFreshness(left, right) {
@@ -1523,7 +1765,7 @@ function parseUsQuoteRow(rawRow) {
 
   return {
     name: fields[1] || '',
-    ticker: fields[2]?.split('.')[0] || '',
+    ticker: fields[2]?.replace(/\.[A-Z]+$/, '') || '',
     currentPrice: Number(fields[3]) || 0,
     previousClose: Number(fields[4]) || 0,
     quoteDate: dateTime.split(' ')[0] || '',
@@ -1543,14 +1785,88 @@ function parseUsQuotes(raw) {
     .filter(Boolean);
 }
 
+function getProxyQuoteSymbol(ticker) {
+  const normalized = String(ticker || '').toUpperCase();
+  if (!normalized) {
+    return '';
+  }
+
+  if (/^\d{6}$/.test(normalized)) {
+    return getQuoteSymbol(normalized);
+  }
+
+  if (/^0\d{4}$/.test(normalized)) {
+    return `hk${normalized}`;
+  }
+
+  return `us${normalized}`;
+}
+
+function parseMixedProxyQuotes(raw, proxySymbolMap) {
+  const rows = raw
+    .split(';')
+    .map((row) => row.trim())
+    .filter(Boolean);
+
+  const result = [];
+  for (const row of rows) {
+    const symbolMatch = row.match(/^v_([^=]+)=/);
+    if (!symbolMatch) {
+      continue;
+    }
+
+    const sourceSymbol = symbolMatch[1].toLowerCase();
+    const ticker = proxySymbolMap.get(sourceSymbol);
+    if (!ticker) {
+      continue;
+    }
+
+    if (sourceSymbol.startsWith('us')) {
+      const contentMatch = row.match(/="([^"]+)"/);
+      if (!contentMatch) {
+        continue;
+      }
+
+      const us = parseUsQuoteRow(contentMatch[1]);
+      result.push({
+        ticker,
+        name: us.name,
+        currentPrice: us.currentPrice,
+        previousClose: us.previousClose,
+        quoteDate: us.quoteDate,
+        quoteTime: us.quoteTime,
+        currency: 'USD',
+      });
+      continue;
+    }
+
+    const cnOrHk = parseQuote(row);
+    result.push({
+      ticker,
+      name: '',
+      currentPrice: cnOrHk.marketPrice,
+      previousClose: cnOrHk.previousClose,
+      quoteDate: cnOrHk.marketDate,
+      quoteTime: cnOrHk.marketTime,
+      currency: sourceSymbol.startsWith('hk') ? 'HKD' : 'CNY',
+    });
+  }
+
+  return result;
+}
+
 function getSupplementalQuoteSymbol(ticker) {
   const normalized = String(ticker || '').toUpperCase();
   if (!normalized) {
     return '';
   }
 
+  if (SPECIAL_QUOTE_SYMBOL_MAP[normalized]) {
+    return SPECIAL_QUOTE_SYMBOL_MAP[normalized];
+  }
+
   if (isUsHoldingTicker(normalized)) {
-    return `us${normalized}`;
+    return `us${normalizeUsQuoteTicker(normalized)}`;
   }
 
   if (/^0\d{4}$/.test(normalized)) {
@@ -1704,6 +2020,8 @@ async function getDailyFundData(entry, holdingsHistoryByCode = {}) {
     entry.code,
     pickPreferredDisclosure(finalHoldingsDisclosure, historicalHoldingsDisclosure),
   );
+  const directlyHydratedHoldingsDisclosure = await hydrateDirectDisclosureQuotes(resolvedHoldingsDisclosure);
+  const hydratedHoldingsDisclosure = await hydrateSupplementalDisclosureQuotes(entry.code, directlyHydratedHoldingsDisclosure);
   const latestNav = pingzhong.navHistory[0] ?? { date: '', nav: 0 };
   const payload = {
     cacheVersion: DAILY_CACHE_VERSION,
@@ -1717,9 +2035,9 @@ async function getDailyFundData(entry, holdingsHistoryByCode = {}) {
     navHistory: pingzhong.navHistory,
     purchaseStatus: normalizedPurchase.purchaseStatus,
     purchaseLimit: normalizedPurchase.purchaseLimit,
-    disclosedHoldingsTitle: resolvedHoldingsDisclosure.disclosedHoldingsTitle,
-    disclosedHoldingsReportDate: resolvedHoldingsDisclosure.disclosedHoldingsReportDate,
-    disclosedHoldings: resolvedHoldingsDisclosure.disclosedHoldings,
+    disclosedHoldingsTitle: hydratedHoldingsDisclosure.disclosedHoldingsTitle,
+    disclosedHoldingsReportDate: hydratedHoldingsDisclosure.disclosedHoldingsReportDate,
+    disclosedHoldings: hydratedHoldingsDisclosure.disclosedHoldings,
   };
 
   await writeJson(cachePath, payload);
@@ -1733,7 +2051,12 @@ async function loadIntradayData() {
   try {
     const fundSymbols = catalog.map((item) => getQuoteSymbol(item.code)).join(',');
     const holdingSymbols = HOLDINGS_161128.map((item) => `us${item.ticker}`).join(',');
-    const proxySymbols = [...new Set(Object.values(PROXY_BASKETS).flatMap((item) => item.components.map((component) => `us${component.ticker}`)))].join(',');
+    const proxySymbolEntries = [...new Set(Object.values(PROXY_BASKETS).flatMap((item) => item.components.map((component) => component.ticker.toUpperCase())))].map((ticker) => ({
+      ticker,
+      symbol: getProxyQuoteSymbol(ticker),
+    })).filter((item) => item.symbol);
+    const proxySymbolMap = new Map(proxySymbolEntries.map((item) => [item.symbol.toLowerCase(), item.ticker]));
+    const proxySymbols = proxySymbolEntries.map((item) => item.symbol).join(',');
     const [fundQuotesRaw, fxRaw, holdingsRaw, proxyRaw] = await Promise.all([
       fetchText(`https://qt.gtimg.cn/q=${fundSymbols}`, { referer: 'https://gu.qq.com/' }, 'gb18030'),
       fetchText('https://hq.sinajs.cn/list=USDCNY,fx_susdcny', { referer: 'https://finance.sina.com.cn/' }, 'gb18030'),
@@ -1764,10 +2087,7 @@ async function loadIntradayData() {
         ...item,
         currency: 'USD',
       })),
-      proxyQuotes: parseUsQuotes(proxyRaw).map((item) => ({
-        ...item,
-        currency: 'USD',
-      })),
+      proxyQuotes: parseMixedProxyQuotes(proxyRaw, proxySymbolMap),
     };
 
     await writeJson(cachePath, payload);
@@ -1798,6 +2118,23 @@ async function syncFund(entry, holdingsHistoryByCode = {}) {
     marketSource: '腾讯行情',
   };
   const proxyConfig = entry.proxyBasketKey ? PROXY_BASKETS[entry.proxyBasketKey] : null;
+  const dynamicProxyWeights = new Map();
+  if (entry.code === '513310') {
+    const disclosed = dailyData.disclosedHoldings ?? [];
+    const koreaWeight = disclosed
+      .filter((item) => ['005930', '000660'].includes(String(item?.ticker ?? '').toUpperCase()))
+      .reduce((sum, item) => sum + Math.max(0, Number(item.weight) || 0), 0);
+    const chinaWeight = disclosed
+      .filter((item) => /^\d{6}$/.test(String(item?.ticker ?? '')) && !['005930', '000660'].includes(String(item?.ticker ?? '').toUpperCase()))
+      .reduce((sum, item) => sum + Math.max(0, Number(item.weight) || 0), 0);
+
+    if (koreaWeight > 0 || chinaWeight > 0) {
+      const total = koreaWeight + chinaWeight;
+      dynamicProxyWeights.set('SOXX', koreaWeight / total);
+      dynamicProxyWeights.set('159995', chinaWeight / total);
+    }
+  }
+
   const proxyQuotes = proxyConfig
     ? proxyConfig.components
         .map((component) => {
@@ -1809,7 +2146,7 @@ async function syncFund(entry, holdingsHistoryByCode = {}) {
           return {
             ...matched,
             name: component.name,
-            weight: component.weight,
+            weight: dynamicProxyWeights.get(component.ticker.toUpperCase()) ?? component.weight,
           };
         })
         .filter(Boolean)

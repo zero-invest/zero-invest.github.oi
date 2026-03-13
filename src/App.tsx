@@ -167,6 +167,50 @@ function getPageOption(pageCategory: PageCategory) {
   return PAGE_OPTIONS.find((item) => item.key === pageCategory) ?? PAGE_OPTIONS[0];
 }
 
+function hasAnnouncedHoldingsSignal(runtime: FundRuntimeData) {
+  const disclosedHoldings = runtime.disclosedHoldings ?? [];
+  const requiredCount = Math.min(10, disclosedHoldings.length);
+  if (requiredCount <= 0) {
+    return false;
+  }
+
+  const quotedTickers = new Set(
+    (runtime.holdingQuotes ?? [])
+      .filter((item) => Number.isFinite(item.currentPrice) && item.currentPrice > 0 && Number.isFinite(item.previousClose) && item.previousClose > 0)
+      .map((item) => item.ticker.toUpperCase()),
+  );
+
+  const coveredCount = disclosedHoldings
+    .slice(0, requiredCount)
+    .filter((item) => quotedTickers.has(String(item.ticker || '').toUpperCase())).length;
+
+  return coveredCount >= requiredCount;
+}
+
+function getAnnouncedHoldingsCoveragePercent(runtime: FundRuntimeData) {
+  const disclosedHoldings = runtime.disclosedHoldings ?? [];
+  if (!disclosedHoldings.length) {
+    return 0;
+  }
+
+  const quotedTickers = new Set(
+    (runtime.holdingQuotes ?? [])
+      .filter((item) => Number.isFinite(item.currentPrice) && item.currentPrice > 0 && Number.isFinite(item.previousClose) && item.previousClose > 0)
+      .map((item) => item.ticker.toUpperCase()),
+  );
+
+  const requiredHoldings = disclosedHoldings.slice(0, Math.min(10, disclosedHoldings.length));
+  const coveredWeight = requiredHoldings.reduce((sum, item) => {
+    if (!quotedTickers.has(String(item.ticker || '').toUpperCase())) {
+      return sum;
+    }
+
+    return sum + Math.max(0, Number(item.weight) || 0);
+  }, 0);
+
+  return Math.max(0, Math.min(100, coveredWeight));
+}
+
 class AppErrorBoundary extends React.Component<React.PropsWithChildren, { hasError: boolean }> {
   constructor(props: React.PropsWithChildren) {
     super(props);
@@ -193,10 +237,10 @@ class AppErrorBoundary extends React.Component<React.PropsWithChildren, { hasErr
 }
 
 function getEstimateDriverLabels(runtime: FundRuntimeData) {
-  return runtime.disclosedHoldings?.length && runtime.holdingQuotes?.length
+  return hasAnnouncedHoldingsSignal(runtime)
     ? {
-        summary: '该基金当前优先按最近披露前十大持仓的盘中涨跌幅推算净值；海外持仓会同步计入 USD/CNY 变化，场内价格只用于计算溢价率。',
-        primaryFactor: '前十大持仓涨跌幅',
+        summary: `该基金当前按公告披露持仓（最多前十条）估值；披露权重覆盖约 ${getAnnouncedHoldingsCoveragePercent(runtime).toFixed(2)}% 时，剩余仓位用代理篮子补足，海外资产同步计入 USD/CNY 变化。`,
+        primaryFactor: '公告持仓涨跌幅（主）+ 代理篮子（补）',
         secondaryFactor: runtime.pageCategory === 'qdii-lof' ? 'USD/CNY 变化' : '学习修正项',
       }
     : runtime.estimateMode === 'proxy'
