@@ -326,12 +326,12 @@ function readStoredCalibration(code: string): CalibrationModel {
     return defaultCalibration;
   }
 
-  const raw = window.localStorage.getItem(`${DETAIL_CALIBRATION_PREFIX}${code}`);
-  if (!raw) {
-    return defaultCalibration;
-  }
-
   try {
+    const raw = window.localStorage.getItem(`${DETAIL_CALIBRATION_PREFIX}${code}`);
+    if (!raw) {
+      return defaultCalibration;
+    }
+
     return { ...defaultCalibration, ...JSON.parse(raw) } as CalibrationModel;
   } catch {
     return defaultCalibration;
@@ -343,7 +343,11 @@ function writeStoredCalibration(code: string, calibration: CalibrationModel) {
     return;
   }
 
-  window.localStorage.setItem(`${DETAIL_CALIBRATION_PREFIX}${code}`, JSON.stringify(calibration));
+  try {
+    window.localStorage.setItem(`${DETAIL_CALIBRATION_PREFIX}${code}`, JSON.stringify(calibration));
+  } catch {
+    // Ignore storage failures in restricted browser contexts.
+  }
 }
 
 function DetailedEstimatorPanel({ fund }: { fund: FundViewModel }) {
