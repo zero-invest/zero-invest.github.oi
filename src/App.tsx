@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link, Navigate, Route, Routes, useLocation, useParams } from 'react-router-dom';
 import { FundTable } from './components/FundTable';
 import { EditableHoldingsTable } from './components/EditableHoldingsTable';
@@ -122,8 +122,46 @@ function formatRuntimeTime(date: string, time: string): string {
   return merged || '--';
 }
 
+function getHoursSinceSync(syncedAt: string): number | null {
+  if (!syncedAt) {
+    return null;
+  }
+
+  const syncedAtMs = new Date(syncedAt).getTime();
+  if (!Number.isFinite(syncedAtMs)) {
+    return null;
+  }
+
+  return Math.max(0, (Date.now() - syncedAtMs) / (1000 * 60 * 60));
+}
+
 function getPageOption(pageCategory: PageCategory) {
   return PAGE_OPTIONS.find((item) => item.key === pageCategory) ?? PAGE_OPTIONS[0];
+}
+
+class AppErrorBoundary extends React.Component<React.PropsWithChildren, { hasError: boolean }> {
+  constructor(props: React.PropsWithChildren) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <main className="page">
+          <section className="panel notice-panel">
+            详情页渲染失败。通常是浏览器还缓存着旧页面资源，先强制刷新一次；如果仍然异常，再稍后重试。
+          </section>
+        </main>
+      );
+    }
+
+    return this.props.children;
+  }
 }
 
 function getEstimateDriverLabels(runtime: FundRuntimeData) {
@@ -445,6 +483,7 @@ function HomePage({ funds, syncedAt, loading, error, pageCategory }: { funds: Fu
   const pageOption = getPageOption(pageCategory);
   const visibleFunds = useMemo(() => funds.filter((item) => item.runtime.pageCategory === pageCategory), [funds, pageCategory]);
   const proxyDrivenCount = visibleFunds.filter((item) => item.runtime.estimateMode === 'proxy').length;
+  const syncAgeHours = getHoursSinceSync(syncedAt);
 
   return (
     <main className="page">
@@ -505,6 +544,11 @@ function HomePage({ funds, syncedAt, loading, error, pageCategory }: { funds: Fu
       </section>
 
       {error ? <section className="panel notice-panel">{error}</section> : null}
+      {!error && syncAgeHours !== null && syncAgeHours >= 12 ? (
+        <section className="panel notice-panel">
+          当前页面数据同步时间偏旧，最新净值和盘中估值可能还没刷新。这不会阻止进入详情页；如果详情页异常，通常是旧页面缓存和新数据不一致，先强制刷新一次。
+        </section>
+      ) : null}
 
       <FundTable
         funds={visibleFunds}
@@ -526,6 +570,7 @@ function DetailPage({ funds, syncedAt, loading }: { funds: FundViewModel[]; sync
   const params = useParams();
   const location = useLocation();
   const fund = funds.find((item) => item.runtime.code === params.code);
+  const syncAgeHours = getHoursSinceSync(syncedAt);
 
   if (loading) {
     return (
@@ -536,7 +581,18 @@ function DetailPage({ funds, syncedAt, loading }: { funds: FundViewModel[]; sync
   }
 
   if (!fund) {
-    return <Navigate to="/" replace />;
+    return (
+      <main className="page">
+        <section className="panel notice-panel">
+          没找到基金 {params.code || ''} 的详情数据。可能是页面资源还是旧版本、同步数据偏旧，或者这次部署还没完全切换。
+        </section>
+        <section className="panel notice-panel">
+          <Link className="back-link" to="/qdii-lof">
+            返回看板
+          </Link>
+        </section>
+      </main>
+    );
   }
 
   const fromPath = new URLSearchParams(location.search).get('from');
@@ -557,6 +613,11 @@ function DetailPage({ funds, syncedAt, loading }: { funds: FundViewModel[]; sync
 
   return (
     <main className="page">
+      {syncAgeHours !== null && syncAgeHours >= 12 ? (
+        <section className="panel notice-panel">
+          当前站点同步时间较旧，最新净值可能尚未刷新；这不是“更新中禁止查看”，而是部署或数据源还没产出更新。
+        </section>
+      ) : null}
       <section className="detail-header panel">
         <div>
           <Link className="back-link" to={backPath}>
@@ -946,13 +1007,15 @@ export default function App() {
     <div className="app-shell">
       <div className="background-orb background-orb--amber" />
       <div className="background-orb background-orb--teal" />
-      <Routes>
-        <Route path="/" element={<Navigate to="/qdii-lof" replace />} />
-        <Route path="/domestic-lof" element={<HomePage funds={funds} syncedAt={syncedAt} loading={loading} error={error} pageCategory="domestic-lof" />} />
-        <Route path="/qdii-lof" element={<HomePage funds={funds} syncedAt={syncedAt} loading={loading} error={error} pageCategory="qdii-lof" />} />
-        <Route path="/etf" element={<HomePage funds={funds} syncedAt={syncedAt} loading={loading} error={error} pageCategory="etf" />} />
-        <Route path="/fund/:code" element={<DetailPage funds={funds} syncedAt={syncedAt} loading={loading} />} />
-      </Routes>
+      <AppErrorBoundary>
+        <Routes>
+          <Route path="/" element={<Navigate to="/qdii-lof" replace />} />
+          <Route path="/domestic-lof" element={<HomePage funds={funds} syncedAt={syncedAt} loading={loading} error={error} pageCategory="domestic-lof" />} />
+          <Route path="/qdii-lof" element={<HomePage funds={funds} syncedAt={syncedAt} loading={loading} error={error} pageCategory="qdii-lof" />} />
+          <Route path="/etf" element={<HomePage funds={funds} syncedAt={syncedAt} loading={loading} error={error} pageCategory="etf" />} />
+          <Route path="/fund/:code" element={<DetailPage funds={funds} syncedAt={syncedAt} loading={loading} />} />
+        </Routes>
+      </AppErrorBoundary>
     </div>
   );
 }
