@@ -1,9 +1,22 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { execSync } from 'node:child_process';
 
 const projectRoot = process.cwd();
 const outputPath = path.join(projectRoot, 'public', 'generated', 'github-traffic.json');
-const repo = process.env.GH_TRAFFIC_REPO || process.env.GITHUB_REPOSITORY || '';
+function inferRepoFromGitRemote() {
+  try {
+    const remote = execSync('git config --get remote.origin.url', { stdio: ['ignore', 'pipe', 'ignore'] })
+      .toString()
+      .trim();
+    const match = remote.match(/github\.com[:/](.+?)(?:\.git)?$/i);
+    return match?.[1] || '';
+  } catch {
+    return '';
+  }
+}
+
+const repo = process.env.GH_TRAFFIC_REPO || process.env.GITHUB_REPOSITORY || inferRepoFromGitRemote();
 const token = process.env.GH_TRAFFIC_TOKEN || process.env.GITHUB_TOKEN || '';
 
 function toDateKey(timestamp) {

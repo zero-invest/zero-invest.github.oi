@@ -57,6 +57,7 @@ jobs:
       - name: Sync GitHub Traffic
         run: npm run sync:github-traffic
         env:
+          GH_TRAFFIC_REPO: ${{ github.repository }}
           GH_TRAFFIC_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build Site
