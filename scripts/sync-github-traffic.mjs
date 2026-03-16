@@ -17,7 +17,7 @@ function inferRepoFromGitRemote() {
 }
 
 const repo = process.env.GH_TRAFFIC_REPO || process.env.GITHUB_REPOSITORY || inferRepoFromGitRemote();
-const token = process.env.GH_TRAFFIC_TOKEN || process.env.GITHUB_TOKEN || '';
+const token = process.env.GH_TRAFFIC_TOKEN || '';
 
 function toDateKey(timestamp) {
   return String(timestamp || '').slice(0, 10);
@@ -91,7 +91,7 @@ async function main() {
   }
 
   if (!token) {
-    const payload = { ...basePayload, reason: 'missing-token' };
+    const payload = { ...basePayload, reason: 'missing-token: set GH_TRAFFIC_TOKEN secret with traffic API access' };
     await writePayload(payload);
     console.log('[github-traffic] skip: missing token');
     return;
