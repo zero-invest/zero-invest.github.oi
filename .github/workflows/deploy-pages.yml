@@ -58,7 +58,8 @@ jobs:
         run: npm run sync:github-traffic
         env:
           GH_TRAFFIC_REPO: ${{ github.repository }}
-          GH_TRAFFIC_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TRAFFIC_TOKEN: ${{ secrets.GH_TRAFFIC_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
 
       - name: Build Site
         run: npm run build:static
