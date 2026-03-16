@@ -209,7 +209,7 @@ export function FundTable({ funds, trainingMetricsByCode, formatCurrency, format
               const latestError = getLatestError(fund);
               const avg30dError = getRecent30DayAvgAbsError(fund);
               const training30Error = getTrainingValidation30Error(fund, trainingMetricsByCode);
-              const compactName = getCompactFundName(fund.runtime.code, fund.runtime.name);
+              const compactName = getCompactFundName(fund.runtime.code, fund.runtime.name, fund.runtime.pageCategory);
               const fullName = getFullFundName(fund.runtime.code, fund.runtime.name);
 
               return (
@@ -258,6 +258,15 @@ function stripFundCodeSuffix(name: string): string {
 }
 
 const FUND_NAME_OVERRIDES: Record<string, { shortName: string; fullName?: string }> = {
+  '160221': {
+    shortName: '有色金属',
+  },
+  '165520': {
+    shortName: '有色',
+  },
+  '165529': {
+    shortName: '有色',
+  },
   '162411': {
     shortName: '华宝油气',
   },
@@ -280,6 +289,45 @@ const FUND_NAME_OVERRIDES: Record<string, { shortName: string; fullName?: string
     shortName: '日本东证指数',
     fullName: '日本东证指数ETF南方 / 南方顶峰TOPIX(ETF-QDII)',
   },
+  '513520': {
+    shortName: '日经225',
+  },
+  '159100': {
+    shortName: '华夏巴西',
+  },
+  '520870': {
+    shortName: '易方达巴西',
+  },
+  '159561': {
+    shortName: '嘉实德国',
+  },
+  '513030': {
+    shortName: '华安德国',
+  },
+  '513850': {
+    shortName: '易方达美国50',
+  },
+  '159577': {
+    shortName: '汇添富美国50',
+  },
+  '159477': {
+    shortName: '汇添富美国50',
+  },
+  '513400': {
+    shortName: '道琼斯',
+  },
+  '513730': {
+    shortName: '东南亚科技',
+  },
+  '520830': {
+    shortName: '华泰柏瑞沙特',
+  },
+  '159329': {
+    shortName: '南方沙特',
+  },
+  '520580': {
+    shortName: '新兴亚洲精选',
+  },
 };
 
 const FUND_COMPANY_PREFIXES = [
@@ -297,10 +345,10 @@ function getFullFundName(code: string, name: string): string {
   return stripFundCodeSuffix(name);
 }
 
-function getCompactFundName(code: string, name: string): string {
+function getCompactFundName(code: string, name: string, pageCategory: FundViewModel['runtime']['pageCategory']): string {
   const override = FUND_NAME_OVERRIDES[code];
   if (override) {
-    return override.shortName;
+    return withCategorySuffix(override.shortName, pageCategory);
   }
 
   const baseName = stripFundCodeSuffix(name);
@@ -309,6 +357,7 @@ function getCompactFundName(code: string, name: string): string {
   compact = compact.replace(/[（(][^)）]*(?:ETF|QDII|LOF)[^)）]*[)）]/gi, ' ');
   compact = compact.replace(/\b(?:ETF|QDII|LOF)\b/gi, ' ');
   compact = compact.replace(/(?:ETF|QDII|LOF)/gi, ' ');
+  compact = compact.replace(/联接/gi, ' ');
   compact = compact.replace(/(?:人民币|人民幣)/gi, ' ');
   compact = compact.replace(/\bA(?:类|份额|份)?\b/gi, ' ');
   compact = compact.replace(/([\u4e00-\u9fa5])A(?=$|[\s（(\-_/])/g, '$1');
@@ -321,7 +370,19 @@ function getCompactFundName(code: string, name: string): string {
   }
 
   compact = compact.replace(/[\s\-_/]+/g, ' ').replace(/[（(]\s*[)）]/g, ' ').trim();
-  return compact || baseName;
+  return withCategorySuffix(compact || baseName, pageCategory);
+}
+
+function withCategorySuffix(shortName: string, pageCategory: FundViewModel['runtime']['pageCategory']): string {
+  const base = shortName.trim();
+  if (!base) {
+    return base;
+  }
+  if (/\b(?:etf|lof)\b$/i.test(base)) {
+    return base;
+  }
+  const suffix = pageCategory === 'etf' ? 'etf' : 'lof';
+  return `${base}${suffix}`;
 }
 
 function getLatestError(fund: FundViewModel): number | undefined {
