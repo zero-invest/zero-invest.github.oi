@@ -140,17 +140,17 @@ export function FundTable({ funds, trainingMetricsByCode, formatCurrency, format
     <>
       <div>{renderSortLabel('代码', 'code')}</div>
       <div>名称</div>
-      <div>{renderSortLabel('现价', 'marketPrice')}</div>
-      <div>{renderSortLabel('涨跌幅', 'changeRate')}</div>
-      <div>{renderSortLabel('估值', 'estimatedNav')}</div>
       <div>{renderSortLabel('溢价率', 'premiumRate')}</div>
-      <div>{renderSortLabel('净值', 'officialNavT1')}</div>
-      <div>净值日期</div>
-      <div>现价时间</div>
       <div>{renderSortLabel('训练误差', 'meanAbsError')}</div>
       <div>{renderSortLabel('最近误差', 'latestError')}</div>
       <div>{renderSortLabel('30d误差', 'error30d')}</div>
       <div>限购</div>
+      <div>{renderSortLabel('现价', 'marketPrice')}</div>
+      <div>{renderSortLabel('涨跌幅', 'changeRate')}</div>
+      <div>{renderSortLabel('估值', 'estimatedNav')}</div>
+      <div>{renderSortLabel('净值', 'officialNavT1')}</div>
+      <div>净值日期</div>
+      <div>现价时间</div>
     </>
   );
 
@@ -173,33 +173,33 @@ export function FundTable({ funds, trainingMetricsByCode, formatCurrency, format
           <colgroup>
             <col className="fund-table__col fund-table__col--code" />
             <col className="fund-table__col fund-table__col--name" />
-            <col className="fund-table__col fund-table__col--market" />
-            <col className="fund-table__col fund-table__col--change" />
-            <col className="fund-table__col fund-table__col--estimate" />
             <col className="fund-table__col fund-table__col--premium" />
-            <col className="fund-table__col fund-table__col--nav" />
-            <col className="fund-table__col fund-table__col--nav-date" />
-            <col className="fund-table__col fund-table__col--market-time" />
             <col className="fund-table__col fund-table__col--error" />
             <col className="fund-table__col fund-table__col--recent-error" />
             <col className="fund-table__col fund-table__col--error-30d" />
             <col className="fund-table__col fund-table__col--limit" />
+            <col className="fund-table__col fund-table__col--market" />
+            <col className="fund-table__col fund-table__col--change" />
+            <col className="fund-table__col fund-table__col--estimate" />
+            <col className="fund-table__col fund-table__col--nav" />
+            <col className="fund-table__col fund-table__col--nav-date" />
+            <col className="fund-table__col fund-table__col--market-time" />
           </colgroup>
           <thead>
             <tr>
               <th>{renderSortLabel('代码', 'code')}</th>
               <th>名称</th>
-              <th>{renderSortLabel('现价', 'marketPrice')}</th>
-              <th>{renderSortLabel('涨跌幅', 'changeRate')}</th>
-              <th>{renderSortLabel('估值', 'estimatedNav')}</th>
               <th>{renderSortLabel('溢价率', 'premiumRate')}</th>
-              <th>{renderSortLabel('净值', 'officialNavT1')}</th>
-              <th>净值日期</th>
-              <th>现价时间</th>
               <th>{renderSortLabel('训练误差', 'meanAbsError')}</th>
               <th>{renderSortLabel('最近误差', 'latestError')}</th>
               <th>{renderSortLabel('30d误差', 'error30d')}</th>
               <th>限购</th>
+              <th>{renderSortLabel('现价', 'marketPrice')}</th>
+              <th>{renderSortLabel('涨跌幅', 'changeRate')}</th>
+              <th>{renderSortLabel('估值', 'estimatedNav')}</th>
+              <th>{renderSortLabel('净值', 'officialNavT1')}</th>
+              <th>净值日期</th>
+              <th>现价时间</th>
             </tr>
           </thead>
           <tbody>
@@ -220,13 +220,7 @@ export function FundTable({ funds, trainingMetricsByCode, formatCurrency, format
                   <td>
                     <span className="fund-table__name" title={fund.runtime.name}>{fund.runtime.name}</span>
                   </td>
-                  <td>{formatCurrency(fund.runtime.marketPrice)}</td>
-                  <td className={changeRate >= 0 ? 'tone-positive' : 'tone-negative'}>{formatPercent(changeRate)}</td>
-                  <td>{formatCurrency(fund.estimate.estimatedNav)}</td>
                   <td className={`tone-${premiumTone}`}>{formatPercent(fund.estimate.premiumRate)}</td>
-                  <td>{formatCurrency(fund.runtime.officialNavT1)}</td>
-                  <td>{fund.runtime.navDate || '--'}</td>
-                  <td>{`${fund.runtime.marketDate || '--'} ${fund.runtime.marketTime || ''}`.trim()}</td>
                   <td className={typeof training30Error === 'number' ? (training30Error > 0.02 ? 'tone-positive' : 'tone-negative') : 'muted-text'}>
                     {typeof training30Error === 'number' ? formatPercent(training30Error) : '未训练'}
                   </td>
@@ -237,6 +231,12 @@ export function FundTable({ funds, trainingMetricsByCode, formatCurrency, format
                   <td className={getLimitClass(fund.runtime.purchaseLimit)}>
                     {fund.runtime.purchaseLimit || '待校验'}
                   </td>
+                  <td>{formatCurrency(fund.runtime.marketPrice)}</td>
+                  <td className={changeRate >= 0 ? 'tone-positive' : 'tone-negative'}>{formatPercent(changeRate)}</td>
+                  <td>{formatCurrency(fund.estimate.estimatedNav)}</td>
+                  <td>{formatCurrency(fund.runtime.officialNavT1)}</td>
+                  <td>{fund.runtime.navDate || '--'}</td>
+                  <td>{`${fund.runtime.marketDate || '--'} ${fund.runtime.marketTime || ''}`.trim()}</td>
                 </tr>
               );
             })}
