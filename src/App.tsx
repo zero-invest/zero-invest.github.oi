@@ -197,6 +197,27 @@ function getHoursSinceSync(syncedAt: string): number | null {
   return Math.max(0, (Date.now() - syncedAtMs) / (1000 * 60 * 60));
 }
 
+function formatTrafficUnavailableReason(reason?: string): string {
+  if (!reason) {
+    return '原因未返回';
+  }
+
+  const lower = reason.toLowerCase();
+  if (lower.includes('missing-token')) {
+    return '缺少 GH_TRAFFIC_TOKEN';
+  }
+
+  if (lower.includes('resource not accessible by integration') || lower.includes('403')) {
+    return 'Token 权限不足(403)';
+  }
+
+  if (lower.includes('missing-repo')) {
+    return '仓库信息缺失';
+  }
+
+  return reason.length > 42 ? `${reason.slice(0, 42)}...` : reason;
+}
+
 function getPageOption(pageCategory: ViewCategory) {
   return PAGE_OPTIONS.find((item) => item.key === pageCategory) ?? PAGE_OPTIONS[0];
 }
@@ -1438,6 +1459,7 @@ function HomePage({
   const untrainedCount = visibleFunds.filter((item) => !trainingMetricsByCode[item.runtime.code]).length;
   const uvSeries = githubTraffic.available ? githubTraffic.recent7.days.map((item) => item.viewUniques) : [];
   const uvSparkline = buildSparklinePoints(uvSeries, 120, 26);
+  const trafficUnavailableReason = formatTrafficUnavailableReason(githubTraffic.reason);
 
   return (
     <main className="page">
@@ -1474,7 +1496,9 @@ function HomePage({
           <div className="hero__fact">
             <span>近7天访客</span>
             <strong>{githubTraffic.available ? githubTraffic.recent7.viewUniques : '--'}</strong>
-            <small className="hero__fact-subtle">GitHub 仓库 UV</small>
+            <small className="hero__fact-subtle" title={githubTraffic.reason || ''}>
+              {githubTraffic.available ? 'GitHub 仓库 UV' : `不可用：${trafficUnavailableReason}`}
+            </small>
             {uvSparkline ? (
               <svg className="traffic-mini-chart" viewBox="0 0 120 26" aria-hidden="true">
                 <polyline points={uvSparkline} />
@@ -1484,7 +1508,9 @@ function HomePage({
           <div className="hero__fact">
             <span>近7天浏览</span>
             <strong>{githubTraffic.available ? githubTraffic.recent7.viewCount : '--'}</strong>
-            <small className="hero__fact-subtle">GitHub 仓库 PV</small>
+            <small className="hero__fact-subtle" title={githubTraffic.reason || ''}>
+              {githubTraffic.available ? 'GitHub 仓库 PV' : `不可用：${trafficUnavailableReason}`}
+            </small>
           </div>
           <div className="hero__fact">
             <span>状态</span>
@@ -1495,7 +1521,9 @@ function HomePage({
             <span>最近同步</span>
             <strong>{syncedAt ? formatDateTime(syncedAt) : '等待同步'}</strong>
             <small className="hero__fact-subtle">
-              {githubTraffic.available ? `GitHub 访客更新时间 ${formatDateTime(githubTraffic.generatedAt)}` : 'GitHub 访客数据暂不可用'}
+              {githubTraffic.available
+                ? `GitHub 访客更新时间 ${formatDateTime(githubTraffic.generatedAt)}`
+                : `GitHub 访客数据暂不可用（${trafficUnavailableReason}）`}
             </small>
           </div>
         </div>
