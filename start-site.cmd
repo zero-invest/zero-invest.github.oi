@@ -15,5 +15,7 @@ pause
 exit /b 1
 
 :run
+set "AUTO_PUSH_GITHUB=1"
+set "AUTO_PUSH_INTERVAL_MS=300000"
 "%NODE_EXE%" scripts\dev-auto-refresh.mjs
 endlocal

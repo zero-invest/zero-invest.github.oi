@@ -6,7 +6,7 @@ import { LineChart } from './components/LineChart';
 import { MetricCard } from './components/MetricCard';
 import { cloneInitialScenario, defaultCalibration } from './data/funds';
 import { estimateScenario, trainCalibration } from './lib/estimator';
-import { readFundJournal, readWatchlistModel, writeFundJournal, writeWatchlistModel } from './lib/storage';
+import { readFavoriteFundCodes, readFundJournal, readFundOrder, readWatchlistModel, writeFavoriteFundCodes, writeFundJournal, writeFundOrder, writeWatchlistModel } from './lib/storage';
 import { estimateWatchlistFund, getDefaultWatchlistModel, reconcileJournal, recordEstimateSnapshot } from './lib/watchlist';
 import type { CalibrationModel, FundJournal, FundRuntimeData, FundScenario, FundViewModel, RuntimePayload, WatchlistModel } from './types';
 
@@ -398,7 +398,7 @@ interface TrainingMetricSummary {
   generatedAt: string;
 }
 
-const OFFLINE_RESEARCH_CODES = new Set(['160216', '160723', '161725', '501018', '161129', '160719', '161116', '164701', '501225', '513310', '161130', '160416', '162719', '162411', '161125', '159509', '501312', '501011', '501050', '160221', '165520', '167301', '161226', '161128', '513800', '513880', '513520', '513100', '513500', '159502', '513290', '159561', '513030', '513850', '513300', '159518', '163208', '159577', '513400']);
+const OFFLINE_RESEARCH_CODES = new Set(['160216', '160723', '161725', '501018', '161129', '160719', '161116', '164701', '501225', '513310', '161130', '160416', '162719', '162411', '161125', '161126', '161127', '162415', '159329', '159982', '513080', '520830', '513730', '164824', '160644', '159100', '520870', '160620', '161217', '161124', '501300', '160140', '520580', '159509', '501312', '501011', '501050', '160221', '165520', '167301', '161226', '161128', '513800', '513880', '513520', '513100', '513500', '159502', '513290', '159561', '513030', '513850', '513300', '159518', '163208', '159577', '513400']);
 
 function getPointsDateRange(points: ResearchPoint[]) {
   if (!points.length) {
@@ -1383,7 +1383,14 @@ function HomePage({
   trainingMetricsByCode: Record<string, TrainingMetricSummary>;
 }) {
   const pageOption = getPageOption(pageCategory);
-  const visibleFunds = useMemo(() => {
+  const [favoriteCodes, setFavoriteCodes] = useState<string[]>(() => readFavoriteFundCodes());
+  const [orderedCodes, setOrderedCodes] = useState<string[]>(() => readFundOrder(pageCategory));
+
+  useEffect(() => {
+    setOrderedCodes(readFundOrder(pageCategory));
+  }, [pageCategory]);
+
+  const filteredFunds = useMemo(() => {
     if (pageCategory === 'qdii-etf') {
       return funds.filter((item) => isQdiiEtfFund(item));
     }
@@ -1392,9 +1399,64 @@ function HomePage({
     }
     return funds.filter((item) => item.runtime.pageCategory === pageCategory);
   }, [funds, pageCategory]);
+
+  const visibleFunds = useMemo(() => {
+    if (!orderedCodes.length) {
+      return filteredFunds;
+    }
+
+    const orderIndex = new Map(orderedCodes.map((code, index) => [code, index]));
+    return [...filteredFunds].sort((left, right) => {
+      const leftIndex = orderIndex.get(left.runtime.code);
+      const rightIndex = orderIndex.get(right.runtime.code);
+      const leftDefined = typeof leftIndex === 'number';
+      const rightDefined = typeof rightIndex === 'number';
+
+      if (leftDefined && rightDefined) {
+        return leftIndex - rightIndex;
+      }
+      if (leftDefined) {
+        return -1;
+      }
+      if (rightDefined) {
+        return 1;
+      }
+
+      return left.runtime.priority - right.runtime.priority;
+    });
+  }, [filteredFunds, orderedCodes]);
+
   const proxyDrivenCount = visibleFunds.filter((item) => item.runtime.estimateMode === 'proxy').length;
   const syncAgeHours = getHoursSinceSync(syncedAt);
   const untrainedCount = visibleFunds.filter((item) => !trainingMetricsByCode[item.runtime.code]).length;
+  const favoriteVisibleCount = visibleFunds.filter((item) => favoriteCodes.includes(item.runtime.code)).length;
+
+  const handleToggleFavorite = (code: string) => {
+    setFavoriteCodes((current) => {
+      const next = current.includes(code) ? current.filter((item) => item !== code) : [code, ...current.filter((item) => item !== code)];
+      writeFavoriteFundCodes(next);
+      return next;
+    });
+  };
+
+  const handleReorder = (dragCode: string, targetCode: string) => {
+    if (dragCode === targetCode) {
+      return;
+    }
+
+    const baseCodes = visibleFunds.map((item) => item.runtime.code);
+    const dragIndex = baseCodes.indexOf(dragCode);
+    const targetIndex = baseCodes.indexOf(targetCode);
+    if (dragIndex < 0 || targetIndex < 0) {
+      return;
+    }
+
+    const next = [...baseCodes];
+    const [moved] = next.splice(dragIndex, 1);
+    next.splice(targetIndex, 0, moved);
+    setOrderedCodes(next);
+    writeFundOrder(pageCategory, next);
+  };
 
   return (
     <main className="page">
@@ -1423,7 +1485,7 @@ function HomePage({
           <div className="hero__fact">
             <span>状态</span>
             <strong>{loading ? '同步中' : error ? '同步异常' : '可用'}</strong>
-            <small className="hero__fact-subtle">本页未训练基金 {untrainedCount} 只</small>
+            <small className="hero__fact-subtle">本页未训练基金 {untrainedCount} 只，已收藏 {favoriteVisibleCount} 只</small>
           </div>
           <div className="hero__fact hero__fact--wide">
             <span>最近同步</span>
@@ -1464,6 +1526,9 @@ function HomePage({
         title={pageOption.tableTitle}
         description={pageOption.tableDescription}
         pagePath={pageOption.path}
+        favoriteCodes={favoriteCodes}
+        onToggleFavorite={handleToggleFavorite}
+        onReorder={handleReorder}
       />
 
       <section className="panel notice-panel">

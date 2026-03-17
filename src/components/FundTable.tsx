@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { FundViewModel } from '../types';
 
-type SortKey = 'code' | 'premiumRate' | 'estimatedNav' | 'marketPrice' | 'officialNavT1' | 'meanAbsError' | 'latestError' | 'error30d' | 'changeRate';
+type SortKey = 'manual' | 'code' | 'premiumRate' | 'estimatedNav' | 'marketPrice' | 'officialNavT1' | 'meanAbsError' | 'latestError' | 'error30d' | 'changeRate';
 
 interface FundTableProps {
   funds: FundViewModel[];
@@ -11,16 +11,30 @@ interface FundTableProps {
   title: string;
   description: string;
   pagePath: string;
+  favoriteCodes: string[];
+  onToggleFavorite: (code: string) => void;
+  onReorder: (dragCode: string, targetCode: string) => void;
 }
 
-export function FundTable({ funds, trainingMetricsByCode, formatCurrency, formatPercent, title, description, pagePath }: FundTableProps) {
+export function FundTable({
+  funds,
+  trainingMetricsByCode,
+  formatCurrency,
+  formatPercent,
+  title,
+  description,
+  pagePath,
+  favoriteCodes,
+  onToggleFavorite,
+  onReorder,
+}: FundTableProps) {
     const SORT_LABEL_HINTS: Partial<Record<SortKey, string>> = {
       meanAbsError: '离线训练验证集近30天 MAE（鲁棒口径：剔除最近30天最大单日误差后计算），优先用于看模型是否训练到位。',
       latestError: '线上最近一个交易日误差（估值相对后续真实净值）。',
       error30d: '线上最近30天平均误差（随日常波动变化）。',
     };
 
-  const [sortKey, setSortKey] = useState<SortKey>('premiumRate');
+  const [sortKey, setSortKey] = useState<SortKey>('manual');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const tableRef = useRef<HTMLTableElement | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
@@ -29,8 +43,14 @@ export function FundTable({ funds, trainingMetricsByCode, formatCurrency, format
     left: 0,
     width: 0,
   });
+  const favoriteSet = useMemo(() => new Set(favoriteCodes), [favoriteCodes]);
+  const [draggingCode, setDraggingCode] = useState<string | null>(null);
 
   const sortedFunds = useMemo(() => {
+    if (sortKey === 'manual') {
+      return funds;
+    }
+
     const next = [...funds];
     next.sort((left, right) => {
       const multiplier = sortDirection === 'asc' ? 1 : -1;
@@ -91,6 +111,13 @@ export function FundTable({ funds, trainingMetricsByCode, formatCurrency, format
     }
   };
 
+  const handleRowDrop = (targetCode: string) => {
+    if (!draggingCode || draggingCode === targetCode) {
+      return;
+    }
+    onReorder(draggingCode, targetCode);
+  };
+
   const renderSortLabel = (label: string, key: SortKey) => {
     const active = sortKey === key;
     const suffix = active ? (sortDirection === 'desc' ? ' ↓' : ' ↑') : '';
@@ -138,6 +165,7 @@ export function FundTable({ funds, trainingMetricsByCode, formatCurrency, format
 
   const renderHeaderCells = () => (
     <>
+      <div>收藏</div>
       <div>{renderSortLabel('代码', 'code')}</div>
       <div>名称</div>
       <div>{renderSortLabel('溢价率', 'premiumRate')}</div>
@@ -151,6 +179,7 @@ export function FundTable({ funds, trainingMetricsByCode, formatCurrency, format
       <div>{renderSortLabel('净值', 'officialNavT1')}</div>
       <div>净值日期</div>
       <div>现价时间</div>
+      <div>调整</div>
     </>
   );
 
@@ -171,6 +200,7 @@ export function FundTable({ funds, trainingMetricsByCode, formatCurrency, format
       <div className="table-scroll" ref={scrollRef}>
         <table className="fund-table" ref={tableRef}>
           <colgroup>
+            <col className="fund-table__col fund-table__col--favorite" />
             <col className="fund-table__col fund-table__col--code" />
             <col className="fund-table__col fund-table__col--name" />
             <col className="fund-table__col fund-table__col--premium" />
@@ -184,9 +214,11 @@ export function FundTable({ funds, trainingMetricsByCode, formatCurrency, format
             <col className="fund-table__col fund-table__col--nav" />
             <col className="fund-table__col fund-table__col--nav-date" />
             <col className="fund-table__col fund-table__col--market-time" />
+            <col className="fund-table__col fund-table__col--adjust" />
           </colgroup>
           <thead>
             <tr>
+              <th>收藏</th>
               <th>{renderSortLabel('代码', 'code')}</th>
               <th>名称</th>
               <th>{renderSortLabel('溢价率', 'premiumRate')}</th>
@@ -200,10 +232,12 @@ export function FundTable({ funds, trainingMetricsByCode, formatCurrency, format
               <th>{renderSortLabel('净值', 'officialNavT1')}</th>
               <th>净值日期</th>
               <th>现价时间</th>
+              <th>调整</th>
             </tr>
           </thead>
           <tbody>
             {sortedFunds.map((fund) => {
+              const isFavorite = favoriteSet.has(fund.runtime.code);
               const premiumTone = fund.estimate.premiumRate > 0 ? 'positive' : 'negative';
               const changeRate = getChangeRate(fund.runtime.marketPrice, fund.runtime.previousClose);
               const latestError = getLatestError(fund);
@@ -213,14 +247,30 @@ export function FundTable({ funds, trainingMetricsByCode, formatCurrency, format
               const fullName = getFullFundName(fund.runtime.code, fund.runtime.name);
 
               return (
-                <tr key={fund.runtime.code}>
+                <tr
+                  key={fund.runtime.code}
+                  className={isFavorite ? 'fund-table__row--favorite' : undefined}
+                  onDragOver={(event) => event.preventDefault()}
+                  onDrop={() => handleRowDrop(fund.runtime.code)}
+                >
+                  <td>
+                    <button
+                      className={`fund-favorite-button${isFavorite ? ' fund-favorite-button--active' : ''}`}
+                      type="button"
+                      onClick={() => onToggleFavorite(fund.runtime.code)}
+                      aria-label={isFavorite ? `取消收藏 ${fund.runtime.code}` : `收藏 ${fund.runtime.code}`}
+                      title={isFavorite ? '取消收藏该基金' : '收藏该基金'}
+                    >
+                      <span aria-hidden="true">{isFavorite ? '★' : '☆'}</span>
+                    </button>
+                  </td>
                   <td>
                     <a className="fund-table__link" href={`#/fund/${fund.runtime.code}?from=${pagePath}`}>
                       {fund.runtime.code}
                     </a>
                   </td>
                   <td>
-                    <span className="fund-table__name" title={fullName}>{compactName}</span>
+                    <span className={`fund-table__name${isFavorite ? ' fund-table__name--favorite' : ''}`} title={fullName}>{compactName}</span>
                   </td>
                   <td className={`tone-${premiumTone}`}>{formatPercent(fund.estimate.premiumRate)}</td>
                   <td className={getLimitClass(fund.runtime.purchaseLimit)}>
@@ -239,6 +289,19 @@ export function FundTable({ funds, trainingMetricsByCode, formatCurrency, format
                   <td>{formatCurrency(fund.runtime.officialNavT1)}</td>
                   <td>{fund.runtime.navDate || '--'}</td>
                   <td>{`${fund.runtime.marketDate || '--'} ${fund.runtime.marketTime || ''}`.trim()}</td>
+                  <td>
+                    <button
+                      className="fund-order-handle"
+                      type="button"
+                      draggable
+                      onDragStart={() => setDraggingCode(fund.runtime.code)}
+                      onDragEnd={() => setDraggingCode(null)}
+                      title="拖拽调整本页基金顺序"
+                      aria-label={`拖拽调整 ${fund.runtime.code} 顺序`}
+                    >
+                      <span aria-hidden="true">≡</span>
+                    </button>
+                  </td>
                 </tr>
               );
             })}

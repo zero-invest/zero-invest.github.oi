@@ -11,10 +11,10 @@
   <text x="46" y="66" fill="#5b6b68" font-size="13">历史前十大持仓 + 持仓逐日涨跌幅 + USDCNY；双目标 lambda=0.10；披露期数 34；覆盖率均值 92.4%</text>
   <g>
     <text x="54" y="110" fill="#1f2937" font-size="16" font-weight="700">A. 净值拟合（同日对齐，无平移）</text>
-    <line x1="98" y1="112" x2="124" y2="112" stroke="#0f766e" stroke-width="2"  />
-      <text x="130" y="116" fill="#24312e" font-size="12">真实净值</text>
-<line x1="313" y1="112" x2="339" y2="112" stroke="#1d4ed8" stroke-width="2"  />
-      <text x="345" y="116" fill="#24312e" font-size="12">持仓分段估值</text>
+    <line x1="98" y1="130" x2="124" y2="130" stroke="#0f766e" stroke-width="2"  />
+      <text x="130" y="134" fill="#24312e" font-size="12">真实净值</text>
+<line x1="313" y1="130" x2="339" y2="130" stroke="#1d4ed8" stroke-width="2"  />
+      <text x="345" y="134" fill="#24312e" font-size="12">持仓分段估值</text>
     <line x1="98" y1="132.00" x2="1292" y2="132.00" stroke="#d7e3df" stroke-width="1" />
       <text x="90" y="136.00" text-anchor="end" fill="#5b6b68" font-size="11">3.324</text>
 <line x1="98" y1="209.50" x2="1292" y2="209.50" stroke="#d7e3df" stroke-width="1" />
@@ -46,8 +46,8 @@
   </g>
   <g>
     <text x="54" y="538" fill="#1f2937" font-size="16" font-weight="700">B. 绝对误差（越低越好）</text>
-    <line x1="98" y1="540" x2="124" y2="540" stroke="#1d4ed8" stroke-width="2"  />
-      <text x="130" y="544" fill="#24312e" font-size="12">持仓分段误差</text>
+    <line x1="98" y1="558" x2="124" y2="558" stroke="#1d4ed8" stroke-width="2"  />
+      <text x="130" y="562" fill="#24312e" font-size="12">持仓分段误差</text>
     <line x1="98" y1="560.00" x2="1292" y2="560.00" stroke="#d7e3df" stroke-width="1" />
       <text x="90" y="564.00" text-anchor="end" fill="#5b6b68" font-size="11">45.19%</text>
 <line x1="98" y1="630.00" x2="1292" y2="630.00" stroke="#d7e3df" stroke-width="1" />
