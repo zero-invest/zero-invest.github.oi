@@ -17,5 +17,6 @@ exit /b 1
 :run
 set "AUTO_PUSH_GITHUB=1"
 set "AUTO_PUSH_INTERVAL_MS=300000"
+if not defined SYNC_BATCH_SIZE set "SYNC_BATCH_SIZE=8"
 "%NODE_EXE%" scripts\dev-auto-refresh.mjs
 endlocal

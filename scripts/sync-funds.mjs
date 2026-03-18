@@ -2,6 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { load } from 'cheerio';
+import { PDFParse } from 'pdf-parse';
 import catalog from '../src/data/fundCatalog.json' with { type: 'json' };
 import { parseNoticeHoldingsDisclosure } from './notice-parsers/registry.mjs';
 import { computeAdaptiveImpliedReturn as computeAdaptiveImpliedReturnPublic } from './algorithms/watchlist-core.public.mjs';
@@ -12,6 +13,8 @@ const dailyCacheDir = path.join(projectRoot, '.cache', 'fund-sync', 'daily');
 const intradayCacheDir = path.join(projectRoot, '.cache', 'fund-sync', 'intraday');
 const watchlistStatePath = path.join(projectRoot, '.cache', 'fund-sync', 'watchlist-state.json');
 const holdingsDisclosurePath = path.join(projectRoot, '.cache', 'fund-sync', 'holdings-disclosures.json');
+const syncSchedulePath = path.join(projectRoot, '.cache', 'fund-sync', 'sync-schedule.json');
+const quoteHistoryDbPath = path.join(projectRoot, '.cache', 'fund-sync', 'quote-history-db.json');
 const PUBLISHED_RUNTIME_URLS = [
   'https://987144016.github.io/lof-Premium-Rate-Web/generated/funds-runtime.json',
   'https://987144016.github.io/lof-Premium-Rate-Web/?state-probe=1',
@@ -20,6 +23,8 @@ const now = new Date();
 const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 const WATCHLIST_STATE_VERSION = 17;
 const DAILY_CACHE_VERSION = 40;
+const INTRADAY_CACHE_TTL_MS = 5 * 60 * 1000;
+const HOLDING_QUOTE_BATCH_SIZE = 180;
 const MAX_MARKET_MOVE = 0.08;
 const MAX_PROXY_MOVE = 0.15;
 const MAX_CLOSE_GAP = 0.2;
@@ -28,6 +33,44 @@ const JOURNAL_RETENTION_DAYS = 90;
 const adaptiveAlgoPrivatePath = path.join(projectRoot, '.private', 'adaptive-holdings-algo.private.json');
 const privateWatchlistCorePath = path.join(projectRoot, '.private', 'watchlist-core.private.mjs');
 const ENABLE_PRIVATE_ALGO = process.env.ENABLE_PRIVATE_ALGO === '1';
+const OFFLINE_MODEL_BOOTSTRAP_SAMPLE_COUNT = 30;
+const ADAPTIVE_OFFLINE_PARAM_KEYS = new Set([
+  'shockThreshold',
+  'tradingShockThreshold',
+  'offShockThreshold',
+  'shockBaseBlend',
+  'normalBaseBlend',
+  'tradingBaseBlend',
+  'offBaseBlend',
+  'shockAmplify',
+  'minReturn',
+  'maxReturn',
+  'kLearnRate',
+  'biasLearnRate',
+  'updateMinMove',
+  'kMin',
+  'kMax',
+  'maxLeadMove',
+  'sessionSplit',
+  'tradingLeadScale',
+  'offLeadScale',
+  'upMoveScale',
+  'downMoveScale',
+  'gapBranch',
+  'gapCoef',
+  'gapAmplify',
+  'gapSignalThreshold',
+  'gapBiasLearnRate',
+  'weekendThreshold',
+  'weekendAmplify',
+  'weekendFxCoef',
+  'weekendMomentumCoef',
+  'enableOilSessionGap',
+  'primaryProxyTicker',
+  'secondaryProxyTicker',
+  'fxGapWeight',
+  'proxySpreadThreshold',
+]);
 const PUBLIC_ADAPTIVE_HOLDINGS_ALGO_BY_CODE = {
   '160216': {
     shockThreshold: 0.024082436635498593,
@@ -826,8 +869,8 @@ const PUBLIC_ADAPTIVE_HOLDINGS_ALGO_BY_CODE = {
     weekendFxCoef: 0.4,
     weekendMomentumCoef: 0,
     enableOilSessionGap: true,
-    primaryProxyTicker: 'QQQ',
-    secondaryProxyTicker: 'XLK',
+    primaryProxyTicker: 'XLK',
+    secondaryProxyTicker: 'IYW',
     fxGapWeight: 0.3,
     proxySpreadThreshold: 0.016,
   },
@@ -846,14 +889,98 @@ const PUBLIC_ADAPTIVE_HOLDINGS_ALGO_BY_CODE = {
     maxLeadMove: 0.15,
   },
 };
+async function loadOfflineResearchBootstrap(codes) {
+  const adaptiveOverrides = {};
+  const modelBootstrapByCode = {};
+
+  for (const code of codes) {
+    const payload = await readJson(path.join(projectRoot, 'public', 'generated', `${code}-offline-research.json`), null);
+    if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+      continue;
+    }
+
+    const adaptiveModel = payload.adaptiveModel;
+    if (adaptiveModel && typeof adaptiveModel === 'object' && !Array.isArray(adaptiveModel)) {
+      const mapped = {};
+      for (const key of ADAPTIVE_OFFLINE_PARAM_KEYS) {
+        const value = adaptiveModel[key];
+        if (typeof value === 'number' && Number.isFinite(value)) {
+          mapped[key] = value;
+        } else if (typeof value === 'boolean' || typeof value === 'string') {
+          mapped[key] = value;
+        }
+      }
+
+      if (Object.keys(mapped).length) {
+        adaptiveOverrides[code] = mapped;
+      }
+    }
+
+    const robustMae = Number(payload?.segmented?.maeValidation30Robust);
+    const fallbackMae = Number(payload?.segmented?.maeValidation30);
+    const bootstrapMae = Number.isFinite(robustMae)
+      ? robustMae
+      : Number.isFinite(fallbackMae)
+        ? fallbackMae
+        : Number.NaN;
+
+    if (Number.isFinite(bootstrapMae) && bootstrapMae >= 0 && bootstrapMae < 0.2) {
+      modelBootstrapByCode[code] = {
+        sampleCount: OFFLINE_MODEL_BOOTSTRAP_SAMPLE_COUNT,
+        meanAbsError: bootstrapMae,
+      };
+    }
+  }
+
+  return {
+    adaptiveOverrides,
+    modelBootstrapByCode,
+  };
+}
+
+async function listOfflineResearchCodes() {
+  const generatedDir = path.join(projectRoot, 'public', 'generated');
+  try {
+    const entries = await fs.readdir(generatedDir, { withFileTypes: true });
+    const codes = [];
+    for (const entry of entries) {
+      if (!entry.isFile()) {
+        continue;
+      }
+
+      const matched = entry.name.match(/^(\d{6})-offline-research\.json$/);
+      if (matched) {
+        codes.push(matched[1]);
+      }
+    }
+    return codes;
+  } catch {
+    return [];
+  }
+}
+
+const offlineResearchCodes = await listOfflineResearchCodes();
+const { adaptiveOverrides: offlineAdaptiveOverrides, modelBootstrapByCode: OFFLINE_MODEL_BOOTSTRAP_BY_CODE } = await loadOfflineResearchBootstrap(
+  offlineResearchCodes,
+);
 const privateAdaptiveOverridesRaw = ENABLE_PRIVATE_ALGO ? await readJson(adaptiveAlgoPrivatePath, {}) : {};
 const privateAdaptiveOverrides = privateAdaptiveOverridesRaw && typeof privateAdaptiveOverridesRaw === 'object' && !Array.isArray(privateAdaptiveOverridesRaw)
   ? privateAdaptiveOverridesRaw
   : {};
-const ADAPTIVE_HOLDINGS_ALGO_BY_CODE = {
-  ...PUBLIC_ADAPTIVE_HOLDINGS_ALGO_BY_CODE,
-  ...privateAdaptiveOverrides,
-};
+const adaptiveConfigCodes = [...new Set([
+  ...Object.keys(PUBLIC_ADAPTIVE_HOLDINGS_ALGO_BY_CODE),
+  ...Object.keys(privateAdaptiveOverrides),
+])];
+const ADAPTIVE_HOLDINGS_ALGO_BY_CODE = Object.fromEntries(
+  adaptiveConfigCodes.map((code) => [
+    code,
+    {
+      ...(PUBLIC_ADAPTIVE_HOLDINGS_ALGO_BY_CODE[code] ?? {}),
+      ...(offlineAdaptiveOverrides[code] ?? {}),
+      ...(privateAdaptiveOverrides[code] ?? {}),
+    },
+  ]),
+);
 let computeAdaptiveImpliedReturn = computeAdaptiveImpliedReturnPublic;
 if (ENABLE_PRIVATE_ALGO) {
   try {
@@ -885,6 +1012,14 @@ const PROXY_BASKETS = {
       { ticker: 'XLK', name: 'Technology Select Sector SPDR', weight: 0.3 },
     ],
   },
+  'us-sp-info-tech': {
+    name: '标普信息科技篮子',
+    components: [
+      { ticker: 'XLK', name: 'Technology Select Sector SPDR', weight: 0.45 },
+      { ticker: 'VGT', name: 'Vanguard Information Technology ETF', weight: 0.35 },
+      { ticker: 'IYW', name: 'iShares U.S. Technology ETF', weight: 0.2 },
+    ],
+  },
   'us-semiconductor': {
     name: '半导体篮子',
     components: [{ ticker: 'SOXX', name: 'iShares Semiconductor ETF', weight: 1 }],
@@ -899,6 +1034,14 @@ const PROXY_BASKETS = {
   'us-commodities': {
     name: '大宗商品篮子',
     components: [{ ticker: 'DBC', name: 'Invesco DB Commodity Index Tracking Fund', weight: 1 }],
+  },
+  'us-agriculture': {
+    name: '农业商品篮子',
+    components: [
+      { ticker: 'SOYB', name: 'Teucrium Soybean Fund', weight: 0.55 },
+      { ticker: 'DBA', name: 'Invesco DB Agriculture Fund', weight: 0.3 },
+      { ticker: 'CORN', name: 'Teucrium Corn Fund', weight: 0.15 },
+    ],
   },
   'us-gold': {
     name: '黄金篮子',
@@ -944,10 +1087,24 @@ const PROXY_BASKETS = {
     name: '纳指100篮子',
     components: [{ ticker: 'QQQ', name: 'Invesco QQQ Trust', weight: 1 }],
   },
+  'japan-nikkei225': {
+    name: '日经225篮子',
+    components: [
+      { ticker: 'EWJ', name: 'iShares MSCI Japan ETF', weight: 0.4 },
+      { ticker: 'DXJ', name: 'WisdomTree Japan Hedged Equity Fund', weight: 0.3 },
+      { ticker: 'HEWJ', name: 'iShares Currency Hedged MSCI Japan ETF', weight: 0.2 },
+      { ticker: 'FLJP', name: 'Franklin FTSE Japan ETF', weight: 0.1 },
+    ],
+  },
 };
 const RELATED_ETF_FALLBACKS = {
   '501011': '560080',
   '161130': '159696',
+};
+const DISPLAY_NAME_OVERRIDES = {
+  '513880': '华安日经225ETF',
+  '513520': '华夏日经225ETF',
+  '159985': '豆粕ETF',
 };
 const ARCHIVE_HOLDING_TICKER_MAP = {
   'BRK_B': { ticker: 'BRK.B' },
@@ -957,11 +1114,35 @@ const ARCHIVE_HOLDING_TICKER_MAP = {
   'CNQCN': { ticker: 'CNQ' },
 };
 const SPECIAL_QUOTE_SYMBOL_MAP = {
+  '7203.JP': 'usTM',
+  '6758.JP': 'usSONY',
+  '9983.JP': 'usSFTBY',
+  '9984.JP': 'usSFTBY',
+  '9432.JP': 'usNTTYY',
+  '9433.JP': 'usSFTBY',
+  '8035.JP': 'usTOELY',
+  '6861.JP': 'usKYCCF',
+  '6501.JP': 'usHTHIY',
+  '4063.JP': 'usSHECY',
+  '8306.JP': 'usMUFG',
+  '8316.JP': 'usSMFG',
+  '6098.JP': 'usRKUNY',
+  '4519.JP': 'usCHGCY',
+  '7974.JP': 'usNTDOY',
+  '4661.JP': 'usOLCLY',
+  '8766.JP': 'usTKOMY',
+  '8001.JP': 'usMITUY',
+  '8031.JP': 'usMITSY',
+  '7267.JP': 'usHMC',
+  '7269.JP': 'usSZKMY',
+  '9020.JP': 'usJAPSY',
+  '9022.JP': 'usCHCJY',
+  '4502.JP': 'usTAK',
   RIGD: 'ukRIGD',
 };
 const HOLDINGS_SIGNAL_MIN_COVERAGE_BY_CODE = {
   '513310': 0.55,
-  '161128': 0.7,
+  '161128': 0.65,
 };
 const SUPPLEMENTAL_NOTICE_HOLDINGS = {
   '160216': [
@@ -999,6 +1180,17 @@ const SUPPLEMENTAL_NOTICE_HOLDINGS = {
   ],
   '513310': [
     { ticker: '005930', quoteTicker: 'SOXX', aliases: ['SamsungElectronics', 'Samsung Electronics'] },
+  ],
+  '513730': [
+    { ticker: 'EEMA', aliases: ['CSOP IEDGE SEA+ TECH ETF USD', 'CSOP IEDGE SEA TECH ETF USD', 'CSOP IEDGE SEA+TECH ETF USD'] },
+    { ticker: 'EWT', aliases: ['iShares MSCI Taiwan ETF', 'MSCI Taiwan ETF'] },
+    { ticker: 'EWY', aliases: ['iShares MSCI South Korea ETF', 'MSCI South Korea ETF'] },
+    { ticker: 'EWS', aliases: ['iShares MSCI Singapore ETF', 'MSCI Singapore ETF'] },
+    { ticker: 'FXSG', aliases: ['First Trust Singapore AlphaDEX Fund', 'Singapore AlphaDEX Fund'] },
+    { ticker: 'FLKR', aliases: ['Franklin FTSE South Korea ETF'] },
+    { ticker: 'VPL', aliases: ['Vanguard FTSE Pacific ETF'] },
+    { ticker: 'SOXX', aliases: ['iShares Semiconductor ETF'] },
+    { ticker: 'EEMA', aliases: ['iShares MSCI Emerging Markets Asia ETF', 'MSCI EM Asia ETF'] },
   ],
   '501312': [
     { ticker: 'ARKK', aliases: ['ARK Innovation ETF'] },
@@ -1297,22 +1489,52 @@ function getDefaultJournal() {
   };
 }
 
-function normalizePersistedState(entry) {
+function normalizePersistedState(code, entry) {
   if (!entry) {
+    const model = applyOfflineModelBootstrap(code, getDefaultWatchlistModel());
     return {
       modelVersion: WATCHLIST_STATE_VERSION,
-      model: getDefaultWatchlistModel(),
+      model,
       journal: getDefaultJournal(),
     };
   }
 
+  const baseModel = entry.modelVersion === WATCHLIST_STATE_VERSION
+    ? { ...getDefaultWatchlistModel(), ...(entry.model ?? {}) }
+    : getDefaultWatchlistModel();
+
   return {
     modelVersion: WATCHLIST_STATE_VERSION,
-    model: entry.modelVersion === WATCHLIST_STATE_VERSION ? { ...getDefaultWatchlistModel(), ...(entry.model ?? {}) } : getDefaultWatchlistModel(),
+    model: applyOfflineModelBootstrap(code, baseModel),
     journal: pruneJournal({
       snapshots: entry.journal?.snapshots ?? [],
       errors: entry.journal?.errors ?? [],
     }),
+  };
+}
+
+function applyOfflineModelBootstrap(code, model) {
+  const bootstrap = OFFLINE_MODEL_BOOTSTRAP_BY_CODE[code];
+  if (!bootstrap) {
+    return model;
+  }
+
+  const sampleCount = Number.isFinite(model.sampleCount) ? model.sampleCount : 0;
+  const meanAbsError = Number.isFinite(model.meanAbsError) ? model.meanAbsError : Number.NaN;
+  if (sampleCount >= bootstrap.sampleCount && Number.isFinite(meanAbsError) && meanAbsError > 0) {
+    return model;
+  }
+
+  const validSampleCount = Math.max(0, sampleCount);
+  const validMeanAbsError = Number.isFinite(meanAbsError) && meanAbsError >= 0 ? meanAbsError : bootstrap.meanAbsError;
+  const mergedMeanAbsError = (validMeanAbsError * validSampleCount + bootstrap.meanAbsError * bootstrap.sampleCount)
+    / Math.max(1, validSampleCount + bootstrap.sampleCount);
+
+  return {
+    ...model,
+    sampleCount: Math.max(validSampleCount, bootstrap.sampleCount),
+    meanAbsError: mergedMeanAbsError,
+    lastUpdatedAt: model.lastUpdatedAt || new Date().toISOString(),
   };
 }
 
@@ -1533,6 +1755,90 @@ async function writeJson(filePath, payload) {
   await fs.writeFile(filePath, JSON.stringify(payload, null, 2), 'utf8');
 }
 
+let quoteHistoryDbPromise = null;
+
+async function getQuoteHistoryDb() {
+  if (!quoteHistoryDbPromise) {
+    quoteHistoryDbPromise = readJson(quoteHistoryDbPath, { updatedAt: '', byTicker: {} });
+  }
+
+  const payload = await quoteHistoryDbPromise;
+  if (!payload || typeof payload !== 'object') {
+    return { updatedAt: '', byTicker: {} };
+  }
+
+  if (!payload.byTicker || typeof payload.byTicker !== 'object') {
+    payload.byTicker = {};
+  }
+
+  return payload;
+}
+
+function normalizeQuoteHistoryTicker(value) {
+  return String(value || '').trim().toUpperCase();
+}
+
+function getQuoteHistoryFallback(db, ticker, maxAgeHours = 72) {
+  const normalizedTicker = normalizeQuoteHistoryTicker(ticker);
+  const row = db?.byTicker?.[normalizedTicker];
+  if (!row) {
+    return null;
+  }
+
+  const currentPrice = Number(row.currentPrice);
+  const previousClose = Number(row.previousClose);
+  if (!(currentPrice > 0) || !(previousClose > 0)) {
+    return null;
+  }
+
+  const fetchedAt = row.fetchedAt ? new Date(row.fetchedAt) : null;
+  if (!fetchedAt || Number.isNaN(fetchedAt.getTime())) {
+    return null;
+  }
+
+  const ageHours = (Date.now() - fetchedAt.getTime()) / 3600000;
+  if (ageHours > maxAgeHours) {
+    return null;
+  }
+
+  return {
+    currentPrice,
+    previousClose,
+    quoteDate: String(row.quoteDate || ''),
+    quoteTime: String(row.quoteTime || ''),
+    name: String(row.name || ''),
+    source: 'shared-quote-history',
+  };
+}
+
+function upsertQuoteHistoryRow(db, ticker, payload) {
+  const normalizedTicker = normalizeQuoteHistoryTicker(ticker);
+  if (!normalizedTicker) {
+    return;
+  }
+
+  const currentPrice = Number(payload?.currentPrice);
+  const previousClose = Number(payload?.previousClose);
+  if (!(currentPrice > 0) || !(previousClose > 0)) {
+    return;
+  }
+
+  db.byTicker[normalizedTicker] = {
+    ticker: normalizedTicker,
+    name: String(payload?.name || ''),
+    currentPrice,
+    previousClose,
+    quoteDate: String(payload?.quoteDate || ''),
+    quoteTime: String(payload?.quoteTime || ''),
+    fetchedAt: new Date().toISOString(),
+  };
+  db.updatedAt = new Date().toISOString();
+}
+
+async function flushQuoteHistoryDb(db) {
+  await writeJson(quoteHistoryDbPath, db);
+}
+
 function parseIsoDate(value) {
   if (!value) {
     return null;
@@ -1702,7 +2008,9 @@ function mapIsBuyToStatus(value) {
   }
 
   if (code === '4') {
-    return '暂停申购';
+    // Eastmoney returns 4 for both pause and large-order-limit in some cases.
+    // Treat it as limited instead of hard pause to avoid false 0-limit.
+    return '限大额';
   }
 
   return ['1', '2', '3', '8', '9'].includes(code) ? '开放申购' : '';
@@ -1817,6 +2125,74 @@ function mapNoticeBuyStatus(title) {
   return '';
 }
 
+function normalizeChineseDateToken(token) {
+  const matched = String(token ?? '').match(/(\d{4})年(\d{1,2})月(\d{1,2})日/);
+  if (!matched) {
+    return '';
+  }
+
+  const year = matched[1];
+  const month = String(Number(matched[2])).padStart(2, '0');
+  const day = String(Number(matched[3])).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function buildNoticeBuyEvents(text) {
+  const normalized = String(text ?? '');
+  if (!normalized) {
+    return [];
+  }
+
+  const events = [];
+  const dateThenStatus = /(\d{4}年\d{1,2}月\d{1,2}日)[^。；\n]{0,36}(恢复申购|开放申购|暂停申购|限制大额申购|调整大额申购|大额申购)/g;
+  const statusThenDate = /(恢复申购|开放申购|暂停申购|限制大额申购|调整大额申购|大额申购)[^。；\n]{0,36}(\d{4}年\d{1,2}月\d{1,2}日)/g;
+
+  let matched;
+  while ((matched = dateThenStatus.exec(normalized)) !== null) {
+    const date = normalizeChineseDateToken(matched[1]);
+    const status = mapNoticeBuyStatus(matched[2]);
+    if (date && status) {
+      events.push({ date, status });
+    }
+  }
+
+  while ((matched = statusThenDate.exec(normalized)) !== null) {
+    const date = normalizeChineseDateToken(matched[2]);
+    const status = mapNoticeBuyStatus(matched[1]);
+    if (date && status) {
+      events.push({ date, status });
+    }
+  }
+
+  return events.sort((left, right) => left.date.localeCompare(right.date));
+}
+
+function resolveNoticeBuyStatusWithContent(title, content, publishDate) {
+  const titleStatus = mapNoticeBuyStatus(title);
+  const events = buildNoticeBuyEvents(content).filter((item) => item.date <= today);
+
+  // If there are valid events dated through today, use the latest one
+  if (events.length) {
+    return events[events.length - 1].status;
+  }
+
+  // For "暂停申购" notices, require positive evidence of current impact
+  if (titleStatus === '暂停申购') {
+    const combined = `${String(title ?? '')}${String(content ?? '')}`;
+    
+    // Skip holiday-only or temporary pauses
+    if (/节假日|非交易日|境外主要投资市场/.test(combined)) {
+      return '';
+    }
+    
+    // No events found and notice doesn't have current evidence — skip this notice
+    return '';
+  }
+
+  // For other statuses (like "开放申购"), use the title status if present
+  return titleStatus;
+}
+
 function mapNoticeRedeemStatus(title) {
   const normalized = String(title ?? '');
   if (!normalized) {
@@ -1887,13 +2263,44 @@ async function fetchPurchaseStatusFromNotices(code) {
 
         return !isTemporaryHolidayNotice(title);
       });
-    const notice = notices[0];
-    const buyStatus = mapNoticeBuyStatus(notice?.TITLE ?? '');
-    const redeemStatus = mapNoticeRedeemStatus(notice?.TITLE ?? '');
+
+    for (const notice of notices.slice(0, 6)) {
+      const title = String(notice?.TITLE ?? '');
+      const buyFromTitle = mapNoticeBuyStatus(title);
+      const redeemFromTitle = mapNoticeRedeemStatus(title);
+      if (!buyFromTitle && !redeemFromTitle) {
+        continue;
+      }
+
+      let content = '';
+      const artCode = String(notice?.ID ?? '');
+      if (artCode) {
+        try {
+          const contentResponse = await fetchText(
+            `https://np-cnotice-fund.eastmoney.com/api/content/ann?client_source=web_fund&show_all=1&art_code=${artCode}`,
+            { referer: `https://fund.eastmoney.com/gonggao/${code},${artCode}.html` },
+            'utf-8',
+          );
+          const contentPayload = JSON.parse(contentResponse);
+          content = String(contentPayload?.data?.notice_content ?? '');
+        } catch {
+          content = '';
+        }
+      }
+
+      const buyStatus = resolveNoticeBuyStatusWithContent(title, content, notice?.PUBLISHDATEDesc ?? notice?.PUBLISHDATE ?? '');
+      const redeemStatus = redeemFromTitle;
+      if (buyStatus || redeemStatus) {
+        return {
+          buyStatus,
+          redeemStatus,
+        };
+      }
+    }
 
     return {
-      buyStatus,
-      redeemStatus,
+      buyStatus: '',
+      redeemStatus: '',
     };
   } catch {
     return {
@@ -1974,17 +2381,19 @@ function mergePurchaseStatus(htmlStatus, apiStatus, portalStatus, noticeStatus) 
   const apiBS = apiStatus?.buyStatus ?? '';
   const portalBS = portalStatus?.buyStatus ?? '';
 
-  // 公告和HTML是最可靠的来源。
-  // 东方财富 ISBUY=4 对"暂停申购"和"限大额"都返回同一值，不够可靠，
-  // 因此当公告+HTML已有明确结论时，不让API覆盖结果。
-  const primaryBS = pickBuyStatus([noticeBS, htmlBS].filter(Boolean));
-  const buyStatus = primaryBS || pickBuyStatus([apiBS, portalBS].filter(Boolean));
+  // Source priority: html page > notice/content parsing > portal > api.
+  // Do not mix multiple sources in a single pick list, otherwise a stale "暂停" from a weaker source may override html "开放".
+  const buyStatus =
+    pickBuyStatus([htmlBS].filter(Boolean))
+    || pickBuyStatus([noticeBS].filter(Boolean))
+    || pickBuyStatus([portalBS].filter(Boolean))
+    || pickBuyStatus([apiBS].filter(Boolean));
 
-  const redeemStatus = pickRedeemStatus([
-    htmlStatus?.redeemStatus ?? '',
-    apiStatus?.redeemStatus ?? '',
-    portalStatus?.redeemStatus ?? '',
-  ].filter(Boolean));
+  const redeemStatus =
+    pickRedeemStatus([htmlStatus?.redeemStatus ?? ''].filter(Boolean))
+    || pickRedeemStatus([noticeStatus?.redeemStatus ?? ''].filter(Boolean))
+    || pickRedeemStatus([portalStatus?.redeemStatus ?? ''].filter(Boolean))
+    || pickRedeemStatus([apiStatus?.redeemStatus ?? ''].filter(Boolean));
 
   return {
     purchaseStatus: [buyStatus, redeemStatus].filter(Boolean).join(' / '),
@@ -2126,6 +2535,47 @@ function parseJsonpPayload(content) {
   }
 }
 
+function resolveNoticeAttachmentPdfUrl(contentPayload) {
+  const data = contentPayload?.data ?? {};
+  const candidates = [
+    data?.attach_url,
+    data?.attach_url_web,
+    ...(Array.isArray(data?.attach_list) ? data.attach_list : []),
+    ...(Array.isArray(data?.attach_list_ch) ? data.attach_list_ch : []),
+  ]
+    .map((item) => String(item || '').trim())
+    .filter(Boolean);
+
+  const matched = candidates.find((item) => /\.pdf(?:$|\?)/i.test(item));
+  return matched || '';
+}
+
+async function extractPdfText(pdfUrl) {
+  if (!pdfUrl) {
+    return '';
+  }
+
+  try {
+    const response = await fetch(pdfUrl, {
+      headers: {
+        referer: 'https://fundf10.eastmoney.com/',
+        'user-agent': 'Mozilla/5.0',
+      },
+    });
+    if (!response.ok) {
+      return '';
+    }
+
+    const buffer = Buffer.from(await response.arrayBuffer());
+    const parser = new PDFParse({ data: buffer });
+    const parsed = await parser.getText();
+    await parser.destroy();
+    return String(parsed?.text || '').trim();
+  } catch {
+    return '';
+  }
+}
+
 async function fetchNoticeHoldingsDisclosure(code) {
   const aliases = SUPPLEMENTAL_NOTICE_HOLDINGS[code];
   if (!aliases?.length) {
@@ -2143,7 +2593,12 @@ async function fetchNoticeHoldingsDisclosure(code) {
     return null;
   }
 
-  const quoteByTicker = await fetchSupplementalHoldingQuoteMap(aliases);
+  let quoteByTicker = new Map();
+  try {
+    quoteByTicker = await fetchSupplementalHoldingQuoteMap(aliases);
+  } catch {
+    quoteByTicker = new Map();
+  }
 
   for (const report of reports) {
     const artCode = report?.ID;
@@ -2166,6 +2621,20 @@ async function fetchNoticeHoldingsDisclosure(code) {
       });
       if (parsed.disclosedHoldings.length) {
         return parsed;
+      }
+
+      const attachmentPdfUrl = resolveNoticeAttachmentPdfUrl(contentPayload);
+      const pdfText = await extractPdfText(attachmentPdfUrl);
+      if (pdfText) {
+        const parsedFromPdf = parseNoticeHoldingsDisclosure(code, {
+          noticeTitle: report.TITLE,
+          noticeContent: pdfText,
+          aliases,
+          quoteByTicker,
+        });
+        if (parsedFromPdf.disclosedHoldings.length) {
+          return parsedFromPdf;
+        }
       }
     } catch {
       continue;
@@ -2568,10 +3037,6 @@ async function hydrateSupplementalDisclosureQuotes(code, disclosure) {
   return {
     ...normalized,
     disclosedHoldings: normalized.disclosedHoldings.map((item) => {
-      if (Number.isFinite(item?.currentPrice) && item.currentPrice > 0 && Number.isFinite(item?.changeRate)) {
-        return item;
-      }
-
       const quote = quoteByTicker.get(String(item?.ticker ?? '').toUpperCase());
       return quote
         ? {
@@ -2605,10 +3070,6 @@ async function hydrateDirectDisclosureQuotes(disclosure) {
   return {
     ...normalized,
     disclosedHoldings: normalized.disclosedHoldings.map((item) => {
-      if (Number.isFinite(item?.currentPrice) && item.currentPrice > 0 && Number.isFinite(item?.changeRate)) {
-        return item;
-      }
-
       const quote = quoteByTicker.get(String(item?.ticker ?? '').toUpperCase());
       return quote
         ? {
@@ -2751,6 +3212,167 @@ function parseQuote(raw) {
   };
 }
 
+function chunkList(list, size) {
+  if (!Array.isArray(list) || !list.length) {
+    return [];
+  }
+
+  const chunkSize = Math.max(1, Number(size) || 1);
+  const chunks = [];
+  for (let index = 0; index < list.length; index += chunkSize) {
+    chunks.push(list.slice(index, index + chunkSize));
+  }
+
+  return chunks;
+}
+
+function toSecidByTicker(ticker) {
+  const normalized = String(ticker || '').trim();
+  if (!/^\d{6}$/.test(normalized)) {
+    return '';
+  }
+
+  if (normalized.startsWith('6')) {
+    return `1.${normalized}`;
+  }
+
+  return `0.${normalized}`;
+}
+
+async function fetchAshareHoldingQuoteMapByTickers(tickers) {
+  const uniqueTickers = [...new Set((tickers ?? []).map((item) => String(item || '').trim()).filter((item) => /^\d{6}$/.test(item)))];
+  if (!uniqueTickers.length) {
+    return new Map();
+  }
+
+  const secids = uniqueTickers.map(toSecidByTicker).filter(Boolean);
+  const quoteMap = new Map();
+
+  for (const secidGroup of chunkList(secids, HOLDING_QUOTE_BATCH_SIZE)) {
+    if (!secidGroup.length) {
+      continue;
+    }
+
+    try {
+      const response = await fetchText(
+        `https://push2.eastmoney.com/api/qt/ulist.np/get?fltt=2&invt=2&fields=f2,f3,f12,f13,f14&ut=267f9ad526dbe6b0262ab19316f5a25b&secids=${secidGroup.join(',')}`,
+        { referer: 'https://fundf10.eastmoney.com/' },
+        'utf-8',
+      );
+      const payload = JSON.parse(response);
+      for (const item of payload?.data?.diff ?? []) {
+        const ticker = String(item?.f12 ?? '').trim();
+        const currentPrice = Number(item?.f2);
+        const changeRate = Number(item?.f3) / 100;
+        if (!/^\d{6}$/.test(ticker) || !Number.isFinite(currentPrice) || currentPrice <= 0 || !Number.isFinite(changeRate)) {
+          continue;
+        }
+
+        quoteMap.set(ticker, { currentPrice, changeRate });
+      }
+    } catch {
+      continue;
+    }
+  }
+
+  return quoteMap;
+}
+
+function overlayRealtimeFundQuotes(funds, intradayData) {
+  return (funds ?? []).map((fund) => {
+    const quote = intradayData?.funds?.[fund.code];
+    if (!quote) {
+      return fund;
+    }
+
+    return {
+      ...fund,
+      marketPrice: Number.isFinite(quote.marketPrice) ? quote.marketPrice : fund.marketPrice,
+      previousClose: Number.isFinite(quote.previousClose) ? quote.previousClose : fund.previousClose,
+      marketDate: quote.marketDate || fund.marketDate,
+      marketTime: quote.marketTime || fund.marketTime,
+      marketSource: quote.marketSource || fund.marketSource,
+    };
+  });
+}
+
+async function refreshRealtimeDisclosedHoldingsQuotes(funds) {
+  const stockTickers = [...new Set(
+    (funds ?? [])
+      .flatMap((fund) => (fund?.disclosedHoldings ?? []).map((item) => String(item?.ticker ?? '').trim()))
+      .filter((ticker) => /^\d{6}$/.test(ticker)),
+  )];
+  if (!stockTickers.length) {
+    return funds;
+  }
+
+  const quoteMap = await fetchAshareHoldingQuoteMapByTickers(stockTickers);
+  if (!quoteMap.size) {
+    return funds;
+  }
+
+  const quoteDate = today;
+  const quoteTime = new Date().toTimeString().slice(0, 8);
+
+  return (funds ?? []).map((fund) => {
+    const disclosedHoldings = Array.isArray(fund?.disclosedHoldings) ? fund.disclosedHoldings : [];
+    if (!disclosedHoldings.length) {
+      return fund;
+    }
+
+    let touched = false;
+    const refreshedDisclosedHoldings = disclosedHoldings.map((item) => {
+      const ticker = String(item?.ticker ?? '').trim();
+      const quote = quoteMap.get(ticker);
+      if (!quote) {
+        return item;
+      }
+
+      touched = true;
+      return {
+        ...item,
+        currentPrice: quote.currentPrice,
+        changeRate: quote.changeRate,
+      };
+    });
+
+    if (!touched) {
+      return fund;
+    }
+
+    const refreshedHoldingQuotes = refreshedDisclosedHoldings
+      .map((item) => {
+        if (!item?.ticker || !Number.isFinite(item.currentPrice) || item.currentPrice <= 0 || !Number.isFinite(item.changeRate)) {
+          return null;
+        }
+
+        const previousClose = item.currentPrice / (1 + item.changeRate);
+        if (!Number.isFinite(previousClose) || previousClose <= 0) {
+          return null;
+        }
+
+        return {
+          ticker: item.ticker,
+          name: item.name,
+          currentPrice: item.currentPrice,
+          previousClose,
+          quoteDate,
+          quoteTime,
+          currency: getHoldingCurrency(item.ticker),
+        };
+      })
+      .filter(Boolean);
+
+    return {
+      ...fund,
+      disclosedHoldings: refreshedDisclosedHoldings,
+      holdingQuotes: fund.code === '161128' && (fund.holdingQuotes ?? []).length ? fund.holdingQuotes : refreshedHoldingQuotes,
+      holdingsQuoteDate: quoteDate,
+      holdingsQuoteTime: quoteTime,
+    };
+  });
+}
+
 function parseFxQuote(raw) {
   const currentMatch = raw.match(/var hq_str_fx_susdcny="([^"]+)"/);
   const backupMatch = raw.match(/var hq_str_USDCNY="([^"]+)"/);
@@ -2809,8 +3431,21 @@ function getProxyQuoteSymbol(ticker) {
     return '';
   }
 
+  if (SPECIAL_QUOTE_SYMBOL_MAP[normalized]) {
+    return SPECIAL_QUOTE_SYMBOL_MAP[normalized];
+  }
+
   if (/^\d{6}$/.test(normalized)) {
     return getQuoteSymbol(normalized);
+  }
+
+  const jpMatched = normalized.match(/^(\d{4})\.JP$/);
+  if (jpMatched) {
+    const remapped = SPECIAL_QUOTE_SYMBOL_MAP[normalized] || SPECIAL_QUOTE_SYMBOL_MAP[`${jpMatched[1]}.JP`];
+    if (remapped) {
+      return remapped;
+    }
+    return 'usEWJ';
   }
 
   if (/^0\d{4}$/.test(normalized)) {
@@ -2927,7 +3562,24 @@ async function fetchSupplementalHoldingQuoteMap(aliasEntries) {
   const nonUsSymbols = [...new Set(quoteTickers.map((item) => getSupplementalQuoteSymbol(item)).filter((item) => item && !item.startsWith('us')))];
 
   const quoteByTicker = await fetchOverseasHoldingQuoteMap(usTickers);
+  const quoteHistoryDb = await getQuoteHistoryDb();
   if (!nonUsSymbols.length) {
+    for (const quoteTicker of quoteTickers) {
+      if (quoteByTicker.has(quoteTicker)) {
+        continue;
+      }
+
+      const historyRow = getQuoteHistoryFallback(quoteHistoryDb, quoteTicker);
+      if (!historyRow) {
+        continue;
+      }
+
+      quoteByTicker.set(quoteTicker, {
+        currentPrice: historyRow.currentPrice,
+        changeRate: historyRow.previousClose > 0 ? historyRow.currentPrice / historyRow.previousClose - 1 : 0,
+      });
+    }
+
     for (const entry of normalizedEntries) {
       if (entry.quoteTicker !== entry.ticker && quoteByTicker.has(entry.quoteTicker) && !quoteByTicker.has(entry.ticker)) {
         quoteByTicker.set(entry.ticker, quoteByTicker.get(entry.quoteTicker));
@@ -2966,6 +3618,22 @@ async function fetchSupplementalHoldingQuoteMap(aliasEntries) {
     });
   }
 
+  for (const quoteTicker of quoteTickers) {
+    if (quoteByTicker.has(quoteTicker)) {
+      continue;
+    }
+
+    const historyRow = getQuoteHistoryFallback(quoteHistoryDb, quoteTicker);
+    if (!historyRow) {
+      continue;
+    }
+
+    quoteByTicker.set(quoteTicker, {
+      currentPrice: historyRow.currentPrice,
+      changeRate: historyRow.previousClose > 0 ? historyRow.currentPrice / historyRow.previousClose - 1 : 0,
+    });
+  }
+
   for (const entry of normalizedEntries) {
     if (entry.quoteTicker !== entry.ticker && quoteByTicker.has(entry.quoteTicker) && !quoteByTicker.has(entry.ticker)) {
       quoteByTicker.set(entry.ticker, quoteByTicker.get(entry.quoteTicker));
@@ -2993,7 +3661,22 @@ async function getDailyFundData(entry, holdingsHistoryByCode = {}) {
   const cachePath = path.join(dailyCacheDir, `${entry.code}.json`);
   const cached = await readJson(cachePath, null);
   if (cached?.fetchedDate === today && cached?.cacheVersion === DAILY_CACHE_VERSION) {
-    return { ...cached, cacheMode: 'daily-cache' };
+    const refreshedFromCache = await hydrateSupplementalDisclosureQuotes(
+      entry.code,
+      await hydrateDirectDisclosureQuotes({
+        disclosedHoldingsTitle: cached?.disclosedHoldingsTitle ?? '',
+        disclosedHoldingsReportDate: cached?.disclosedHoldingsReportDate ?? '',
+        disclosedHoldings: cached?.disclosedHoldings ?? [],
+      }),
+    );
+
+    return {
+      ...cached,
+      disclosedHoldingsTitle: refreshedFromCache.disclosedHoldingsTitle,
+      disclosedHoldingsReportDate: refreshedFromCache.disclosedHoldingsReportDate,
+      disclosedHoldings: refreshedFromCache.disclosedHoldings,
+      cacheMode: 'daily-cache-quote-refresh',
+    };
   }
 
   const cachedHoldingsDisclosure = cached?.cacheVersion === DAILY_CACHE_VERSION && !shouldRefreshHoldingsDisclosure(cached)
@@ -3067,6 +3750,14 @@ async function getDailyFundData(entry, holdingsHistoryByCode = {}) {
 async function loadIntradayData() {
   const cachePath = path.join(intradayCacheDir, `${today}.json`);
   const cached = await readJson(cachePath, { funds: {}, fx: null, holdings161128: [], proxyQuotes: [] });
+  const cachedFetchedAtMs = new Date(String(cached?.fetchedAt || '')).getTime();
+  const hasFreshIntradayCache = Number.isFinite(cachedFetchedAtMs)
+    && cachedFetchedAtMs > 0
+    && (Date.now() - cachedFetchedAtMs) <= INTRADAY_CACHE_TTL_MS
+    && Object.keys(cached?.funds ?? {}).length > 0;
+  if (hasFreshIntradayCache) {
+    return { ...cached, cacheMode: 'intraday-cache-ttl' };
+  }
 
   try {
     const fundSymbols = catalog.map((item) => getQuoteSymbol(item.code)).join(',');
@@ -3099,6 +3790,32 @@ async function loadIntradayData() {
       funds[codeMatch[1]] = parseQuote(trimmed);
     }
 
+    const quoteHistoryDb = await getQuoteHistoryDb();
+    const proxyQuotes = parseMixedProxyQuotes(proxyRaw, proxySymbolMap);
+    const proxyQuoteByTicker = new Map(proxyQuotes.map((item) => [String(item.ticker || '').toUpperCase(), item]));
+
+    for (const entry of proxySymbolEntries) {
+      const key = String(entry.ticker || '').toUpperCase();
+      if (proxyQuoteByTicker.has(key)) {
+        continue;
+      }
+
+      const fallbackRow = getQuoteHistoryFallback(quoteHistoryDb, key, 168);
+      if (!fallbackRow) {
+        continue;
+      }
+
+      proxyQuotes.push({
+        ticker: key,
+        name: fallbackRow.name,
+        currentPrice: fallbackRow.currentPrice,
+        previousClose: fallbackRow.previousClose,
+        quoteDate: fallbackRow.quoteDate,
+        quoteTime: fallbackRow.quoteTime,
+        currency: 'USD',
+      });
+    }
+
     const payload = {
       fetchedAt: new Date().toISOString(),
       funds,
@@ -3107,8 +3824,28 @@ async function loadIntradayData() {
         ...item,
         currency: 'USD',
       })),
-      proxyQuotes: parseMixedProxyQuotes(proxyRaw, proxySymbolMap),
+      proxyQuotes,
     };
+
+    for (const [code, row] of Object.entries(payload.funds || {})) {
+      upsertQuoteHistoryRow(quoteHistoryDb, code, {
+        name: '',
+        currentPrice: row?.marketPrice,
+        previousClose: row?.previousClose,
+        quoteDate: row?.marketDate,
+        quoteTime: row?.marketTime,
+      });
+    }
+
+    for (const row of payload.holdings161128 || []) {
+      upsertQuoteHistoryRow(quoteHistoryDb, row?.ticker, row);
+    }
+
+    for (const row of payload.proxyQuotes || []) {
+      upsertQuoteHistoryRow(quoteHistoryDb, row?.ticker, row);
+    }
+
+    await flushQuoteHistoryDb(quoteHistoryDb);
 
     await writeJson(cachePath, payload);
     await pruneIntradayCache();
@@ -3126,6 +3863,62 @@ async function getIntradayData() {
   }
 
   return intradayPromise;
+}
+
+function normalizeBatchSize(rawValue, totalCount) {
+  const parsed = Number.parseInt(String(rawValue ?? ''), 10);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return totalCount;
+  }
+
+  return Math.max(1, Math.min(totalCount, parsed));
+}
+
+async function selectSyncBatch(entries, previousFunds) {
+  const total = entries.length;
+  const batchSize = normalizeBatchSize(process.env.SYNC_BATCH_SIZE, total);
+
+  if (batchSize >= total) {
+    return {
+      batchEntries: entries,
+      mode: 'full',
+      batchSize,
+      cursor: 0,
+      nextCursor: 0,
+    };
+  }
+
+  // 首轮没有完整历史快照时仍走全量，避免输出缺基金。
+  if ((previousFunds?.length ?? 0) < total) {
+    return {
+      batchEntries: entries,
+      mode: 'warmup-full',
+      batchSize: total,
+      cursor: 0,
+      nextCursor: 0,
+    };
+  }
+
+  const schedule = await readJson(syncSchedulePath, { cursor: 0 });
+  const cursorRaw = Number(schedule?.cursor ?? 0);
+  const cursor = ((cursorRaw % total) + total) % total;
+  const rotated = [...entries.slice(cursor), ...entries.slice(0, cursor)];
+  const batchEntries = rotated.slice(0, batchSize);
+  const nextCursor = (cursor + batchEntries.length) % total;
+
+  await writeJson(syncSchedulePath, {
+    cursor: nextCursor,
+    batchSize,
+    updatedAt: new Date().toISOString(),
+  });
+
+  return {
+    batchEntries,
+    mode: 'batched',
+    batchSize,
+    cursor,
+    nextCursor,
+  };
 }
 
 async function syncFund(entry, holdingsHistoryByCode = {}) {
@@ -3182,13 +3975,22 @@ async function syncFund(entry, holdingsHistoryByCode = {}) {
     holdingsQuoteTime: (intradayData.holdings161128 ?? [])[0]?.quoteTime || '',
   });
 
+  const runtimeDraft = {
+    code: entry.code,
+    disclosedHoldings: dailyData.disclosedHoldings,
+    holdingQuotes: holdingQuotePayload.holdingQuotes,
+  };
+  const effectiveEstimateMode = hasHoldingsSignal(runtimeDraft)
+    ? 'holdings'
+    : entry.estimateMode;
+
   return {
     code: entry.code,
     priority: entry.priority,
     detailMode: entry.detailMode,
     pageCategory: entry.pageCategory,
-    estimateMode: entry.estimateMode,
-    name: dailyData.name || entry.code,
+    estimateMode: effectiveEstimateMode,
+    name: DISPLAY_NAME_OVERRIDES[entry.code] || dailyData.name || entry.code,
     fundType: dailyData.fundType,
     benchmark: dailyData.benchmark,
     officialNavT1: dailyData.officialNavT1,
@@ -3221,16 +4023,37 @@ async function main() {
   await fs.mkdir(intradayCacheDir, { recursive: true });
 
   const funds = [];
+  const previousRuntime = await readJson(outputPath, { funds: [] });
+  const previousFunds = Array.isArray(previousRuntime?.funds) ? previousRuntime.funds : [];
+  const previousFundByCode = new Map(previousFunds.map((item) => [item.code, item]));
   const rawStateCache = await readJson(watchlistStatePath, {});
   const publishedStateCache = await readPublishedRuntimeState();
   let holdingsHistoryByCode = sanitizeDisclosureHistory(await readJson(holdingsDisclosurePath, {}));
   const persistedStateByCode = mergePersistedState(rawStateCache, publishedStateCache);
   const stateByCode = {};
 
+  const batchPlan = await selectSyncBatch(catalog, previousFunds);
+  const batchCodeSet = new Set(batchPlan.batchEntries.map((item) => item.code));
+  if (batchPlan.mode === 'batched') {
+    console.log(`[sync:data] batched mode enabled: ${batchPlan.batchEntries.length}/${catalog.length} funds this run (cursor ${batchPlan.cursor} -> ${batchPlan.nextCursor}).`);
+  }
+
   for (const entry of catalog) {
+    if (!batchCodeSet.has(entry.code)) {
+      const reusedRuntime = previousFundByCode.get(entry.code);
+      if (reusedRuntime) {
+        funds.push({
+          ...reusedRuntime,
+          cacheMode: 'reused-from-previous-runtime',
+        });
+        stateByCode[entry.code] = normalizePersistedState(entry.code, persistedStateByCode[entry.code]);
+        continue;
+      }
+    }
+
     try {
       const runtime = await syncFund(entry, holdingsHistoryByCode);
-      const currentState = normalizePersistedState(persistedStateByCode[entry.code]);
+      const currentState = normalizePersistedState(entry.code, persistedStateByCode[entry.code]);
       const reconciled = reconcileJournal(runtime, currentState.model, currentState.journal);
       const estimate = estimateWatchlistFund(runtime, reconciled.model);
       const journal = recordEstimateSnapshot(reconciled.journal, runtime, estimate);
@@ -3249,7 +4072,18 @@ async function main() {
 
   funds.sort((left, right) => left.priority - right.priority);
 
-  if (funds.length === 0) {
+  // Always overlay grouped intraday quotes so batched runs still refresh realtime fields for all funds.
+  const intradayData = await getIntradayData();
+  const fundsWithRealtimeQuotes = overlayRealtimeFundQuotes(funds, intradayData);
+  const fundsWithRealtimeHoldings = await refreshRealtimeDisclosedHoldingsQuotes(fundsWithRealtimeQuotes);
+
+  const normalizedFunds = fundsWithRealtimeHoldings.map((item) => ({
+    ...item,
+    name: DISPLAY_NAME_OVERRIDES[item.code] || item.name,
+    cacheMode: String(intradayData?.cacheMode || '').startsWith('intraday-cache') ? intradayData.cacheMode : item.cacheMode,
+  }));
+
+  if (normalizedFunds.length === 0) {
     throw new Error('Sync produced 0 funds. Aborting publish to avoid overwriting the site with an empty runtime payload.');
   }
 
@@ -3269,7 +4103,7 @@ async function main() {
     JSON.stringify(
       {
         syncedAt: new Date().toISOString(),
-        funds,
+        funds: normalizedFunds,
         stateByCode,
       },
       null,
@@ -3278,7 +4112,7 @@ async function main() {
     'utf8',
   );
 
-  console.log(`Synced ${funds.length} funds to ${path.relative(projectRoot, outputPath)}`);
+  console.log(`Synced ${normalizedFunds.length} funds to ${path.relative(projectRoot, outputPath)}`);
 }
 
 main().catch((error) => {

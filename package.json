@@ -5,12 +5,12 @@
   "license": "Apache-2.0",
   "type": "module",
   "scripts": {
-    "sync:data": "node scripts/sync-funds.mjs",
+    "sync:data": "node scripts/sync-funds.mjs && node scripts/sync-premium-compare.mjs",
     "sync:github-traffic": "node scripts/sync-github-traffic.mjs",
     "sync:research": "node scripts/generate-160723-research.mjs 160723 && node scripts/generate-161725-research.mjs",
     "sync:research:oil": "node scripts/generate-160723-research.mjs 160723 && node scripts/generate-160723-research.mjs 501018 && node scripts/generate-160723-research.mjs 161129",
     "sync:research:gold": "node scripts/generate-160723-research.mjs 160719 && node scripts/generate-160723-research.mjs 161116 && node scripts/generate-160723-research.mjs 164701",
-    "sync:research:commodities": "node scripts/generate-160723-research.mjs 160216",
+    "sync:research:commodities": "node scripts/generate-160723-research.mjs 160216 && node scripts/generate-160723-research.mjs 159985",
     "sync:research:semiconductor": "node scripts/generate-160723-research.mjs 501225 && node scripts/generate-160723-research.mjs 513310 && node scripts/generate-160723-research.mjs 161130",
     "sync:research:energy": "node scripts/generate-160723-research.mjs 160416 && node scripts/generate-160723-research.mjs 162719 && node scripts/generate-160723-research.mjs 162411",
     "sync:research:us-tech": "node scripts/generate-160723-research.mjs 161125 && node scripts/generate-160723-research.mjs 159509",
@@ -27,6 +27,7 @@
   },
   "dependencies": {
     "cheerio": "^1.2.0",
+    "pdf-parse": "^2.4.5",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^7.13.1"

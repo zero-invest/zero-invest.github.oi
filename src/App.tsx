@@ -1,19 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, Navigate, Route, Routes, useLocation, useParams } from 'react-router-dom';
 import { FundTable } from './components/FundTable';
-import { EditableHoldingsTable } from './components/EditableHoldingsTable';
 import { LineChart } from './components/LineChart';
 import { MetricCard } from './components/MetricCard';
-import { cloneInitialScenario, defaultCalibration } from './data/funds';
-import { estimateScenario, trainCalibration } from './lib/estimator';
-import { readFavoriteFundCodes, readFundJournal, readFundOrder, readWatchlistModel, writeFavoriteFundCodes, writeFundJournal, writeFundOrder, writeWatchlistModel } from './lib/storage';
+import { readDetailScrollY, readFavoriteFundCodes, readFundJournal, readFundOrder, readWatchlistModel, writeDetailScrollY, writeFavoriteFundCodes, writeFundJournal, writeFundOrder, writeWatchlistModel } from './lib/storage';
 import { estimateWatchlistFund, getDefaultWatchlistModel, reconcileJournal, recordEstimateSnapshot } from './lib/watchlist';
-import type { CalibrationModel, FundJournal, FundRuntimeData, FundScenario, FundViewModel, RuntimePayload, WatchlistModel } from './types';
-
-const DETAIL_CALIBRATION_PREFIX = 'premium-estimator:detailed-calibration:';
+import type { FundJournal, FundRuntimeData, FundViewModel, RuntimePayload, WatchlistModel } from './types';
 const FAST_SYNC_INTERVAL = 60_000;
 const SLOW_SYNC_INTERVAL = 15 * 60_000;
-type ViewCategory = 'qdii-lof' | 'domestic-lof' | 'qdii-etf' | 'domestic-etf';
+type ViewCategory = 'qdii-lof' | 'domestic-lof' | 'qdii-etf' | 'domestic-etf' | 'favorites';
 
 const PAGE_OPTIONS: Array<{ key: ViewCategory; path: string; label: string; lead: string; tableTitle: string; tableDescription: string }> = [
   {
@@ -48,11 +43,19 @@ const PAGE_OPTIONS: Array<{ key: ViewCategory; path: string; label: string; lead
     tableTitle: '国内 ETF 列表',
     tableDescription: '国内 ETF 当前口径是：前十大持仓优先、代理篮子补足、修正因子校准；持仓不可用时回退到代理或场内信号。点击表头可排序。',
   },
+  {
+    key: 'favorites',
+    path: '/favorites',
+    label: '我的收藏',
+    lead: '这里汇总你收藏的所有基金，跨 QDII/国内、LOF/ETF 统一展示，字段和交互与主列表完全一致。',
+    tableTitle: '我的收藏列表',
+    tableDescription: '收藏页与主列表同款：同列、同排序、同收藏星标、同拖拽调整。',
+  },
 ];
 
 const HOLDINGS_SIGNAL_MIN_COVERAGE_BY_CODE: Record<string, number> = {
   '513310': 0.55,
-  '161128': 0.7,
+  '161128': 0.65,
 };
 
 function getZonedClock(date: Date, timeZone: string) {
@@ -398,7 +401,31 @@ interface TrainingMetricSummary {
   generatedAt: string;
 }
 
-const OFFLINE_RESEARCH_CODES = new Set(['160216', '160723', '161725', '501018', '161129', '160719', '161116', '164701', '501225', '513310', '161130', '160416', '162719', '162411', '161125', '161126', '161127', '162415', '159329', '159982', '513080', '520830', '513730', '164824', '160644', '159100', '520870', '160620', '161217', '161124', '501300', '160140', '520580', '159509', '501312', '501011', '501050', '160221', '165520', '167301', '161226', '161128', '513800', '513880', '513520', '513100', '513500', '159502', '513290', '159561', '513030', '513850', '513300', '159518', '163208', '159577', '513400']);
+interface PremiumCompareProviderRow {
+  provider: string;
+  sourceUrl: string;
+  status: string;
+  avgAbsProviderError30: number | null;
+  avgAbsOurError30: number | null;
+  avgAbsDelta30: number | null;
+  sampleCount30: number;
+}
+
+interface PremiumCompareCodePayload {
+  code: string;
+  name: string;
+  snapshotAt: string;
+  ourPremiumRate: number | null;
+  providers: PremiumCompareProviderRow[];
+}
+
+interface PremiumComparePayload {
+  generatedAt: string;
+  syncedAt: string;
+  codes: Record<string, PremiumCompareCodePayload>;
+}
+
+const OFFLINE_RESEARCH_CODES = new Set(['160216', '160723', '161725', '501018', '161129', '160719', '161116', '164701', '501225', '513310', '161130', '160416', '162719', '162411', '161125', '161126', '161127', '162415', '159329', '513080', '520830', '513730', '164824', '160644', '159100', '520870', '160620', '161217', '161124', '501300', '160140', '520580', '159509', '501312', '501011', '501050', '160221', '165520', '167301', '161226', '161128', '513800', '513880', '513520', '513100', '513500', '159502', '513290', '159561', '513030', '513850', '513300', '159518', '163208', '159577', '513400', '159985']);
 
 function getPointsDateRange(points: ResearchPoint[]) {
   if (!points.length) {
@@ -1072,301 +1099,6 @@ function getProxyChange(currentPrice: number, previousClose: number) {
   return previousClose > 0 ? currentPrice / previousClose - 1 : 0;
 }
 
-function readStoredCalibration(code: string): CalibrationModel {
-  if (typeof window === 'undefined') {
-    return defaultCalibration;
-  }
-
-  try {
-    const raw = window.localStorage.getItem(`${DETAIL_CALIBRATION_PREFIX}${code}`);
-    if (!raw) {
-      return defaultCalibration;
-    }
-
-    return { ...defaultCalibration, ...JSON.parse(raw) } as CalibrationModel;
-  } catch {
-    return defaultCalibration;
-  }
-}
-
-function writeStoredCalibration(code: string, calibration: CalibrationModel) {
-  if (typeof window === 'undefined') {
-    return;
-  }
-
-  try {
-    window.localStorage.setItem(`${DETAIL_CALIBRATION_PREFIX}${code}`, JSON.stringify(calibration));
-  } catch {
-    // Ignore storage failures in restricted browser contexts.
-  }
-}
-
-function DetailedEstimatorPanel({ fund }: { fund: FundViewModel }) {
-  const [scenario, setScenario] = useState<FundScenario>(() => cloneInitialScenario(fund.runtime));
-  const [calibration, setCalibration] = useState<CalibrationModel>(() => readStoredCalibration(fund.runtime.code));
-  const [actualNavInput, setActualNavInput] = useState('');
-  const result = estimateScenario(scenario, calibration);
-  const premiumTone = result.premiumRate > 0 ? 'positive' : 'negative';
-
-  useEffect(() => {
-    setScenario(cloneInitialScenario(fund.runtime));
-  }, [fund.runtime]);
-
-  useEffect(() => {
-    writeStoredCalibration(fund.runtime.code, calibration);
-  }, [calibration, fund.runtime.code]);
-
-  const updateScenario = (updater: (current: FundScenario) => FundScenario) => {
-    setScenario((current) => updater(current));
-  };
-
-  const handleHoldingChange = (index: number, field: 'basePrice' | 'currentPrice', value: number) => {
-    updateScenario((current) => {
-      const next = structuredClone(current);
-      next.holdings[index][field] = Number.isFinite(value) && value > 0 ? value : 0;
-      return next;
-    });
-  };
-
-  const handleProxyChange = (index: number, field: 'baseLevel' | 'currentLevel', value: number) => {
-    updateScenario((current) => {
-      const next = structuredClone(current);
-      next.proxyBuckets[index][field] = Number.isFinite(value) && value > 0 ? value : 0;
-      return next;
-    });
-  };
-
-  const handleLearn = () => {
-    const actualNav = Number(actualNavInput);
-    if (!Number.isFinite(actualNav) || actualNav <= 0) {
-      return;
-    }
-
-    setCalibration((current) => trainCalibration(current, scenario, actualNav));
-    setActualNavInput('');
-  };
-
-  return (
-    <section className="detail-stack">
-      <section className="metrics-grid">
-        <MetricCard
-          label="持仓模式当日预估净值"
-          value={formatCurrency(result.correctedEstimatedNav)}
-          hint={`以最近官方净值 ${scenario.officialNavT1.toFixed(4)} 为锚推算当日未公布净值`}
-          tone="neutral"
-        />
-        <MetricCard
-          label="场内价格"
-          value={formatCurrency(scenario.latestMarketPrice)}
-          hint={formatRuntimeTime(fund.runtime.marketDate, fund.runtime.marketTime)}
-          tone="neutral"
-        />
-        <MetricCard
-          label="持仓模式溢价率"
-          value={formatPercent(result.premiumRate)}
-          hint={result.premiumRate >= 0 ? '价格高于当日预估净值' : '价格低于当日预估净值'}
-          tone={premiumTone}
-        />
-        <MetricCard
-          label="细模型修正"
-          value={formatBps(result.learnedBiasReturn)}
-          hint={`样本数 ${calibration.sampleCount}，平均绝对误差 ${formatPercent(calibration.meanAbsError)}`}
-          tone={result.learnedBiasReturn >= 0 ? 'positive' : 'negative'}
-        />
-      </section>
-
-      <section className="panel summary-strip summary-strip--stacked detail-time-strip">
-        <div>
-          <span>估值锚定净值日期</span>
-          <strong>{scenario.navDate || '--'}</strong>
-        </div>
-        <div>
-          <span>场内价格时间</span>
-          <strong>{formatRuntimeTime(fund.runtime.marketDate, fund.runtime.marketTime)}</strong>
-        </div>
-        <div>
-          <span>USD/CNY 时间</span>
-          <strong>{fund.runtime.fx ? formatRuntimeTime(fund.runtime.fx.quoteDate, fund.runtime.fx.quoteTime) : '--'}</strong>
-        </div>
-        <div>
-          <span>持仓报价时间</span>
-          <strong>{formatRuntimeTime(fund.runtime.holdingsQuoteDate || '', fund.runtime.holdingsQuoteTime || '')}</strong>
-        </div>
-      </section>
-
-      <section className="panel control-panel">
-        <div className="panel__header">
-          <h2>161128 细颗粒度估值实验室</h2>
-          <p>主页日常只看自动溢价率。点进来后再用持仓、代理篮子和汇率细调 161128 的估值。</p>
-        </div>
-        <div className="control-grid">
-          <label>
-            <span>最近官方净值锚点</span>
-            <input
-              type="number"
-              value={scenario.officialNavT1}
-              step="0.0001"
-              onChange={(event) =>
-                updateScenario((current) => ({
-                  ...current,
-                  officialNavT1: Number(event.target.value) || 0,
-                }))
-              }
-            />
-          </label>
-          <label>
-            <span>场内现价</span>
-            <input
-              type="number"
-              value={scenario.latestMarketPrice}
-              step="0.0001"
-              onChange={(event) =>
-                updateScenario((current) => ({
-                  ...current,
-                  latestMarketPrice: Number(event.target.value) || 0,
-                }))
-              }
-            />
-          </label>
-          <label>
-            <span>USD/CNY 基准汇率</span>
-            <input
-              type="number"
-              value={scenario.fx.baseRate}
-              step="0.0001"
-              onChange={(event) =>
-                updateScenario((current) => ({
-                  ...current,
-                  fx: { ...current.fx, baseRate: Number(event.target.value) || 0 },
-                }))
-              }
-            />
-          </label>
-          <label>
-            <span>USD/CNY 当前汇率</span>
-            <input
-              type="number"
-              value={scenario.fx.currentRate}
-              step="0.0001"
-              onChange={(event) =>
-                updateScenario((current) => ({
-                  ...current,
-                  fx: { ...current.fx, currentRate: Number(event.target.value) || 0 },
-                }))
-              }
-            />
-          </label>
-          <label>
-            <span>人工修正</span>
-            <input
-              type="number"
-              value={scenario.manualBiasBps}
-              step="1"
-              onChange={(event) =>
-                updateScenario((current) => ({
-                  ...current,
-                  manualBiasBps: Number(event.target.value) || 0,
-                }))
-              }
-            />
-            <small>单位 bp，用来覆盖已知但尚未建模的偏差。</small>
-          </label>
-        </div>
-
-        <div className="summary-strip">
-          <div>
-            <span>股票篮子收益</span>
-            <strong>{formatPercent(result.stockBasketReturn)}</strong>
-          </div>
-          <div>
-            <span>汇率变化</span>
-            <strong>{formatPercent(result.fxReturn)}</strong>
-          </div>
-          <div>
-            <span>日费用拖累</span>
-            <strong>{formatBps(-result.feeDrag)}</strong>
-          </div>
-          <div>
-            <span>人工修正</span>
-            <strong>{formatBps(result.manualBiasReturn)}</strong>
-          </div>
-        </div>
-      </section>
-
-      <EditableHoldingsTable
-        scenario={scenario}
-        onHoldingChange={handleHoldingChange}
-        onProxyChange={handleProxyChange}
-      />
-
-      <section className="panel split-panel">
-        <div className="split-panel__column">
-          <div className="panel__header">
-            <h2>贡献拆解</h2>
-            <p>每一项都是按净值权重贡献到整体估值，而不是只做简单平均。</p>
-          </div>
-          <div className="contribution-list">
-            {result.contributions.map((item) => (
-              <div className="contribution-row" key={item.key}>
-                <div>
-                  <strong>{item.label}</strong>
-                  <span>{item.weight.toFixed(2)}% 权重</span>
-                </div>
-                <div>
-                  <strong>{formatPercent(item.contributionReturn)}</strong>
-                  <span>本地涨跌 {formatPercent(item.localReturn)}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="split-panel__column">
-          <div className="panel__header">
-            <h2>细模型自学习</h2>
-            <p>这里是 161128 单独的持仓模型，不和其他基金混用参数。</p>
-          </div>
-
-          <div className="learning-card">
-            <label>
-              <span>真实净值回填</span>
-              <input
-                type="number"
-                value={actualNavInput}
-                placeholder="例如 5.5128"
-                step="0.0001"
-                onChange={(event) => setActualNavInput(event.target.value)}
-              />
-            </label>
-            <button type="button" onClick={handleLearn}>
-              记录真实值并训练
-            </button>
-          </div>
-
-          <div className="coefficient-grid">
-            <div>
-              <span>alpha</span>
-              <strong>{formatBps(calibration.alpha)}</strong>
-            </div>
-            <div>
-              <span>betaBasket</span>
-              <strong>{calibration.betaBasket.toFixed(4)}</strong>
-            </div>
-            <div>
-              <span>betaFx</span>
-              <strong>{calibration.betaFx.toFixed(4)}</strong>
-            </div>
-            <div>
-              <span>最近训练</span>
-              <strong>{calibration.lastUpdatedAt ? new Date(calibration.lastUpdatedAt).toLocaleString() : '暂无'}</strong>
-            </div>
-          </div>
-        </div>
-      </section>
-    </section>
-  );
-}
-
 function HomePage({
   funds,
   syncedAt,
@@ -1391,6 +1123,17 @@ function HomePage({
   }, [pageCategory]);
 
   const filteredFunds = useMemo(() => {
+    if (pageCategory === 'favorites') {
+      if (!favoriteCodes.length) {
+        return [];
+      }
+
+      const fundByCode = new Map(funds.map((item) => [item.runtime.code, item]));
+      return favoriteCodes
+        .map((code) => fundByCode.get(code))
+        .filter((item): item is FundViewModel => Boolean(item));
+    }
+
     if (pageCategory === 'qdii-etf') {
       return funds.filter((item) => isQdiiEtfFund(item));
     }
@@ -1398,7 +1141,7 @@ function HomePage({
       return funds.filter((item) => item.runtime.pageCategory === 'etf' && !isQdiiEtfFund(item));
     }
     return funds.filter((item) => item.runtime.pageCategory === pageCategory);
-  }, [funds, pageCategory]);
+  }, [favoriteCodes, funds, pageCategory]);
 
   const visibleFunds = useMemo(() => {
     if (!orderedCodes.length) {
@@ -1439,23 +1182,21 @@ function HomePage({
     });
   };
 
-  const handleReorder = (dragCode: string, targetCode: string) => {
-    if (dragCode === targetCode) {
+  const handleReorder = (next: string[]) => {
+    if (!next.length) {
       return;
     }
-
-    const baseCodes = visibleFunds.map((item) => item.runtime.code);
-    const dragIndex = baseCodes.indexOf(dragCode);
-    const targetIndex = baseCodes.indexOf(targetCode);
-    if (dragIndex < 0 || targetIndex < 0) {
-      return;
-    }
-
-    const next = [...baseCodes];
-    const [moved] = next.splice(dragIndex, 1);
-    next.splice(targetIndex, 0, moved);
     setOrderedCodes(next);
     writeFundOrder(pageCategory, next);
+  };
+
+  const handleFavoriteReorder = (next: string[]) => {
+    if (!next.length) {
+      return;
+    }
+
+    setFavoriteCodes(next);
+    writeFavoriteFundCodes(next);
   };
 
   return (
@@ -1528,11 +1269,11 @@ function HomePage({
         pagePath={pageOption.path}
         favoriteCodes={favoriteCodes}
         onToggleFavorite={handleToggleFavorite}
-        onReorder={handleReorder}
+        onReorder={pageCategory === 'favorites' ? handleFavoriteReorder : handleReorder}
       />
 
       <section className="panel notice-panel">
-        首页显示的是列表主看板。净值列展示最近一次已公布的官方净值，具体是 T-1 还是 T-2 直接看净值日期列；估值列展示的是当前预估净值。默认策略是“前十大持仓优先、代理篮子补足、汇率和误差修正联合驱动”；当持仓报价暂不可用时，会自动回退到代理篮子或场内信号。点击基金代码进入详情页后，可以看误差折线、净值误差、溢价率误差和历史估值口径；161128 还会额外显示持仓级估值实验室、前十大持仓公告、USD/CNY 时间和夜间美股持仓报价。
+        首页显示的是列表主看板。净值列展示最近一次已公布的官方净值，具体是 T-1 还是 T-2 直接看净值日期列；估值列展示的是当前预估净值。默认策略是“前十大持仓优先、代理篮子补足、汇率和误差修正联合驱动”；当持仓报价暂不可用时，会自动回退到代理篮子或场内信号。点击基金代码进入详情页后，可查看误差折线、净值误差、溢价率误差和历史估值口径。
       </section>
     </main>
   );
@@ -1543,6 +1284,7 @@ function DetailPage({ funds, syncedAt, loading }: { funds: FundViewModel[]; sync
   const location = useLocation();
   const fundCode = params.code ?? '';
   const [offlineResearch, setOfflineResearch] = useState<OfflineResearchSummary | null>(null);
+  const [premiumCompare, setPremiumCompare] = useState<PremiumCompareCodePayload | null>(null);
   const fund = funds.find((item) => item.runtime.code === params.code);
   const syncAgeHours = getHoursSinceSync(syncedAt);
 
@@ -1581,7 +1323,62 @@ function DetailPage({ funds, syncedAt, loading }: { funds: FundViewModel[]; sync
     };
   }, [fundCode, syncedAt]);
 
-  if (loading) {
+  useEffect(() => {
+    let active = true;
+
+    async function loadPremiumCompare() {
+      try {
+        const response = await fetch(`generated/premium-compare.json?ts=${Date.now()}`);
+        if (!response.ok) {
+          throw new Error(`premium compare ${response.status}`);
+        }
+
+        const payload = (await response.json()) as PremiumComparePayload;
+        if (!active) {
+          return;
+        }
+
+        setPremiumCompare(payload?.codes?.[fundCode] ?? null);
+      } catch {
+        if (active) {
+          setPremiumCompare(null);
+        }
+      }
+    }
+
+    void loadPremiumCompare();
+
+    return () => {
+      active = false;
+    };
+  }, [fundCode, syncedAt]);
+
+  useEffect(() => {
+    if (!fundCode) {
+      return;
+    }
+
+    const storedY = readDetailScrollY(fundCode);
+    const rafId = window.requestAnimationFrame(() => {
+      if (storedY > 0) {
+        window.scrollTo({ top: storedY, behavior: 'auto' });
+      }
+    });
+
+    const onScroll = () => {
+      writeDetailScrollY(fundCode, window.scrollY || window.pageYOffset || 0);
+    };
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+
+    return () => {
+      window.cancelAnimationFrame(rafId);
+      window.removeEventListener('scroll', onScroll);
+      writeDetailScrollY(fundCode, window.scrollY || window.pageYOffset || 0);
+    };
+  }, [fundCode]);
+
+  if (loading && !fund) {
     return (
       <main className="page">
         <section className="panel notice-panel">基金数据加载中...</section>
@@ -1754,6 +1551,47 @@ function DetailPage({ funds, syncedAt, loading }: { funds: FundViewModel[]; sync
       </section>
 
       <section className="mini-data-grid">
+        {premiumCompare?.providers?.length ? (
+          <section className="chart-card">
+            <div className="chart-card__header">
+              <h3>第三方溢价率对比</h3>
+              <div className="muted-text">对标真实净值的溢价率误差：第三方 vs 本站。误差差距 = 第三方误差 - 本站误差（负数表示本站更准）。</div>
+            </div>
+            <div className="table-scroll table-scroll--window">
+              <table className="mini-data-table">
+                <thead>
+                  <tr>
+                    <th>平台</th>
+                    <th>状态</th>
+                    <th>平台溢价率误差</th>
+                    <th>本站溢价率误差</th>
+                    <th>误差差距</th>
+                    <th>30天样本</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {premiumCompare.providers.map((item) => (
+                    <tr key={item.provider}>
+                      <td>{item.provider}</td>
+                      <td>
+                        {item.sourceUrl ? (
+                          <a className="fund-table__link" href={item.sourceUrl} target="_blank" rel="noreferrer">{item.status}</a>
+                        ) : item.status}
+                      </td>
+                      <td>{typeof item.avgAbsProviderError30 === 'number' ? formatPercent(item.avgAbsProviderError30) : '--'}</td>
+                      <td>{typeof item.avgAbsOurError30 === 'number' ? formatPercent(item.avgAbsOurError30) : '--'}</td>
+                      <td className={typeof item.avgAbsDelta30 === 'number' ? (item.avgAbsDelta30 < 0 ? 'tone-positive' : 'tone-negative') : 'muted-text'}>
+                        {typeof item.avgAbsDelta30 === 'number' ? formatPercent(item.avgAbsDelta30) : '--'}
+                      </td>
+                      <td>{item.sampleCount30}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        ) : null}
+
         {fund.runtime.estimateMode === 'proxy' && recentProxyQuotes.length > 0 ? (
           <section className="chart-card">
             <div className="chart-card__header">
@@ -2000,8 +1838,6 @@ function DetailPage({ funds, syncedAt, loading }: { funds: FundViewModel[]; sync
         <LineChart title="估值与真实净值" primary={estimatedSeries} secondary={actualSeries} primaryLabel="昨日估值" secondaryLabel="后续真实净值" valueFormatter={formatCurrency} />
         <LineChart title="估值误差折线" primary={errorSeries} primaryLabel="误差" valueFormatter={formatPercent} />
       </section>
-
-      {fund.runtime.detailMode === 'holdings' ? <DetailedEstimatorPanel fund={fund} /> : null}
     </main>
   );
 }
@@ -2017,8 +1853,11 @@ export default function App() {
     let active = true;
     let timer = 0;
 
-    async function loadRuntime() {
-      setLoading(true);
+    async function loadRuntime(options?: { silent?: boolean }) {
+      const silent = Boolean(options?.silent);
+      if (!silent) {
+        setLoading(true);
+      }
       setError('');
 
       try {
@@ -2062,7 +1901,7 @@ export default function App() {
 
         setError(loadError instanceof Error ? loadError.message : '同步失败');
       } finally {
-        if (active) {
+        if (active && !silent) {
           setLoading(false);
         }
       }
@@ -2070,7 +1909,7 @@ export default function App() {
 
     function scheduleNextRefresh() {
       timer = window.setTimeout(() => {
-        void loadRuntime().finally(() => {
+        void loadRuntime({ silent: true }).finally(() => {
           if (active) {
             scheduleNextRefresh();
           }
@@ -2080,7 +1919,7 @@ export default function App() {
 
     function triggerImmediateRefresh() {
       window.clearTimeout(timer);
-      void loadRuntime().finally(() => {
+      void loadRuntime({ silent: true }).finally(() => {
         if (active) {
           scheduleNextRefresh();
         }
@@ -2093,7 +1932,7 @@ export default function App() {
       }
     }
 
-    void loadRuntime();
+    void loadRuntime({ silent: false });
     scheduleNextRefresh();
     window.addEventListener('focus', triggerImmediateRefresh);
     window.addEventListener('pageshow', triggerImmediateRefresh);
@@ -2174,6 +2013,7 @@ export default function App() {
           <Route path="/qdii-lof" element={<HomePage funds={funds} syncedAt={syncedAt} loading={loading} error={error} pageCategory="qdii-lof" trainingMetricsByCode={trainingMetricsByCode} />} />
           <Route path="/qdii-etf" element={<HomePage funds={funds} syncedAt={syncedAt} loading={loading} error={error} pageCategory="qdii-etf" trainingMetricsByCode={trainingMetricsByCode} />} />
           <Route path="/domestic-etf" element={<HomePage funds={funds} syncedAt={syncedAt} loading={loading} error={error} pageCategory="domestic-etf" trainingMetricsByCode={trainingMetricsByCode} />} />
+          <Route path="/favorites" element={<HomePage funds={funds} syncedAt={syncedAt} loading={loading} error={error} pageCategory="favorites" trainingMetricsByCode={trainingMetricsByCode} />} />
           <Route path="/etf" element={<Navigate to="/qdii-etf" replace />} />
           <Route path="/detail/:code" element={<DetailPage funds={funds} syncedAt={syncedAt} loading={loading} />} />
           <Route path="/fund/:code" element={<DetailPage funds={funds} syncedAt={syncedAt} loading={loading} />} />

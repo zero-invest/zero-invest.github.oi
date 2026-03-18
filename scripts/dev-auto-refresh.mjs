@@ -180,6 +180,10 @@ async function syncOnce() {
 }
 
 async function main() {
+  if (process.env.SYNC_BATCH_SIZE) {
+    process.stdout.write(`[auto-refresh] sync:data uses batched mode, SYNC_BATCH_SIZE=${process.env.SYNC_BATCH_SIZE}\n`);
+  }
+
   gitPushReady = await prepareGitPush();
   await syncOnce();
   await pushRuntimeUpdate();

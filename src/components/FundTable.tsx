@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { FundViewModel } from '../types';
+import { readFundSortPreference, writeFundSortPreference } from '../lib/storage';
 
 type SortKey = 'manual' | 'code' | 'premiumRate' | 'estimatedNav' | 'marketPrice' | 'officialNavT1' | 'meanAbsError' | 'latestError' | 'error30d' | 'changeRate';
+const VALID_SORT_KEYS: SortKey[] = ['manual', 'code', 'premiumRate', 'estimatedNav', 'marketPrice', 'officialNavT1', 'meanAbsError', 'latestError', 'error30d', 'changeRate'];
 
 interface FundTableProps {
   funds: FundViewModel[];
@@ -13,7 +15,7 @@ interface FundTableProps {
   pagePath: string;
   favoriteCodes: string[];
   onToggleFavorite: (code: string) => void;
-  onReorder: (dragCode: string, targetCode: string) => void;
+  onReorder: (orderedCodes: string[]) => void;
 }
 
 export function FundTable({
@@ -29,13 +31,24 @@ export function FundTable({
   onReorder,
 }: FundTableProps) {
     const SORT_LABEL_HINTS: Partial<Record<SortKey, string>> = {
-      meanAbsError: '离线训练验证集近30天 MAE（鲁棒口径：剔除最近30天最大单日误差后计算），优先用于看模型是否训练到位。',
-      latestError: '线上最近一个交易日误差（估值相对后续真实净值）。',
-      error30d: '线上最近30天平均误差（随日常波动变化）。',
+      premiumRate: '场内交易价相对当日预估净值的偏离幅度。正数表示场内价高于预估净值（溢价），负数表示低于预估净值（折价）。',
+      estimatedNav: '当日净值的估值。',
+      meanAbsError: '离线训练验证集近30天 MAE（鲁棒口径：剔除最近30天最大单日误差后计算）。反映模型在"排除历史异常后"的可靠性，越低越好。',
+      latestError: '线上最近一个已结算交易日的估值误差（估值相对后续真实净值的偏离）。单日波动较大，需配合 30d 指标看整体效果。',
+      error30d: '线上最近30个交易日平均绝对误差（滚动均值）。反映近期模型稳定性表现，更平滑更有参考价值。',
     };
 
-  const [sortKey, setSortKey] = useState<SortKey>('manual');
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  const [sortKey, setSortKey] = useState<SortKey>(() => {
+    const saved = readFundSortPreference();
+    if (!saved) {
+      return 'manual';
+    }
+    return VALID_SORT_KEYS.includes(saved.sortKey as SortKey) ? (saved.sortKey as SortKey) : 'manual';
+  });
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>(() => {
+    const saved = readFundSortPreference();
+    return saved?.sortDirection === 'asc' ? 'asc' : 'desc';
+  });
   const tableRef = useRef<HTMLTableElement | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const [floatingHeaderState, setFloatingHeaderState] = useState({
@@ -111,11 +124,40 @@ export function FundTable({
     }
   };
 
+  useEffect(() => {
+    writeFundSortPreference({ sortKey, sortDirection });
+  }, [sortKey, sortDirection]);
+
   const handleRowDrop = (targetCode: string) => {
     if (!draggingCode || draggingCode === targetCode) {
       return;
     }
-    onReorder(draggingCode, targetCode);
+
+    const displayCodes = sortedFunds.map((item) => item.runtime.code);
+    const dragIndex = displayCodes.indexOf(draggingCode);
+    const targetIndex = displayCodes.indexOf(targetCode);
+    if (dragIndex < 0 || targetIndex < 0) {
+      setDraggingCode(null);
+      return;
+    }
+
+    const next = [...displayCodes];
+    const [moved] = next.splice(dragIndex, 1);
+    next.splice(targetIndex, 0, moved);
+    onReorder(next);
+    setSortKey('manual');
+    setDraggingCode(null);
+  };
+
+  const handleRowDragStart = (event: React.DragEvent<HTMLTableRowElement>, code: string) => {
+    setDraggingCode(code);
+    event.dataTransfer.effectAllowed = 'move';
+    // Some browsers require setting data to activate DnD.
+    event.dataTransfer.setData('text/plain', code);
+  };
+
+  const handleRowDragEnd = () => {
+    setDraggingCode(null);
   };
 
   const renderSortLabel = (label: string, key: SortKey) => {
@@ -169,17 +211,17 @@ export function FundTable({
       <div>{renderSortLabel('代码', 'code')}</div>
       <div>名称</div>
       <div>{renderSortLabel('溢价率', 'premiumRate')}</div>
-      <div>限购</div>
+      <div title="当前是否存在购买限额限制。点击基金详情页可查看最新限购政策。">限购</div>
       <div>{renderSortLabel('训练误差', 'meanAbsError')}</div>
       <div>{renderSortLabel('最近误差', 'latestError')}</div>
       <div>{renderSortLabel('30d误差', 'error30d')}</div>
-      <div>{renderSortLabel('现价', 'marketPrice')}</div>
-      <div>{renderSortLabel('涨跌幅', 'changeRate')}</div>
-      <div>{renderSortLabel('估值', 'estimatedNav')}</div>
-      <div>{renderSortLabel('净值', 'officialNavT1')}</div>
-      <div>净值日期</div>
-      <div>现价时间</div>
-      <div>调整</div>
+      <div title="当前场内交易价格（实时更新）。以该日期该时间为准。">{renderSortLabel('现价', 'marketPrice')}</div>
+      <div title="这个交易日场内价相对前一交易日的涨跌幅。">{renderSortLabel('涨跌幅', 'changeRate')}</div>
+      <div title="当日净值的估值。">{renderSortLabel('估值', 'estimatedNav')}</div>
+      <div title="基金官方公布的最近一次净值。可能是 T-1 日或 T-2 日，具体看右侧净值日期列。">{renderSortLabel('净值', 'officialNavT1')}</div>
+      <div title="官方净值对应的日期。T-1 表示上一个交易日，T-2 表示上上个交易日。">净值日期</div>
+      <div title="场内行情数据的采集时间。用于判断现价和涨跌幅是当日还是前一日。">现价时间</div>
+      <div title="鼠标按住该按钮可拖拽调整本页基金顺序（手动排序）。">调整</div>
     </>
   );
 
@@ -222,17 +264,17 @@ export function FundTable({
               <th>{renderSortLabel('代码', 'code')}</th>
               <th>名称</th>
               <th>{renderSortLabel('溢价率', 'premiumRate')}</th>
-              <th>限购</th>
+              <th title="当前是否存在购买限额限制。点击基金详情页可查看最新限购政策。">限购</th>
               <th>{renderSortLabel('训练误差', 'meanAbsError')}</th>
               <th>{renderSortLabel('最近误差', 'latestError')}</th>
               <th>{renderSortLabel('30d误差', 'error30d')}</th>
-              <th>{renderSortLabel('现价', 'marketPrice')}</th>
-              <th>{renderSortLabel('涨跌幅', 'changeRate')}</th>
-              <th>{renderSortLabel('估值', 'estimatedNav')}</th>
-              <th>{renderSortLabel('净值', 'officialNavT1')}</th>
-              <th>净值日期</th>
-              <th>现价时间</th>
-              <th>调整</th>
+              <th title="当前场内交易价格（实时更新）。以该日期该时间为准。">{renderSortLabel('现价', 'marketPrice')}</th>
+              <th title="这个交易日场内价相对前一交易日的涨跌幅。">{renderSortLabel('涨跌幅', 'changeRate')}</th>
+              <th title="当日净值的估值。">{renderSortLabel('估值', 'estimatedNav')}</th>
+              <th title="基金官方公布的最近一次净值。可能是 T-1 日或 T-2 日，具体看右侧净值日期列。">{renderSortLabel('净值', 'officialNavT1')}</th>
+              <th title="官方净值对应的日期。T-1 表示上一个交易日，T-2 表示上上个交易日。">净值日期</th>
+              <th title="场内行情数据的采集时间。用于判断现价和涨跌幅是当日还是前一日。">现价时间</th>
+              <th title="鼠标按住该按钮可拖拽调整本页基金顺序（手动排序）。">调整</th>
             </tr>
           </thead>
           <tbody>
@@ -250,6 +292,9 @@ export function FundTable({
                 <tr
                   key={fund.runtime.code}
                   className={isFavorite ? 'fund-table__row--favorite' : undefined}
+                  draggable
+                  onDragStart={(event) => handleRowDragStart(event, fund.runtime.code)}
+                  onDragEnd={handleRowDragEnd}
                   onDragOver={(event) => event.preventDefault()}
                   onDrop={() => handleRowDrop(fund.runtime.code)}
                 >
@@ -293,9 +338,6 @@ export function FundTable({
                     <button
                       className="fund-order-handle"
                       type="button"
-                      draggable
-                      onDragStart={() => setDraggingCode(fund.runtime.code)}
-                      onDragEnd={() => setDraggingCode(null)}
                       title="拖拽调整本页基金顺序"
                       aria-label={`拖拽调整 ${fund.runtime.code} 顺序`}
                     >
@@ -389,7 +431,13 @@ const FUND_NAME_OVERRIDES: Record<string, { shortName: string; fullName?: string
     fullName: '日本东证指数ETF南方 / 南方顶峰TOPIX(ETF-QDII)',
   },
   '513520': {
-    shortName: '日经225',
+    shortName: '华夏日经225ETF',
+  },
+  '513880': {
+    shortName: '华安日经225ETF',
+  },
+  '159985': {
+    shortName: '豆粕ETF',
   },
   '159100': {
     shortName: '华夏巴西',
@@ -477,10 +525,10 @@ function withCategorySuffix(shortName: string, pageCategory: FundViewModel['runt
   if (!base) {
     return base;
   }
-  if (/\b(?:etf|lof)\b$/i.test(base)) {
+  if (/(?:ETF|LOF)$/i.test(base)) {
     return base;
   }
-  const suffix = pageCategory === 'etf' ? 'etf' : 'lof';
+  const suffix = pageCategory === 'etf' ? 'ETF' : 'LOF';
   return `${base}${suffix}`;
 }
 

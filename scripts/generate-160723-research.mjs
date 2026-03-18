@@ -2,11 +2,23 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { parseNoticeHoldingsDisclosure } from './notice-parsers/registry.mjs';
 
+async function readJson(filePath, fallback) {
+  try {
+    const raw = await fs.readFile(filePath, 'utf8');
+    return JSON.parse(raw);
+  } catch {
+    return fallback;
+  }
+}
+
 const TARGET_CODE = String(process.argv[2] || '160723').trim();
+const FORCE_REWRITE_RESEARCH = process.env.FORCE_REWRITE_RESEARCH === '1';
 const RUNTIME_PATH = path.resolve('public/generated/funds-runtime.json');
 const OUT_SVG_PATH = path.resolve(`public/generated/${TARGET_CODE}-offline-research.svg`);
 const OUT_JSON_PATH = path.resolve(`public/generated/${TARGET_CODE}-offline-research.json`);
 const HOLDINGS_HISTORY_PATH = path.resolve('.cache/fund-sync/holdings-disclosures.json');
+const FX_CACHE_PATH = path.resolve('.cache/fund-sync/fx-usdcny-cache.json');
+const QUOTE_SERIES_CACHE_PATH = path.resolve('.cache/fund-sync/quote-series-db.json');
 
 const RESEARCH_CONFIG_BY_CODE = {
   '160723': {
@@ -357,19 +369,39 @@ const RESEARCH_CONFIG_BY_CODE = {
       { ticker: 'XLV', aliases: ['Health Care Select Sector SPDR Fund'] },
       { ticker: 'VHT', aliases: ['Vanguard Health Care ETF'] },
       { ticker: 'IYH', aliases: ['iShares U.S. Healthcare ETF'] },
+      { ticker: 'FHLC', aliases: ['Fidelity MSCI Health Care Index ETF'] },
+      { ticker: 'IHF', aliases: ['iShares U.S. Healthcare Providers ETF'] },
       { ticker: 'UNH', aliases: ['UnitedHealth Group Inc'] },
       { ticker: 'JNJ', aliases: ['Johnson & Johnson'] },
       { ticker: 'LLY', aliases: ['Eli Lilly and Co'] },
       { ticker: 'MRK', aliases: ['Merck & Co Inc'] },
       { ticker: 'ABBV', aliases: ['AbbVie Inc'] },
-      { ticker: 'SPY', aliases: ['SPDR S&P 500 ETF Trust'] },
+      { ticker: 'TMO', aliases: ['Thermo Fisher Scientific Inc'] },
+      { ticker: 'DHR', aliases: ['Danaher Corp'] },
+      { ticker: 'ISRG', aliases: ['Intuitive Surgical Inc'] },
+      { ticker: 'BSX', aliases: ['Boston Scientific Corp'] },
+      { ticker: 'PFE', aliases: ['Pfizer Inc'] },
+      { ticker: 'GILD', aliases: ['Gilead Sciences Inc'] },
+      { ticker: 'AMGN', aliases: ['Amgen Inc'] },
     ],
-    seedHoldings: ['XLV', 'VHT', 'IYH', 'UNH', 'JNJ', 'LLY', 'MRK', 'ABBV'],
+    seedHoldings: ['XLV', 'VHT', 'IYH', 'FHLC', 'IHF', 'UNH', 'LLY', 'JNJ', 'MRK', 'ABBV'],
     proxyComponents: [
-      { ticker: 'XLV', weight: 0.6 },
-      { ticker: 'VHT', weight: 0.25 },
-      { ticker: 'IYH', weight: 0.15 },
+      { ticker: 'XLV', weight: 0.5 },
+      { ticker: 'VHT', weight: 0.3 },
+      { ticker: 'IYH', weight: 0.2 },
     ],
+    proxySelectionRule: {
+      mode: 'holdings-overlap',
+      topN: 3,
+      minOverlapScore: 2.5,
+      candidates: [
+        { ticker: 'XLV', baseWeight: 1, holdings: ['LLY', 'UNH', 'JNJ', 'MRK', 'ABBV', 'TMO', 'DHR', 'ISRG', 'BSX', 'AMGN'] },
+        { ticker: 'VHT', baseWeight: 0.98, holdings: ['LLY', 'UNH', 'JNJ', 'MRK', 'ABBV', 'TMO', 'DHR', 'ISRG', 'PFE', 'AMGN'] },
+        { ticker: 'IYH', baseWeight: 0.96, holdings: ['UNH', 'LLY', 'JNJ', 'MRK', 'ABBV', 'TMO', 'DHR', 'ISRG', 'GILD', 'AMGN'] },
+        { ticker: 'FHLC', baseWeight: 0.92, holdings: ['LLY', 'UNH', 'JNJ', 'MRK', 'ABBV', 'TMO', 'DHR', 'ISRG', 'BSX', 'PFE'] },
+        { ticker: 'IHF', baseWeight: 0.76, holdings: ['UNH', 'HUM', 'CI', 'ELV', 'CNC', 'MOH', 'CVS', 'UHS', 'THC', 'DGX'] },
+      ],
+    },
     gapSpreadThreshold: 0.016,
     gapSignalThresholdHint: 0.012,
     fxGapWeight: 0.28,
@@ -405,19 +437,46 @@ const RESEARCH_CONFIG_BY_CODE = {
       { ticker: 'XLY', aliases: ['Consumer Discretionary Select Sector SPDR Fund'] },
       { ticker: 'XLP', aliases: ['Consumer Staples Select Sector SPDR Fund'] },
       { ticker: 'VCR', aliases: ['Vanguard Consumer Discretionary ETF'] },
+      { ticker: 'VDC', aliases: ['Vanguard Consumer Staples ETF'] },
       { ticker: 'IYC', aliases: ['iShares U.S. Consumer Staples ETF', 'iShares US Consumer ETF'] },
+      { ticker: 'XRT', aliases: ['SPDR S&P Retail ETF'] },
+      { ticker: 'RTH', aliases: ['VanEck Retail ETF'] },
       { ticker: 'AMZN', aliases: ['Amazon.com Inc'] },
       { ticker: 'TSLA', aliases: ['Tesla Inc'] },
       { ticker: 'WMT', aliases: ['Walmart Inc'] },
       { ticker: 'COST', aliases: ['Costco Wholesale Corp'] },
-      { ticker: 'SPY', aliases: ['SPDR S&P 500 ETF Trust'] },
+      { ticker: 'HD', aliases: ['Home Depot Inc'] },
+      { ticker: 'MCD', aliases: ["McDonald's Corp"] },
+      { ticker: 'NKE', aliases: ['Nike Inc Class B'] },
+      { ticker: 'LOW', aliases: ['Lowe s Companies Inc', "Lowe's Companies Inc"] },
+      { ticker: 'TJX', aliases: ['TJX Companies Inc'] },
+      { ticker: 'SBUX', aliases: ['Starbucks Corp'] },
+      { ticker: 'PG', aliases: ['Procter & Gamble Co'] },
+      { ticker: 'KO', aliases: ['Coca-Cola Co'] },
+      { ticker: 'PEP', aliases: ['PepsiCo Inc'] },
+      { ticker: 'PM', aliases: ['Philip Morris International Inc'] },
+      { ticker: 'MDLZ', aliases: ['Mondelez International Inc'] },
     ],
-    seedHoldings: ['XLY', 'XLP', 'VCR', 'IYC', 'AMZN', 'TSLA', 'WMT', 'COST'],
+    seedHoldings: ['XLY', 'VCR', 'IYC', 'XLP', 'VDC', 'RTH', 'XRT', 'AMZN', 'TSLA', 'WMT', 'COST'],
     proxyComponents: [
       { ticker: 'XLY', weight: 0.5 },
-      { ticker: 'XLP', weight: 0.25 },
-      { ticker: 'SPY', weight: 0.25 },
+      { ticker: 'VCR', weight: 0.3 },
+      { ticker: 'XLP', weight: 0.2 },
     ],
+    proxySelectionRule: {
+      mode: 'holdings-overlap',
+      topN: 3,
+      minOverlapScore: 3,
+      candidates: [
+        { ticker: 'XLY', baseWeight: 1, holdings: ['AMZN', 'TSLA', 'HD', 'MCD', 'NKE', 'LOW', 'TJX', 'SBUX', 'BKNG', 'CMG'] },
+        { ticker: 'VCR', baseWeight: 0.98, holdings: ['AMZN', 'TSLA', 'HD', 'MCD', 'LOW', 'NKE', 'TJX', 'BKNG', 'SBUX', 'COST'] },
+        { ticker: 'IYC', baseWeight: 0.95, holdings: ['AMZN', 'TSLA', 'WMT', 'COST', 'HD', 'MCD', 'NKE', 'LOW', 'TJX', 'BKNG'] },
+        { ticker: 'XLP', baseWeight: 0.9, holdings: ['WMT', 'COST', 'PG', 'KO', 'PEP', 'PM', 'MDLZ', 'CL', 'MO', 'KMB'] },
+        { ticker: 'VDC', baseWeight: 0.88, holdings: ['WMT', 'COST', 'PG', 'KO', 'PEP', 'PM', 'MDLZ', 'MO', 'CL', 'GIS'] },
+        { ticker: 'RTH', baseWeight: 0.8, holdings: ['AMZN', 'WMT', 'COST', 'HD', 'LOW', 'TGT', 'TJX', 'MCD', 'NKE', 'SBUX'] },
+        { ticker: 'XRT', baseWeight: 0.72, holdings: ['COST', 'WMT', 'AMZN', 'HD', 'LOW', 'TGT', 'MCD', 'NKE', 'TJX', 'DG'] },
+      ],
+    },
     gapSpreadThreshold: 0.016,
     gapSignalThresholdHint: 0.012,
     fxGapWeight: 0.28,
@@ -491,7 +550,7 @@ const RESEARCH_CONFIG_BY_CODE = {
       { ticker: 'FLKR', aliases: ['Franklin FTSE South Korea ETF'] },
       { ticker: 'VPL', aliases: ['Vanguard FTSE Pacific ETF'] },
       { ticker: 'SOXX', aliases: ['iShares Semiconductor ETF'] },
-      { ticker: 'EEMA', aliases: ['iShares MSCI EM Asia ETF'] },
+      { ticker: 'EEMA', aliases: ['iShares MSCI EM Asia ETF', 'CSOP IEDGE SEA+ TECH ETF USD', 'CSOP IEDGE SEA TECH ETF USD', 'CSOP IEDGE SEA+TECH ETF USD'] },
     ],
     seedHoldings: ['EWT', 'EWY', 'EWS', 'FXSG', 'FLKR', 'VPL', 'SOXX', 'EEMA'],
     proxyComponents: [
@@ -505,6 +564,8 @@ const RESEARCH_CONFIG_BY_CODE = {
     gapSpreadThreshold: 0.018,
     gapSignalThresholdHint: 0.013,
     fxGapWeight: 0.34,
+    maxHoldingsPerDisclosure: 60,
+    useArchiveFullHoldings: true,
     noteLabel: '东南亚市场交易时段/非交易时段',
   },
   '164824': {
@@ -765,6 +826,28 @@ const RESEARCH_CONFIG_BY_CODE = {
     fxGapWeight: 0.28,
     noteLabel: '纳指交易时段/非交易时段',
   },
+  '159985': {
+    theme: 'agriculture-commodities',
+    aliases: [
+      { ticker: 'SOYB', aliases: ['Teucrium Soybean Fund'] },
+      { ticker: 'DBA', aliases: ['Invesco DB Agriculture Fund'] },
+      { ticker: 'CORN', aliases: ['Teucrium Corn Fund'] },
+      { ticker: 'WEAT', aliases: ['Teucrium Wheat Fund'] },
+      { ticker: 'JJG', aliases: ['iPath Bloomberg Grains Subindex ETN'] },
+      { ticker: 'DBB', aliases: ['Invesco DB Base Metals Fund'] },
+    ],
+    seedHoldings: ['SOYB', 'DBA', 'CORN', 'WEAT', 'JJG'],
+    proxyComponents: [
+      { ticker: 'SOYB', weight: 0.55 },
+      { ticker: 'DBA', weight: 0.3 },
+      { ticker: 'CORN', weight: 0.15 },
+    ],
+    gapSpreadThreshold: 0.02,
+    gapSignalThresholdHint: 0.014,
+    fxGapWeight: 0.26,
+    allDataTrain: true,
+    noteLabel: '农业商品交易时段/非交易时段',
+  },
   '513100': {
     theme: 'us-nasdaq100',
     aliases: [
@@ -852,9 +935,24 @@ const RESEARCH_CONFIG_BY_CODE = {
       { ticker: 'FLJP', weight: 0.08 },
       { ticker: 'JPXN', weight: 0.12 },
     ],
+    proxySelectionRule: {
+      mode: 'holdings-overlap',
+      topN: 4,
+      minOverlapScore: 2,
+      candidates: [
+        { ticker: 'EWJ', baseWeight: 1, holdings: ['7974.JP', '7203.JP', '6758.JP', '9983.JP', '9432.JP', '8035.JP', '6861.JP', '6501.JP'] },
+        { ticker: 'DXJ', baseWeight: 0.98, holdings: ['7203.JP', '8035.JP', '9432.JP', '6861.JP', '6758.JP', '6501.JP', '9983.JP', '4568.JP'] },
+        { ticker: 'HEWJ', baseWeight: 0.95, holdings: ['7203.JP', '6758.JP', '8035.JP', '9983.JP', '9432.JP', '6861.JP', '6501.JP', '8316.JP'] },
+        { ticker: 'FLJP', baseWeight: 0.9, holdings: ['7203.JP', '6758.JP', '8035.JP', '9983.JP', '9432.JP', '6861.JP', '6501.JP', '4063.JP'] },
+        { ticker: 'JPXN', baseWeight: 0.82, holdings: ['7203.JP', '6758.JP', '8035.JP', '9983.JP', '9432.JP', '6861.JP', '6501.JP', '4063.JP'] },
+      ],
+    },
     gapSpreadThreshold: 0.012,
     gapSignalThresholdHint: 0.009,
     fxGapWeight: 0.27,
+    maxHoldingsPerDisclosure: 60,
+    useArchiveFullHoldings: true,
+    allDataTrain: true,
     noteLabel: '日经交易时段/非交易时段',
   },
   '513520': {
@@ -874,9 +972,24 @@ const RESEARCH_CONFIG_BY_CODE = {
       { ticker: 'FLJP', weight: 0.08 },
       { ticker: 'JPXN', weight: 0.10 },
     ],
+    proxySelectionRule: {
+      mode: 'holdings-overlap',
+      topN: 4,
+      minOverlapScore: 2,
+      candidates: [
+        { ticker: 'EWJ', baseWeight: 1, holdings: ['7974.JP', '7203.JP', '6758.JP', '9983.JP', '9432.JP', '8035.JP', '6861.JP', '6501.JP'] },
+        { ticker: 'DXJ', baseWeight: 0.98, holdings: ['7203.JP', '8035.JP', '9432.JP', '6861.JP', '6758.JP', '6501.JP', '9983.JP', '4568.JP'] },
+        { ticker: 'HEWJ', baseWeight: 0.95, holdings: ['7203.JP', '6758.JP', '8035.JP', '9983.JP', '9432.JP', '6861.JP', '6501.JP', '8316.JP'] },
+        { ticker: 'FLJP', baseWeight: 0.9, holdings: ['7203.JP', '6758.JP', '8035.JP', '9983.JP', '9432.JP', '6861.JP', '6501.JP', '4063.JP'] },
+        { ticker: 'JPXN', baseWeight: 0.82, holdings: ['7203.JP', '6758.JP', '8035.JP', '9983.JP', '9432.JP', '6861.JP', '6501.JP', '4063.JP'] },
+      ],
+    },
     gapSpreadThreshold: 0.012,
     gapSignalThresholdHint: 0.009,
     fxGapWeight: 0.27,
+    maxHoldingsPerDisclosure: 60,
+    useArchiveFullHoldings: true,
+    allDataTrain: true,
     noteLabel: '日经交易时段/非交易时段',
   },
   '159502': {
@@ -1184,19 +1297,35 @@ const RESEARCH_CONFIG_BY_CODE = {
       { ticker: 'MU', aliases: ['Micron Technology Inc'] },
       { ticker: 'CSCO', aliases: ['Cisco Systems Inc'] },
       { ticker: 'IBM', aliases: ['International Business Machines Corp', 'IBM Corp'] },
-      { ticker: 'QQQ', aliases: ['Invesco QQQ Trust'] },
       { ticker: 'XLK', aliases: ['Technology Select Sector SPDR ETF'] },
+      { ticker: 'VGT', aliases: ['Vanguard Information Technology ETF'] },
+      { ticker: 'IYW', aliases: ['iShares U.S. Technology ETF'] },
+      { ticker: 'FTEC', aliases: ['Fidelity MSCI Information Technology Index ETF'] },
       { ticker: 'SOXX', aliases: ['iShares Semiconductor ETF'] },
     ],
-    seedHoldings: ['NVDA', 'AAPL', 'MSFT', 'AVGO', 'PLTR', 'AMD', 'ORCL', 'MU', 'CSCO', 'IBM'],
+    seedHoldings: ['NVDA', 'AAPL', 'MSFT', 'AVGO', 'PLTR', 'AMD', 'ORCL', 'MU', 'CSCO', 'IBM', 'XLK', 'VGT', 'IYW'],
     proxyComponents: [
-      { ticker: 'QQQ', weight: 0.55 },
-      { ticker: 'XLK', weight: 0.3 },
-      { ticker: 'SOXX', weight: 0.15 },
+      { ticker: 'XLK', weight: 0.45 },
+      { ticker: 'VGT', weight: 0.35 },
+      { ticker: 'IYW', weight: 0.2 },
     ],
+    proxySelectionRule: {
+      mode: 'holdings-overlap',
+      topN: 3,
+      minOverlapScore: 3,
+      candidates: [
+        { ticker: 'XLK', baseWeight: 1, holdings: ['AAPL', 'MSFT', 'NVDA', 'AVGO', 'ORCL', 'CSCO', 'IBM', 'CRM', 'ACN', 'ADBE'] },
+        { ticker: 'VGT', baseWeight: 0.98, holdings: ['AAPL', 'MSFT', 'NVDA', 'AVGO', 'ORCL', 'CSCO', 'IBM', 'ADBE', 'CRM', 'INTU'] },
+        { ticker: 'IYW', baseWeight: 0.96, holdings: ['AAPL', 'MSFT', 'NVDA', 'AVGO', 'ORCL', 'CSCO', 'ADBE', 'CRM', 'IBM', 'AMD'] },
+        { ticker: 'FTEC', baseWeight: 0.92, holdings: ['AAPL', 'MSFT', 'NVDA', 'AVGO', 'ORCL', 'CSCO', 'IBM', 'ADBE', 'CRM', 'INTU'] },
+        { ticker: 'SOXX', baseWeight: 0.72, holdings: ['NVDA', 'AVGO', 'AMD', 'MU', 'QCOM', 'TXN', 'AMAT', 'LRCX', 'ADI', 'KLAC'] },
+      ],
+    },
     gapSpreadThreshold: 0.016,
     gapSignalThresholdHint: 0.012,
     fxGapWeight: 0.3,
+    maxHoldingsPerDisclosure: 60,
+    useArchiveFullHoldings: true,
     noteLabel: '美股科技交易时段/非交易时段',
   },
   '513300': {
@@ -1319,6 +1448,16 @@ if (!TARGET_CONFIG) {
   throw new Error(`unsupported code ${TARGET_CODE}; currently supported: ${Object.keys(RESEARCH_CONFIG_BY_CODE).join(', ')}`);
 }
 const HOLDING_ALIAS = TARGET_CONFIG.aliases;
+
+function getMaxHoldingsPerDisclosure() {
+  const value = Number(TARGET_CONFIG.maxHoldingsPerDisclosure);
+  if (Number.isFinite(value) && value > 0) {
+    return Math.max(10, Math.floor(value));
+  }
+  return 10;
+}
+
+const MAX_HOLDINGS_PER_DISCLOSURE = getMaxHoldingsPerDisclosure();
 
 function average(values) {
   if (!values.length) {
@@ -1762,6 +1901,175 @@ function parseJsonpPayload(content) {
   }
 }
 
+function extractJsonpContent(htmlText) {
+  const text = String(htmlText || '');
+  const matched = text.match(/content:\"([\s\S]*?)\",arryear/);
+  const payload = matched ? matched[1] : text;
+  return payload
+    .replace(/\\\//g, '/')
+    .replace(/\\\"/g, '"')
+    .replace(/\\n/g, '\n')
+    .replace(/\\r/g, '\r')
+    .replace(/\\t/g, '\t');
+}
+
+function parseQuarterFromTitle(title) {
+  const matched = String(title || '').match(/(\d{4})年第([1-4])季度报告/);
+  if (!matched) {
+    return null;
+  }
+
+  const year = Number(matched[1]);
+  const quarter = Number(matched[2]);
+  if (!Number.isFinite(year) || !Number.isFinite(quarter)) {
+    return null;
+  }
+
+  const month = {
+    1: 3,
+    2: 6,
+    3: 9,
+    4: 12,
+  }[quarter];
+  const day = {
+    1: '31',
+    2: '30',
+    3: '30',
+    4: '31',
+  }[quarter];
+
+  if (!month || !day) {
+    return null;
+  }
+
+  return {
+    year,
+    month,
+    reportDate: `${year}-${String(month).padStart(2, '0')}-${day}`,
+  };
+}
+
+function parseArchiveHoldingsRows(htmlText) {
+  const html = extractJsonpContent(htmlText);
+  const rows = [...html.matchAll(/<tr>([\s\S]*?)<\/tr>/g)]
+    .map((item) => item[1])
+    .filter((row) => /<td>\d+<\/td>/.test(row));
+
+  return rows
+    .map((row) => {
+      const cells = [...row.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)]
+        .map((item) => String(item[1] || '').replace(/<[^>]+>/g, '').replace(/&nbsp;/gi, ' ').trim());
+
+      if (cells.length < 7) {
+        return null;
+      }
+
+      const ticker = String(cells[1] || '').toUpperCase();
+      const name = String(cells[2] || '');
+      const weightRaw = String(cells[6] || '').replace('%', '').replace(/,/g, '');
+      const weight = Number(weightRaw);
+      if (!ticker || !Number.isFinite(weight) || weight <= 0) {
+        return null;
+      }
+
+      return {
+        ticker,
+        name,
+        weight,
+      };
+    })
+    .filter((item) => Boolean(item));
+}
+
+function seriesToObject(series) {
+  const out = {};
+  for (const [date, value] of series.entries()) {
+    if (!date || !Number.isFinite(value) || value <= 0) {
+      continue;
+    }
+    out[date] = value;
+  }
+  return out;
+}
+
+function objectToSeries(source) {
+  const out = new Map();
+  for (const [date, value] of Object.entries(source || {})) {
+    const numberValue = Number(value);
+    if (!date || !Number.isFinite(numberValue) || numberValue <= 0) {
+      continue;
+    }
+    out.set(date, numberValue);
+  }
+  return out;
+}
+
+let quoteSeriesCacheState = null;
+
+async function loadQuoteSeriesCacheState() {
+  if (quoteSeriesCacheState) {
+    return quoteSeriesCacheState;
+  }
+
+  const payload = await readJson(QUOTE_SERIES_CACHE_PATH, null);
+  quoteSeriesCacheState = {
+    updatedAt: payload?.updatedAt || '',
+    seriesByTicker: payload?.seriesByTicker && typeof payload.seriesByTicker === 'object' ? payload.seriesByTicker : {},
+  };
+  return quoteSeriesCacheState;
+}
+
+function getLatestSeriesDate(series) {
+  if (!(series instanceof Map) || series.size === 0) {
+    return '';
+  }
+  return [...series.keys()].sort((a, b) => a.localeCompare(b)).pop() || '';
+}
+
+function shouldRefreshSeries(series) {
+  if (!(series instanceof Map) || series.size === 0) {
+    return true;
+  }
+
+  const latest = getLatestSeriesDate(series);
+  if (!latest) {
+    return true;
+  }
+
+  const latestDate = new Date(`${latest}T00:00:00Z`);
+  if (Number.isNaN(latestDate.getTime())) {
+    return true;
+  }
+
+  const diffDays = Math.floor((Date.now() - latestDate.getTime()) / 86400000);
+  return diffDays > 3;
+}
+
+async function getCachedQuoteSeries(ticker) {
+  const state = await loadQuoteSeriesCacheState();
+  return objectToSeries(state.seriesByTicker?.[ticker] || {});
+}
+
+async function setCachedQuoteSeries(ticker, series) {
+  if (!(series instanceof Map) || !series.size) {
+    return;
+  }
+
+  const state = await loadQuoteSeriesCacheState();
+  state.updatedAt = new Date().toISOString();
+  state.seriesByTicker[ticker] = seriesToObject(series);
+}
+
+async function flushQuoteSeriesCache() {
+  const state = await loadQuoteSeriesCacheState();
+  try {
+    await fs.mkdir(path.dirname(QUOTE_SERIES_CACHE_PATH), { recursive: true });
+    await fs.writeFile(QUOTE_SERIES_CACHE_PATH, `${JSON.stringify(state, null, 2)}\n`, 'utf8');
+  } catch {
+    // ignore cache write failures
+  }
+}
+
 function quoteTickerFor(ticker) {
   const upper = String(ticker || '').toUpperCase();
   const found = HOLDING_ALIAS.find((item) => item.ticker.toUpperCase() === upper);
@@ -1810,6 +2118,36 @@ function parseCsvDailyClose(csvText) {
   return out;
 }
 
+function formatUtcDate(tsSeconds) {
+  const dt = new Date(Number(tsSeconds) * 1000);
+  if (Number.isNaN(dt.getTime())) {
+    return '';
+  }
+  const y = dt.getUTCFullYear();
+  const m = String(dt.getUTCMonth() + 1).padStart(2, '0');
+  const d = String(dt.getUTCDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function parseYahooChartSeries(payload) {
+  const result = payload?.chart?.result?.[0];
+  const timestamps = Array.isArray(result?.timestamp) ? result.timestamp : [];
+  const closes = Array.isArray(result?.indicators?.quote?.[0]?.close) ? result.indicators.quote[0].close : [];
+  const series = new Map();
+
+  const size = Math.min(timestamps.length, closes.length);
+  for (let i = 0; i < size; i += 1) {
+    const date = formatUtcDate(timestamps[i]);
+    const close = Number(closes[i]);
+    if (!date || !Number.isFinite(close) || close <= 0) {
+      continue;
+    }
+    series.set(date, close);
+  }
+
+  return series;
+}
+
 async function fetchStooqSeries(symbol) {
   const url = `https://stooq.com/q/d/l/?s=${encodeURIComponent(symbol)}&i=d`;
   const response = await fetch(url);
@@ -1818,6 +2156,139 @@ async function fetchStooqSeries(symbol) {
   }
   const csv = await response.text();
   return parseCsvDailyClose(csv);
+}
+
+async function fetchYahooSeries(symbol) {
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=5y&interval=1d&events=history`;
+  const response = await fetch(url, {
+    headers: {
+      'user-agent': 'Mozilla/5.0',
+      accept: 'application/json',
+    },
+  });
+  if (!response.ok) {
+    throw new Error(`yahoo ${symbol} ${response.status}`);
+  }
+
+  const payload = await response.json();
+  const series = parseYahooChartSeries(payload);
+  if (!series.size) {
+    throw new Error(`yahoo ${symbol} empty`);
+  }
+  return series;
+}
+
+function mergeSeries(...seriesList) {
+  const out = new Map();
+  for (const series of seriesList) {
+    if (!(series instanceof Map)) {
+      continue;
+    }
+    for (const [date, value] of series.entries()) {
+      if (!out.has(date) && Number.isFinite(value) && value > 0) {
+        out.set(date, value);
+      }
+    }
+  }
+  return out;
+}
+
+function buildContinuousSeries(referenceDates, sourceSeries) {
+  const sortedDates = [...new Set(referenceDates)].sort((left, right) => left.localeCompare(right));
+  const sourcePairs = [...sourceSeries.entries()]
+    .filter(([, value]) => Number.isFinite(value) && value > 0)
+    .sort((left, right) => left[0].localeCompare(right[0]));
+
+  if (!sourcePairs.length) {
+    return new Map();
+  }
+
+  const out = new Map();
+  let pointer = 0;
+  let lastKnown = null;
+
+  for (const date of sortedDates) {
+    while (pointer < sourcePairs.length && sourcePairs[pointer][0] <= date) {
+      lastKnown = sourcePairs[pointer][1];
+      pointer += 1;
+    }
+
+    if (lastKnown == null) {
+      lastKnown = sourcePairs[pointer]?.[1] ?? sourcePairs[0][1];
+    }
+
+    if (Number.isFinite(lastKnown) && lastKnown > 0) {
+      out.set(date, lastKnown);
+    }
+  }
+
+  return out;
+}
+
+async function readFxCacheSeries() {
+  const payload = await readJson(FX_CACHE_PATH, null);
+  if (!payload || typeof payload !== 'object') {
+    return new Map();
+  }
+  return objectToSeries(payload.series || {});
+}
+
+async function writeFxCacheSeries(series) {
+  try {
+    await fs.mkdir(path.dirname(FX_CACHE_PATH), { recursive: true });
+    await fs.writeFile(
+      FX_CACHE_PATH,
+      `${JSON.stringify({ updatedAt: new Date().toISOString(), series: seriesToObject(series) }, null, 2)}\n`,
+      'utf8',
+    );
+  } catch {
+    // ignore cache write failures
+  }
+}
+
+async function fetchUsdCnySeries() {
+  const cachedSeries = await readFxCacheSeries();
+  const seriesCandidates = [];
+  for (const symbol of ['usdcny', 'usdcnh']) {
+    try {
+      const series = await fetchStooqSeries(symbol);
+      if (series.size > 0) {
+        seriesCandidates.push(series);
+      }
+    } catch {
+      continue;
+    }
+  }
+
+  if (!seriesCandidates.length) {
+    try {
+      const yahooFx = await fetchYahooSeries('CNY=X');
+      if (yahooFx.size > 0) {
+        seriesCandidates.push(yahooFx);
+      }
+    } catch {
+      // continue
+    }
+  }
+
+  if (!seriesCandidates.length && cachedSeries.size) {
+    return cachedSeries;
+  }
+
+  if (!seriesCandidates.length) {
+    throw new Error('failed to fetch fx series usdcny/usdcnh/cny=x');
+  }
+
+  const merged = mergeSeries(...seriesCandidates, cachedSeries);
+  const cutoffDate = new Date();
+  cutoffDate.setDate(cutoffDate.getDate() - 800);
+  const cutoff = cutoffDate.toISOString().slice(0, 10);
+  const trimmed = new Map(
+    [...merged.entries()].filter(([date, value]) => date >= cutoff && Number.isFinite(value) && value > 0),
+  );
+
+  await writeFxCacheSeries(trimmed.size ? trimmed : merged);
+  return trimmed.size ? trimmed : merged;
 }
 
 function getAshareSecid(ticker) {
@@ -1856,12 +2327,83 @@ async function fetchAshareSeries(ticker) {
   return series;
 }
 
+function parseEastmoneyKlinePayload(payload) {
+  const klines = payload?.data?.klines || [];
+  const series = new Map();
+  for (const row of klines) {
+    const cols = String(row).split(',');
+    const date = String(cols[0] || '').trim();
+    const close = Number(cols[2]);
+    if (!date || !Number.isFinite(close) || close <= 0) {
+      continue;
+    }
+    series.set(date, close);
+  }
+  return series;
+}
+
+async function fetchEastmoneyGlobalSeries(symbol) {
+  const normalized = String(symbol || '').toUpperCase();
+  const markets = [105, 106, 107, 116, 128];
+
+  for (const market of markets) {
+    const secid = `${market}.${normalized}`;
+    const url = `https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=${encodeURIComponent(secid)}&fields1=f1,f2,f3,f4,f5,f6,f7,f8&fields2=f51,f52,f53,f54,f55,f56,f57,f58&klt=101&fqt=1&beg=20240101&end=20500101`;
+    try {
+      const response = await fetch(url, { headers: { referer: 'https://quote.eastmoney.com/' } });
+      if (!response.ok) {
+        continue;
+      }
+      const text = await response.text();
+      const payload = JSON.parse(text);
+      if (payload?.rc !== 0 || !payload?.data?.klines?.length) {
+        continue;
+      }
+      const series = parseEastmoneyKlinePayload(payload);
+      if (series.size > 0) {
+        return series;
+      }
+    } catch {
+      continue;
+    }
+  }
+
+  throw new Error(`eastmoney global ${normalized} empty`);
+}
+
 async function fetchQuoteSeriesByTicker(ticker) {
   const normalized = String(ticker || '').toUpperCase();
   if (/^\d{6}$/.test(normalized)) {
     return fetchAshareSeries(normalized);
   }
-  return fetchStooqSeries(`${normalized.toLowerCase()}.us`);
+
+  const cachedSeries = await getCachedQuoteSeries(normalized);
+  if (!shouldRefreshSeries(cachedSeries)) {
+    return cachedSeries;
+  }
+
+  try {
+    const latest = await fetchEastmoneyGlobalSeries(normalized);
+    const merged = mergeSeries(latest, cachedSeries);
+    await setCachedQuoteSeries(normalized, merged);
+    return merged;
+  } catch {
+    try {
+      const latest = await fetchStooqSeries(`${normalized.toLowerCase()}.us`);
+      const merged = mergeSeries(latest, cachedSeries);
+      await setCachedQuoteSeries(normalized, merged);
+      return merged;
+    } catch {
+      try {
+        const latest = await fetchYahooSeries(normalized);
+        const merged = mergeSeries(latest, cachedSeries);
+        await setCachedQuoteSeries(normalized, merged);
+        return merged;
+      } catch {
+        return cachedSeries;
+      }
+    }
+  }
 }
 
 async function fetchReportList() {
@@ -1876,9 +2418,56 @@ async function fetchReportList() {
   return (payload?.Data || []).filter((item) => /季度报告/.test(item?.TITLE || ''));
 }
 
+async function fetchArchiveQuarterHoldings(reportTitle) {
+  const quarter = parseQuarterFromTitle(reportTitle);
+  if (!quarter) {
+    return [];
+  }
+
+  const url = `https://fundf10.eastmoney.com/FundArchivesDatas.aspx?type=jjcc&code=${TARGET_CODE}&topline=200&year=${quarter.year}&month=${quarter.month}`;
+  const response = await fetch(url, {
+    headers: {
+      referer: 'https://fundf10.eastmoney.com/',
+      'user-agent': 'Mozilla/5.0',
+    },
+  });
+  if (!response.ok) {
+    throw new Error(`archive holdings ${response.status}`);
+  }
+
+  const text = await response.text();
+  return parseArchiveHoldingsRows(text)
+    .slice(0, MAX_HOLDINGS_PER_DISCLOSURE)
+    .map((item) => ({
+      ticker: item.ticker,
+      weight: item.weight,
+    }));
+}
+
 async function fetchQuarterDisclosures() {
   const reports = await fetchReportList();
   const disclosures = [];
+
+  if (TARGET_CONFIG.useArchiveFullHoldings) {
+    for (const report of reports) {
+      try {
+        const holdings = await fetchArchiveQuarterHoldings(report?.TITLE || '');
+        const quarter = parseQuarterFromTitle(report?.TITLE || '');
+        const reportDate = quarter?.reportDate || '';
+        if (!holdings.length || !reportDate) {
+          continue;
+        }
+
+        disclosures.push({
+          reportDate,
+          title: report?.TITLE || '',
+          holdings,
+        });
+      } catch {
+        continue;
+      }
+    }
+  }
 
   for (const report of reports) {
     const artCode = report?.ID;
@@ -1907,7 +2496,7 @@ async function fetchQuarterDisclosures() {
       disclosures.push({
         reportDate: parsed.disclosedHoldingsReportDate,
         title: parsed.disclosedHoldingsTitle || report.TITLE,
-        holdings: parsed.disclosedHoldings.slice(0, 10).map((item) => ({
+        holdings: parsed.disclosedHoldings.slice(0, MAX_HOLDINGS_PER_DISCLOSURE).map((item) => ({
           ticker: String(item.ticker || '').toUpperCase(),
           weight: Number(item.weight) || 0,
         })),
@@ -1972,7 +2561,7 @@ async function loadDisclosuresFromCache() {
         reportDate: String(item?.reportDate || ''),
         title: String(item?.title || ''),
         holdings: Array.isArray(item?.holdings)
-          ? item.holdings.slice(0, 10).map((holding) => ({
+          ? item.holdings.slice(0, MAX_HOLDINGS_PER_DISCLOSURE).map((holding) => ({
               ticker: String(holding?.ticker || '').toUpperCase(),
               weight: Number(holding?.weight) || 0,
             }))
@@ -2003,9 +2592,63 @@ function getActiveDisclosure(date, disclosures) {
   return active;
 }
 
-function buildRows(navHistoryAsc, disclosures, quoteSeriesByTicker, fxSeries) {
+function resolveProxyComponents(disclosures) {
+  const fallback = Array.isArray(TARGET_CONFIG.proxyComponents) ? TARGET_CONFIG.proxyComponents : [];
+  const rule = TARGET_CONFIG.proxySelectionRule;
+  if (!rule || rule.mode !== 'holdings-overlap') {
+    return fallback;
+  }
+
+  const latestDisclosure = disclosures[disclosures.length - 1];
+  const latestHoldings = Array.isArray(latestDisclosure?.holdings) ? latestDisclosure.holdings : [];
+  if (!latestHoldings.length) {
+    return fallback;
+  }
+
+  const holdingWeightByTicker = new Map(
+    latestHoldings
+      .map((item) => [String(item?.ticker || '').toUpperCase(), Math.max(0, Number(item?.weight) || 0)])
+      .filter((item) => item[0])
+  );
+
+  const scored = (rule.candidates || [])
+    .map((candidate) => {
+      const baseWeight = Math.max(0.1, Number(candidate?.baseWeight) || 1);
+      const candidateHoldings = Array.isArray(candidate?.holdings) ? candidate.holdings : [];
+      const overlapScore = candidateHoldings.reduce((sum, ticker) => {
+        const key = String(ticker || '').toUpperCase();
+        return sum + (holdingWeightByTicker.get(key) || 0);
+      }, 0);
+
+      return {
+        ticker: String(candidate?.ticker || '').toUpperCase(),
+        score: overlapScore * baseWeight,
+      };
+    })
+    .filter((item) => item.ticker && item.score > 0)
+    .sort((left, right) => right.score - left.score);
+
+  const minOverlapScore = Number(rule.minOverlapScore ?? 0);
+  const topN = Math.max(1, Number(rule.topN) || 3);
+  const picked = scored.filter((item) => item.score >= minOverlapScore).slice(0, topN);
+  if (!picked.length) {
+    return fallback;
+  }
+
+  const total = picked.reduce((sum, item) => sum + item.score, 0);
+  if (total <= 0) {
+    return fallback;
+  }
+
+  return picked.map((item) => ({
+    ticker: item.ticker,
+    weight: item.score / total,
+  }));
+}
+
+function buildRows(navHistoryAsc, disclosures, quoteSeriesByTicker, fxSeries, proxyComponents) {
   const rows = [];
-  const proxyComponents = TARGET_CONFIG.proxyComponents ?? [];
+  const activeProxyComponents = proxyComponents ?? TARGET_CONFIG.proxyComponents ?? [];
   const forcedAnomalyDateSet = new Set(
     Array.isArray(TARGET_CONFIG.forcedAnomalyDates)
       ? TARGET_CONFIG.forcedAnomalyDates.map((item) => String(item).trim()).filter(Boolean)
@@ -2052,8 +2695,8 @@ function buildRows(navHistoryAsc, disclosures, quoteSeriesByTicker, fxSeries) {
     let hasPrimaryReturn = false;
     let hasSecondaryReturn = false;
     const proxyReturnParts = [];
-    for (let proxyIndex = 0; proxyIndex < proxyComponents.length; proxyIndex += 1) {
-      const proxy = proxyComponents[proxyIndex];
+    for (let proxyIndex = 0; proxyIndex < activeProxyComponents.length; proxyIndex += 1) {
+      const proxy = activeProxyComponents[proxyIndex];
       const series = quoteSeriesByTicker.get(proxy.ticker);
       if (!series) {
         continue;
@@ -2087,11 +2730,8 @@ function buildRows(navHistoryAsc, disclosures, quoteSeriesByTicker, fxSeries) {
       ? (weightedReturn + proxyReturn * fillWeight) / blendedWeight
       : proxyReturn;
     const coverageRatio = Math.max(0, Math.min(1, coveredWeight / 100));
-    const minCoverageForHoldings = Number(TARGET_CONFIG.minCoverageForHoldings ?? 0);
-    const coverageScale = minCoverageForHoldings > 0
-      ? clampRange((coverageRatio - minCoverageForHoldings) / Math.max(1e-6, 1 - minCoverageForHoldings), 0, 1)
-      : 1;
-    const stabilizedHoldingReturn = coverageScale * holdingReturn + (1 - coverageScale) * proxyReturn;
+    // 训练口径改为持续融合：前十大持仓权重 + 代理篮子补足，不再按覆盖阈值切换两套路径。
+    const stabilizedHoldingReturn = holdingReturn;
 
     const fxPrev = fxSeries.get(prev.date);
     const fxCurr = fxSeries.get(curr.date);
@@ -2418,11 +3058,25 @@ function renderSvg({ dates, segmentedPoints, splitDate, meta }) {
     </linearGradient>
   </defs>
   <rect x="0" y="0" width="${width}" height="${height}" fill="url(#bg)" />
-  <text x="46" y="36" fill="#1f2937" font-size="31" font-weight="700">${TARGET_CODE} 离线研究图（持仓逐日估值版）</text>
+  <text x="46" y="36" fill="#1f2937" font-size="31" font-weight="700">${xmlEscape(meta.fundName || TARGET_CODE)}（${TARGET_CODE}）离线研究图（持仓逐日估值版）</text>
   <text x="46" y="66" fill="#5b6b68" font-size="13">历史前十大持仓 + 持仓逐日涨跌幅 + USDCNY；双目标 lambda=${meta.lambda.toFixed(2)}；披露期数 ${meta.disclosureCount}；覆盖率均值 ${(meta.avgCoverage * 100).toFixed(1)}%</text>
   ${navChart}
   ${errChart}
 </svg>`;
+}
+
+function getModelSelectionScore(summary) {
+  const robust30 = Number(summary?.segmented?.maeValidation30Robust);
+  if (Number.isFinite(robust30)) {
+    return robust30;
+  }
+
+  const mae30 = Number(summary?.segmented?.maeValidation30);
+  if (Number.isFinite(mae30)) {
+    return mae30;
+  }
+
+  return Number.POSITIVE_INFINITY;
 }
 
 async function main() {
@@ -2456,7 +3110,13 @@ async function main() {
     ];
   }
 
-  const quoteTickers = [...new Set(disclosures.flatMap((item) => item.holdings.map((holding) => quoteTickerFor(holding.ticker))))];
+  const resolvedProxyComponents = resolveProxyComponents(disclosures);
+
+  const quoteTickers = [...new Set([
+    ...disclosures.flatMap((item) => item.holdings.map((holding) => quoteTickerFor(holding.ticker))),
+    ...resolvedProxyComponents.map((item) => String(item?.ticker || '').toUpperCase()),
+    ...(Array.isArray(TARGET_CONFIG.seedHoldings) ? TARGET_CONFIG.seedHoldings.map((item) => quoteTickerFor(item)) : []),
+  ])];
   const quoteSeriesByTicker = new Map();
 
   for (const ticker of quoteTickers) {
@@ -2470,8 +3130,19 @@ async function main() {
     }
   }
 
-  const fxSeries = await fetchStooqSeries('usdcny');
-  let rows = buildRows(navHistoryAsc, disclosures, quoteSeriesByTicker, fxSeries);
+  await flushQuoteSeriesCache();
+
+  const navDates = navHistoryAsc.map((item) => item.date);
+  let fxDataMode = 'multi-source-usdcny-usdcnh';
+  let fxSeries = new Map();
+  try {
+    const rawFxSeries = await fetchUsdCnySeries();
+    fxSeries = buildContinuousSeries(navDates, rawFxSeries);
+  } catch {
+    fxDataMode = 'fallback-flat-1.0';
+    fxSeries = new Map(navDates.map((date) => [date, 1]));
+  }
+  let rows = buildRows(navHistoryAsc, disclosures, quoteSeriesByTicker, fxSeries, resolvedProxyComponents);
   let fallbackMode = 'none';
   if (rows.length < 50) {
     rows = buildNavFallbackRows(navHistoryAsc);
@@ -2900,8 +3571,12 @@ async function main() {
   const dualTrain = evaluate(train, dualPredictor);
   const dualValidation = evaluate(validation, dualPredictor);
 
-  const mergedSegmented = [...segmentedTrain, ...segmentedValidation];
-  const allDates = [...train, ...validation].map((item) => item.date);
+  const mergedSegmented = splitMode === 'all-data-train'
+    ? segmentedValidation
+    : [...segmentedTrain, ...segmentedValidation];
+  const allDates = splitMode === 'all-data-train'
+    ? rows.map((item) => item.date)
+    : [...train, ...validation].map((item) => item.date);
 
   const svg = renderSvg({
     dates: allDates,
@@ -2911,6 +3586,7 @@ async function main() {
       lambda: bestDual.lambda,
       disclosureCount: disclosures.length,
       avgCoverage: average(rows.map((item) => item.coverageRatio)),
+      fundName: fund.name || TARGET_CODE,
     },
   });
 
@@ -2923,6 +3599,9 @@ async function main() {
     fallbackMode,
     disclosureCount: disclosures.length,
     usedQuoteTickers: [...quoteSeriesByTicker.keys()],
+    resolvedProxyComponents,
+    fxSeriesCoverageRatio: navHistoryAsc.length > 0 ? (fxSeries.size / navHistoryAsc.length) : 0,
+    fxDataMode,
     avgHoldingCoverage: average(rows.map((item) => item.coverageRatio)),
     trainRange: `${train[0]?.date || '--'} ~ ${train[train.length - 1]?.date || '--'}`,
     validationRange: `${validation[0]?.date || '--'} ~ ${validation[validation.length - 1]?.date || '--'}`,
@@ -2994,7 +3673,7 @@ async function main() {
       topErrorDays: topTrainErrors,
     },
     chartPath: `generated/${TARGET_CODE}-offline-research.svg`,
-    notes: `估值点使用同日持仓涨跌幅对齐同日净值，不做时间平移；${TARGET_CODE} 使用“${TARGET_CONFIG.noteLabel}”分参数与“主代理/次代理跳空+汇率错位”缺口日专用分支。若个别持仓缺历史行情，按可用权重归一化。${disclosures.length < 4 ? '季度正文解析不足时按全部季度边界+种子持仓权重回退。' : ''}`,
+    notes: `估值点使用同日持仓涨跌幅对齐同日净值，不做时间平移；${TARGET_CODE} 使用“${TARGET_CONFIG.noteLabel}”分参数与“主代理/次代理跳空+汇率错位”缺口日专用分支。汇率使用 USDCNY+USDCNH 多源合并并对净值日期做连续补齐。若个别持仓缺历史行情，按可用权重归一化。${disclosures.length < 4 ? '季度正文解析不足时按全部季度边界+种子持仓权重回退。' : ''}`,
   };
 
   if (topValidationErrors.length) {
@@ -3013,6 +3692,26 @@ async function main() {
         `  ${item.date} err=${(item.absError * 100).toFixed(2)}% tags=${item.tags.join('|') || 'none'} gapSignal=${(item.gapSignal * 100).toFixed(2)}% fx=${(item.fxReturn * 100).toFixed(2)}%`,
       );
     }
+  }
+
+  const previousSummary = await readJson(OUT_JSON_PATH, null);
+  const previousScore = getModelSelectionScore(previousSummary);
+  const currentScore = getModelSelectionScore(summary);
+  const usingFallbackFx = summary.fxDataMode === 'fallback-flat-1.0';
+  const hasQuoteSignal = Array.isArray(summary.usedQuoteTickers) && summary.usedQuoteTickers.length > 0;
+  const materiallyBetter = Number.isFinite(previousScore)
+    && Number.isFinite(currentScore)
+    && currentScore <= previousScore * 0.9;
+  const shouldKeepPrevious =
+    previousSummary
+    && Number.isFinite(previousScore)
+    && ((usingFallbackFx && !(hasQuoteSignal && materiallyBetter)) || !(currentScore < previousScore));
+
+  if (shouldKeepPrevious && !FORCE_REWRITE_RESEARCH) {
+    console.log(
+      `[offline-research] ${TARGET_CODE} kept previous model: prev=${(previousScore * 100).toFixed(3)}% new=${(currentScore * 100).toFixed(3)}% mode=${summary.fxDataMode}`,
+    );
+    return;
   }
 
   await fs.mkdir(path.dirname(OUT_SVG_PATH), { recursive: true });

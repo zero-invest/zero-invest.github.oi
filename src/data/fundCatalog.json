@@ -6,7 +6,7 @@
   { "code": "501050", "detailMode": "summary", "priority": 5, "pageCategory": "domestic-lof", "estimateMode": "market" },
   { "code": "501011", "detailMode": "summary", "priority": 6, "pageCategory": "domestic-lof", "estimateMode": "market" },
   { "code": "161226", "detailMode": "summary", "priority": 7, "pageCategory": "domestic-lof", "estimateMode": "proxy", "proxyBasketKey": "us-silver" },
-  { "code": "161128", "detailMode": "holdings", "priority": 8, "pageCategory": "qdii-lof", "estimateMode": "proxy", "proxyBasketKey": "us-tech-large" },
+  { "code": "161128", "detailMode": "summary", "priority": 8, "pageCategory": "qdii-lof", "estimateMode": "proxy", "proxyBasketKey": "us-sp-info-tech" },
   { "code": "160216", "detailMode": "summary", "priority": 9, "pageCategory": "qdii-lof", "estimateMode": "proxy", "proxyBasketKey": "us-commodities" },
   { "code": "161116", "detailMode": "summary", "priority": 10, "pageCategory": "qdii-lof", "estimateMode": "proxy", "proxyBasketKey": "us-gold" },
   { "code": "164701", "detailMode": "summary", "priority": 11, "pageCategory": "qdii-lof", "estimateMode": "proxy", "proxyBasketKey": "us-precious-metals" },
@@ -32,8 +32,8 @@
   { "code": "159100", "detailMode": "summary", "priority": 31, "pageCategory": "etf", "estimateMode": "market" },
   { "code": "520870", "detailMode": "summary", "priority": 32, "pageCategory": "etf", "estimateMode": "market" },
   { "code": "513800", "detailMode": "summary", "priority": 33, "pageCategory": "etf", "estimateMode": "market" },
-  { "code": "513880", "detailMode": "summary", "priority": 34, "pageCategory": "etf", "estimateMode": "market" },
-  { "code": "513520", "detailMode": "summary", "priority": 35, "pageCategory": "etf", "estimateMode": "market" },
+  { "code": "513880", "detailMode": "summary", "priority": 34, "pageCategory": "etf", "estimateMode": "proxy", "proxyBasketKey": "japan-nikkei225" },
+  { "code": "513520", "detailMode": "summary", "priority": 35, "pageCategory": "etf", "estimateMode": "proxy", "proxyBasketKey": "japan-nikkei225" },
   { "code": "160644", "detailMode": "summary", "priority": 36, "pageCategory": "qdii-lof", "estimateMode": "market" },
   { "code": "161124", "detailMode": "summary", "priority": 37, "pageCategory": "qdii-lof", "estimateMode": "market" },
   { "code": "501300", "detailMode": "summary", "priority": 38, "pageCategory": "qdii-lof", "estimateMode": "market" },
@@ -46,7 +46,6 @@
   { "code": "162415", "detailMode": "summary", "priority": 45, "pageCategory": "qdii-lof", "estimateMode": "proxy", "proxyBasketKey": "us-sandp500" },
   { "code": "513080", "detailMode": "summary", "priority": 46, "pageCategory": "etf", "estimateMode": "market" },
   { "code": "513730", "detailMode": "summary", "priority": 47, "pageCategory": "etf", "estimateMode": "market" },
-  { "code": "159982", "detailMode": "summary", "priority": 48, "pageCategory": "etf", "estimateMode": "market" },
   { "code": "159329", "detailMode": "summary", "priority": 49, "pageCategory": "etf", "estimateMode": "market" },
   { "code": "164824", "detailMode": "summary", "priority": 50, "pageCategory": "qdii-lof", "estimateMode": "market" },
   { "code": "513400", "detailMode": "summary", "priority": 51, "pageCategory": "etf", "estimateMode": "market" },
@@ -55,5 +54,6 @@
   { "code": "513100", "detailMode": "summary", "priority": 54, "pageCategory": "etf", "estimateMode": "proxy", "proxyBasketKey": "us-nasdaq100" },
   { "code": "163208", "detailMode": "summary", "priority": 55, "pageCategory": "qdii-lof", "estimateMode": "market" },
   { "code": "159502", "detailMode": "summary", "priority": 56, "pageCategory": "etf", "estimateMode": "market" },
-  { "code": "513290", "detailMode": "summary", "priority": 57, "pageCategory": "etf", "estimateMode": "market" }
+  { "code": "513290", "detailMode": "summary", "priority": 57, "pageCategory": "etf", "estimateMode": "market" },
+  { "code": "159985", "detailMode": "summary", "priority": 58, "pageCategory": "etf", "estimateMode": "proxy", "proxyBasketKey": "us-agriculture" }
 ]

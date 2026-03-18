@@ -1,6 +1,7 @@
 import { parseNoticeHoldingsBySection59Rows } from './section-5-9-rows.mjs';
 import { parseNoticeHoldingsBySection59Chunks } from './section-5-9-chunks.mjs';
 import { parseNoticeHoldingsBySection59RankMap } from './section-5-9-rank-map.mjs';
+import { parseNoticeHoldingsBySection59BlockTable } from './section-5-9-block-table.mjs';
 
 const NOTICE_PARSER_REGISTRY = [
   {
@@ -17,6 +18,11 @@ const NOTICE_PARSER_REGISTRY = [
     id: 'section-5-9-rows',
     fundCodes: ['160216', '161116', '164701', '501312'],
     parse: parseNoticeHoldingsBySection59Rows,
+  },
+  {
+    id: 'section-5-9-block-table',
+    fundCodes: ['513730'],
+    parse: parseNoticeHoldingsBySection59BlockTable,
   },
 ];
 
