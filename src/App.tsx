@@ -1276,9 +1276,6 @@ function HomePage({
   return (
     <main className="page">
       <section className="hero panel hero--wide">
-        <Link className="hero-corner-link" to="/traffic" title="查看访客趋势页">
-          访客趋势
-        </Link>
         <div className="hero__copy">
           <span className="eyebrow">本地缓存 + 免费行情 + 每基金独立模型</span>
           <h1>溢价率日常看板</h1>
@@ -1303,7 +1300,7 @@ function HomePage({
             <span>代理估值数</span>
             <strong>{proxyDrivenCount}</strong>
           </div>
-          <div className="hero__fact">
+          <Link className="hero__fact hero__fact--link" to="/traffic" title="查看访客趋势详情">
             <span>最近7日访客</span>
             <strong>{githubTraffic.available ? githubTraffic.recent7.viewUniques : '--'}</strong>
             <small className="hero__fact-subtle">
@@ -1315,7 +1312,7 @@ function HomePage({
                 <polyline points={trafficTrendPoints} />
               </svg>
             ) : null}
-          </div>
+          </Link>
           <div className="hero__fact">
             <span>状态</span>
             <strong>{loading ? '同步中' : error ? '同步异常' : '可用'}</strong>
