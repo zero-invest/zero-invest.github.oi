@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { FundViewModel } from '../types';
 import { readFundSortPreference, writeFundSortPreference } from '../lib/storage';
+import fundShortNameMap from '../data/fund-short-names.json';
 
 type SortKey = 'manual' | 'code' | 'premiumRate' | 'estimatedNav' | 'marketPrice' | 'officialNavT1' | 'meanAbsError' | 'latestError' | 'error30d' | 'changeRate';
 const VALID_SORT_KEYS: SortKey[] = ['manual', 'code', 'premiumRate', 'estimatedNav', 'marketPrice', 'officialNavT1', 'meanAbsError', 'latestError', 'error30d', 'changeRate'];
@@ -8,6 +9,7 @@ const VALID_SORT_KEYS: SortKey[] = ['manual', 'code', 'premiumRate', 'estimatedN
 interface FundTableProps {
   funds: FundViewModel[];
   trainingMetricsByCode: Record<string, { maeValidation30: number }>;
+  eastmoneyPremiumByCode: Record<string, number | null>;
   formatCurrency: (value: number) => string;
   formatPercent: (value: number) => string;
   title: string;
@@ -21,6 +23,7 @@ interface FundTableProps {
 export function FundTable({
   funds,
   trainingMetricsByCode,
+  eastmoneyPremiumByCode,
   formatCurrency,
   formatPercent,
   title,
@@ -55,6 +58,7 @@ export function FundTable({
     visible: false,
     left: 0,
     width: 0,
+    scrollLeft: 0,
   });
   const favoriteSet = useMemo(() => new Set(favoriteCodes), [favoriteCodes]);
   const [draggingCode, setDraggingCode] = useState<string | null>(null);
@@ -74,7 +78,7 @@ export function FundTable({
 
       const leftValue =
         sortKey === 'premiumRate'
-          ? left.estimate.premiumRate
+          ? normalizeSortableNumber(left.estimate.premiumRate, Number.NEGATIVE_INFINITY)
           : sortKey === 'meanAbsError'
             ? getTrainingValidation30Error(left, trainingMetricsByCode) ?? Number.POSITIVE_INFINITY
           : sortKey === 'latestError'
@@ -92,7 +96,7 @@ export function FundTable({
                 : Number.POSITIVE_INFINITY;
       const rightValue =
         sortKey === 'premiumRate'
-          ? right.estimate.premiumRate
+          ? normalizeSortableNumber(right.estimate.premiumRate, Number.NEGATIVE_INFINITY)
           : sortKey === 'meanAbsError'
             ? getTrainingValidation30Error(right, trainingMetricsByCode) ?? Number.POSITIVE_INFINITY
           : sortKey === 'latestError'
@@ -127,6 +131,56 @@ export function FundTable({
   useEffect(() => {
     writeFundSortPreference({ sortKey, sortDirection });
   }, [sortKey, sortDirection]);
+
+  useEffect(() => {
+    const updateFloatingHeader = () => {
+      if (window.innerWidth <= 720 || !tableRef.current || !scrollRef.current) {
+        setFloatingHeaderState((current) => (current.visible
+          ? {
+            ...current,
+            visible: false,
+            left: 0,
+            width: 0,
+          }
+          : current));
+        return;
+      }
+
+      const tableRect = tableRef.current.getBoundingClientRect();
+      const scrollRect = scrollRef.current.getBoundingClientRect();
+      const shouldShow = tableRect.top < 0 && tableRect.bottom > 72;
+
+      setFloatingHeaderState((current) => ({
+        ...current,
+        visible: shouldShow,
+        left: scrollRect.left,
+        width: scrollRect.width,
+      }));
+    };
+
+    const syncScroll = () => {
+      const left = scrollRef.current?.scrollLeft || 0;
+      setFloatingHeaderState((current) => (current.scrollLeft === left
+        ? current
+        : {
+          ...current,
+          scrollLeft: left,
+        }));
+    };
+
+    updateFloatingHeader();
+    syncScroll();
+
+    window.addEventListener('scroll', updateFloatingHeader, { passive: true });
+    window.addEventListener('resize', updateFloatingHeader);
+    scrollRef.current?.addEventListener('scroll', syncScroll, { passive: true });
+
+    return () => {
+      window.removeEventListener('scroll', updateFloatingHeader);
+      window.removeEventListener('resize', updateFloatingHeader);
+      scrollRef.current?.removeEventListener('scroll', syncScroll);
+    };
+  }, [funds.length]);
 
   const handleRowDrop = (targetCode: string) => {
     if (!draggingCode || draggingCode === targetCode) {
@@ -177,51 +231,31 @@ export function FundTable({
     );
   };
 
-  useEffect(() => {
-    const updateFloatingHeader = () => {
-      if (window.innerWidth <= 720 || !tableRef.current || !scrollRef.current) {
-        setFloatingHeaderState((current) => (current.visible ? { visible: false, left: 0, width: 0 } : current));
-        return;
-      }
+  const renderFloatingHeaderLabel = (label: string, key?: SortKey) => {
+    if (!key || sortKey !== key) {
+      return label;
+    }
+    return `${label}${sortDirection === 'desc' ? ' ↓' : ' ↑'}`;
+  };
 
-      const tableRect = tableRef.current.getBoundingClientRect();
-      const scrollRect = scrollRef.current.getBoundingClientRect();
-      const shouldShow = tableRect.top < 0 && tableRect.bottom > 72;
-
-      setFloatingHeaderState({
-        visible: shouldShow,
-        left: scrollRect.left,
-        width: scrollRect.width,
-      });
-    };
-
-    updateFloatingHeader();
-    window.addEventListener('scroll', updateFloatingHeader, { passive: true });
-    window.addEventListener('resize', updateFloatingHeader);
-
-    return () => {
-      window.removeEventListener('scroll', updateFloatingHeader);
-      window.removeEventListener('resize', updateFloatingHeader);
-    };
-  }, []);
-
-  const renderHeaderCells = () => (
+  const renderHeaderCells = (sortable: boolean) => (
     <>
       <div>收藏</div>
-      <div>{renderSortLabel('代码', 'code')}</div>
+      <div>{sortable ? renderSortLabel('代码', 'code') : renderFloatingHeaderLabel('代码', 'code')}</div>
       <div>名称</div>
-      <div>{renderSortLabel('溢价率', 'premiumRate')}</div>
-      <div title="当前是否存在购买限额限制。点击基金详情页可查看最新限购政策。">限购</div>
-      <div>{renderSortLabel('训练误差', 'meanAbsError')}</div>
-      <div>{renderSortLabel('最近误差', 'latestError')}</div>
-      <div>{renderSortLabel('30d误差', 'error30d')}</div>
-      <div title="当前场内交易价格（实时更新）。以该日期该时间为准。">{renderSortLabel('现价', 'marketPrice')}</div>
-      <div title="这个交易日场内价相对前一交易日的涨跌幅。">{renderSortLabel('涨跌幅', 'changeRate')}</div>
-      <div title="当日净值的估值。">{renderSortLabel('估值', 'estimatedNav')}</div>
-      <div title="基金官方公布的最近一次净值。可能是 T-1 日或 T-2 日，具体看右侧净值日期列。">{renderSortLabel('净值', 'officialNavT1')}</div>
-      <div title="官方净值对应的日期。T-1 表示上一个交易日，T-2 表示上上个交易日。">净值日期</div>
-      <div title="场内行情数据的采集时间。用于判断现价和涨跌幅是当日还是前一日。">现价时间</div>
-      <div title="鼠标按住该按钮可拖拽调整本页基金顺序（手动排序）。">调整</div>
+      <div>东财估值溢价</div>
+      <div>{sortable ? renderSortLabel('溢价率', 'premiumRate') : renderFloatingHeaderLabel('溢价率', 'premiumRate')}</div>
+      <div>限购</div>
+      <div>{sortable ? renderSortLabel('训练误差', 'meanAbsError') : renderFloatingHeaderLabel('训练误差', 'meanAbsError')}</div>
+      <div>{sortable ? renderSortLabel('最近误差', 'latestError') : renderFloatingHeaderLabel('最近误差', 'latestError')}</div>
+      <div>{sortable ? renderSortLabel('30d误差', 'error30d') : renderFloatingHeaderLabel('30d误差', 'error30d')}</div>
+      <div>{sortable ? renderSortLabel('现价', 'marketPrice') : renderFloatingHeaderLabel('现价', 'marketPrice')}</div>
+      <div>{sortable ? renderSortLabel('涨跌幅', 'changeRate') : renderFloatingHeaderLabel('涨跌幅', 'changeRate')}</div>
+      <div>{sortable ? renderSortLabel('估值', 'estimatedNav') : renderFloatingHeaderLabel('估值', 'estimatedNav')}</div>
+      <div>{sortable ? renderSortLabel('净值', 'officialNavT1') : renderFloatingHeaderLabel('净值', 'officialNavT1')}</div>
+      <div>净值日期</div>
+      <div>现价时间</div>
+      <div>调整</div>
     </>
   );
 
@@ -236,7 +270,9 @@ export function FundTable({
         className={`fund-table-floating-header${floatingHeaderState.visible ? ' fund-table-floating-header--visible' : ''}`}
         style={{ left: `${floatingHeaderState.left}px`, width: `${floatingHeaderState.width}px` }}
       >
-        {renderHeaderCells()}
+        <div className="fund-table-floating-header__inner" style={{ transform: `translateX(-${floatingHeaderState.scrollLeft}px)` }}>
+          {renderHeaderCells(true)}
+        </div>
       </div>
 
       <div className="table-scroll" ref={scrollRef}>
@@ -245,6 +281,7 @@ export function FundTable({
             <col className="fund-table__col fund-table__col--favorite" />
             <col className="fund-table__col fund-table__col--code" />
             <col className="fund-table__col fund-table__col--name" />
+            <col className="fund-table__col fund-table__col--provider-premium" />
             <col className="fund-table__col fund-table__col--premium" />
             <col className="fund-table__col fund-table__col--limit" />
             <col className="fund-table__col fund-table__col--error" />
@@ -263,6 +300,7 @@ export function FundTable({
               <th>收藏</th>
               <th>{renderSortLabel('代码', 'code')}</th>
               <th>名称</th>
+              <th title="东财 fundgz 估值计算的溢价率（第三方口径）。">东财估值溢价</th>
               <th>{renderSortLabel('溢价率', 'premiumRate')}</th>
               <th title="当前是否存在购买限额限制。点击基金详情页可查看最新限购政策。">限购</th>
               <th>{renderSortLabel('训练误差', 'meanAbsError')}</th>
@@ -281,6 +319,10 @@ export function FundTable({
             {sortedFunds.map((fund) => {
               const isFavorite = favoriteSet.has(fund.runtime.code);
               const premiumTone = fund.estimate.premiumRate > 0 ? 'positive' : 'negative';
+              const eastmoneyPremiumRate = eastmoneyPremiumByCode[fund.runtime.code];
+              const eastmoneyTone = typeof eastmoneyPremiumRate === 'number' && Number.isFinite(eastmoneyPremiumRate)
+                ? (eastmoneyPremiumRate >= 0 ? 'positive' : 'negative')
+                : null;
               const changeRate = getChangeRate(fund.runtime.marketPrice, fund.runtime.previousClose);
               const latestError = getLatestError(fund);
               const avg30dError = getRecent30DayAvgAbsError(fund);
@@ -316,6 +358,9 @@ export function FundTable({
                   </td>
                   <td>
                     <span className={`fund-table__name${isFavorite ? ' fund-table__name--favorite' : ''}`} title={fullName}>{compactName}</span>
+                  </td>
+                  <td className={eastmoneyTone ? `tone-${eastmoneyTone}` : 'muted-text'}>
+                    {typeof eastmoneyPremiumRate === 'number' && Number.isFinite(eastmoneyPremiumRate) ? formatPercent(eastmoneyPremiumRate) : '--'}
                   </td>
                   <td className={`tone-${premiumTone}`}>{formatPercent(fund.estimate.premiumRate)}</td>
                   <td className={getLimitClass(fund.runtime.purchaseLimit)}>
@@ -358,124 +403,18 @@ function getChangeRate(marketPrice: number, previousClose: number) {
   return previousClose > 0 ? marketPrice / previousClose - 1 : 0;
 }
 
+function normalizeSortableNumber(value: number | undefined, fallback: number): number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    return fallback;
+  }
+  return value;
+}
+
 function stripFundCodeSuffix(name: string): string {
   return name.replace(/\s*[（(]\s*(?:基金)?(?:代码)?\s*[:：]?\s*\d{6}\s*[)）]\s*$/, '').trim();
 }
 
-const FUND_NAME_OVERRIDES: Record<string, { shortName: string; fullName?: string }> = {
-  '160221': {
-    shortName: '有色金属行业',
-  },
-  '165520': {
-    shortName: '中证800有色',
-  },
-  '165529': {
-    shortName: '有色',
-  },
-  '159509': {
-    shortName: '纳指科技',
-  },
-  '159502': {
-    shortName: '标普生物科技',
-  },
-  '513290': {
-    shortName: '纳指生物科技',
-  },
-  '159518': {
-    shortName: '标普油气',
-  },
-  '501225': {
-    shortName: '全球芯片',
-  },
-  '161125': {
-    shortName: '标普500',
-  },
-  '161128': {
-    shortName: '标普信息科技',
-  },
-  '162415': {
-    shortName: '美国消费',
-  },
-  '160644': {
-    shortName: '港美互联',
-  },
-  '501300': {
-    shortName: '美元债',
-  },
-  '160620': {
-    shortName: '鹏华资源',
-  },
-  '161217': {
-    shortName: '国投资源',
-  },
-  '162411': {
-    shortName: '华宝油气',
-  },
-  '163208': {
-    shortName: '全球油气能源',
-  },
-  '160719': {
-    shortName: '嘉实黄金',
-  },
-  '161129': {
-    shortName: '易方达原油',
-  },
-  '160723': {
-    shortName: '嘉实原油',
-  },
-  '501018': {
-    shortName: '南方原油',
-  },
-  '513800': {
-    shortName: '日本东证指数',
-    fullName: '日本东证指数ETF南方 / 南方顶峰TOPIX(ETF-QDII)',
-  },
-  '513520': {
-    shortName: '华夏日经225ETF',
-  },
-  '513880': {
-    shortName: '华安日经225ETF',
-  },
-  '159985': {
-    shortName: '豆粕ETF',
-  },
-  '159100': {
-    shortName: '华夏巴西',
-  },
-  '520870': {
-    shortName: '易方达巴西',
-  },
-  '159561': {
-    shortName: '嘉实德国',
-  },
-  '513030': {
-    shortName: '华安德国',
-  },
-  '513850': {
-    shortName: '易方达美国50',
-  },
-  '159577': {
-    shortName: '汇添富美国50',
-  },
-  '159477': {
-    shortName: '汇添富美国50',
-  },
-  '513400': {
-    shortName: '道琼斯',
-  },
-  '513730': {
-    shortName: '东南亚科技',
-  },
-  '520830': {
-    shortName: '华泰柏瑞沙特',
-  },
-  '159329': {
-    shortName: '南方沙特',
-  },
-  '520580': {
-    shortName: '新兴亚洲精选',
-  },
-};
+const FUND_NAME_OVERRIDES: Record<string, { shortName: string; fullName?: string }> = fundShortNameMap;
 
 const FUND_COMPANY_PREFIXES = [
   '南方', '易方达', '华夏', '嘉实', '广发', '汇添富', '富国', '博时', '国泰', '招商', '鹏华', '工银瑞信',
@@ -521,11 +460,9 @@ function getCompactFundName(code: string, name: string, pageCategory: FundViewMo
 }
 
 function withCategorySuffix(shortName: string, pageCategory: FundViewModel['runtime']['pageCategory']): string {
-  const base = shortName.trim();
+  const normalized = shortName.trim().replace(/(?:\s*(?:ETF|LOF))+\s*$/gi, '').trim();
+  const base = normalized || shortName.trim();
   if (!base) {
-    return base;
-  }
-  if (/(?:ETF|LOF)$/i.test(base)) {
     return base;
   }
   const suffix = pageCategory === 'etf' ? 'ETF' : 'LOF';

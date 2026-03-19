@@ -14,6 +14,10 @@ const MAX_MARKET_MOVE = 0.08;
 const MAX_PROXY_MOVE = 0.15;
 const MAX_CLOSE_GAP = 0.2;
 const MAX_FX_MOVE = 0.05;
+const STALE_LEAD_REPEAT_EPSILON = 1e-6;
+const STALE_LEAD_SIGNAL_THRESHOLD = 0.015;
+const STALE_LEAD_PROXY_BLEND = 0.65;
+const STALE_LEAD_CLAMP = 0.02;
 const JOURNAL_RETENTION_DAYS = 90;
 const HOLDINGS_SIGNAL_MIN_COVERAGE_BY_CODE: Record<string, number> = {
   '513310': 0.55,
@@ -144,6 +148,40 @@ function getFxReturn(runtime: FundRuntimeData): number {
   return currentRate > 0 && previousCloseRate > 0 ? currentRate / previousCloseRate - 1 : 0;
 }
 
+function protectStaleLeadSignal(
+  runtime: FundRuntimeData,
+  rawLeadReturn: number,
+  useHoldingsEstimate: boolean,
+  useProxyEstimate: boolean,
+  journal?: FundJournal,
+): number {
+  if (!useHoldingsEstimate || useProxyEstimate) {
+    return rawLeadReturn;
+  }
+
+  if (Math.abs(rawLeadReturn) < STALE_LEAD_SIGNAL_THRESHOLD) {
+    return rawLeadReturn;
+  }
+
+  const snapshots = Array.isArray(journal?.snapshots) ? journal.snapshots : [];
+  const recent = snapshots.slice(-2).filter((item) => Number.isFinite(item?.leadReturn));
+  if (recent.length < 2) {
+    return rawLeadReturn;
+  }
+
+  const lastLead = recent[recent.length - 1].leadReturn;
+  const prevLead = recent[recent.length - 2].leadReturn;
+  const repeated = Math.abs(lastLead - prevLead) <= STALE_LEAD_REPEAT_EPSILON
+    && Math.abs(rawLeadReturn - lastLead) <= STALE_LEAD_REPEAT_EPSILON;
+  if (!repeated) {
+    return rawLeadReturn;
+  }
+
+  const proxyReturn = getWeightedProxyReturn(runtime);
+  const blended = rawLeadReturn * (1 - STALE_LEAD_PROXY_BLEND) + proxyReturn * STALE_LEAD_PROXY_BLEND;
+  return clamp(blended, STALE_LEAD_CLAMP);
+}
+
 function toIsoDateWithOffset(days: number): string {
   const value = new Date();
   value.setDate(value.getDate() + days);
@@ -206,6 +244,7 @@ export function getDefaultJournal(): FundJournal {
 export function estimateWatchlistFund(
   runtime: FundRuntimeData,
   model: WatchlistModel,
+  journal?: FundJournal,
 ): WatchlistEstimateResult {
   const anchorNav = runtime.officialNavT1;
   const useHoldingsEstimate = hasAnnouncedHoldingsSignal(runtime);
@@ -217,7 +256,8 @@ export function estimateWatchlistFund(
       : runtime.previousClose > 0
         ? runtime.marketPrice / runtime.previousClose - 1
         : 0;
-  const leadReturn = clamp(rawLeadReturn, useProxyEstimate ? MAX_PROXY_MOVE : MAX_MARKET_MOVE);
+  const stabilizedLeadReturn = protectStaleLeadSignal(runtime, rawLeadReturn, useHoldingsEstimate, useProxyEstimate, journal);
+  const leadReturn = clamp(stabilizedLeadReturn, useProxyEstimate ? MAX_PROXY_MOVE : MAX_MARKET_MOVE);
   const rawCloseGapReturn = useProxyEstimate
     ? getFxReturn(runtime)
     : useHoldingsEstimate

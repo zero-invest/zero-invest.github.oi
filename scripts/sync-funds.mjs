@@ -29,6 +29,10 @@ const MAX_MARKET_MOVE = 0.08;
 const MAX_PROXY_MOVE = 0.15;
 const MAX_CLOSE_GAP = 0.2;
 const MAX_FX_MOVE = 0.05;
+const STALE_LEAD_REPEAT_EPSILON = 1e-6;
+const STALE_LEAD_SIGNAL_THRESHOLD = 0.015;
+const STALE_LEAD_PROXY_BLEND = 0.65;
+const STALE_LEAD_CLAMP = 0.02;
 const JOURNAL_RETENTION_DAYS = 90;
 const adaptiveAlgoPrivatePath = path.join(projectRoot, '.private', 'adaptive-holdings-algo.private.json');
 const privateWatchlistCorePath = path.join(projectRoot, '.private', 'watchlist-core.private.mjs');
@@ -1542,7 +1546,51 @@ function getAdaptiveAlgoConfig(runtime) {
   return ADAPTIVE_HOLDINGS_ALGO_BY_CODE[runtime.code] ?? null;
 }
 
-function estimateWatchlistFund(runtime, model) {
+function protectStaleLeadSignal(runtime, rawLeadReturn, useHoldingsEstimate, useProxyEstimate, journal) {
+  if (!useHoldingsEstimate || useProxyEstimate) {
+    return {
+      leadReturn: rawLeadReturn,
+      staleLeadGuarded: false,
+    };
+  }
+
+  if (Math.abs(rawLeadReturn) < STALE_LEAD_SIGNAL_THRESHOLD) {
+    return {
+      leadReturn: rawLeadReturn,
+      staleLeadGuarded: false,
+    };
+  }
+
+  const snapshots = Array.isArray(journal?.snapshots) ? journal.snapshots : [];
+  const recent = snapshots.slice(-2).filter((item) => Number.isFinite(item?.leadReturn));
+  if (recent.length < 2) {
+    return {
+      leadReturn: rawLeadReturn,
+      staleLeadGuarded: false,
+    };
+  }
+
+  const lastLead = recent[recent.length - 1].leadReturn;
+  const prevLead = recent[recent.length - 2].leadReturn;
+  const repeated = Math.abs(lastLead - prevLead) <= STALE_LEAD_REPEAT_EPSILON
+    && Math.abs(rawLeadReturn - lastLead) <= STALE_LEAD_REPEAT_EPSILON;
+  if (!repeated) {
+    return {
+      leadReturn: rawLeadReturn,
+      staleLeadGuarded: false,
+    };
+  }
+
+  const proxyReturn = getWeightedProxyReturn(runtime);
+  const blended = rawLeadReturn * (1 - STALE_LEAD_PROXY_BLEND) + proxyReturn * STALE_LEAD_PROXY_BLEND;
+
+  return {
+    leadReturn: clamp(blended, STALE_LEAD_CLAMP),
+    staleLeadGuarded: true,
+  };
+}
+
+function estimateWatchlistFund(runtime, model, journal = null) {
   const anchorNav = runtime.officialNavT1;
   const useHoldingsEstimate = hasHoldingsSignal(runtime);
   const useProxyEstimate = runtime.estimateMode === 'proxy' && !useHoldingsEstimate;
@@ -1554,8 +1602,9 @@ function estimateWatchlistFund(runtime, model) {
       : runtime.previousClose > 0
         ? runtime.marketPrice / runtime.previousClose - 1
         : 0;
+  const { leadReturn: stabilizedLeadReturn } = protectStaleLeadSignal(runtime, rawLeadReturn, useHoldingsEstimate, useProxyEstimate, journal);
   const leadMoveCap = useProxyEstimate ? MAX_PROXY_MOVE : (adaptiveConfig?.maxLeadMove ?? MAX_MARKET_MOVE);
-  const leadReturn = clamp(rawLeadReturn, leadMoveCap);
+  const leadReturn = clamp(stabilizedLeadReturn, leadMoveCap);
   const rawCloseGapReturn = useProxyEstimate
     ? getFxReturn(runtime)
     : useHoldingsEstimate
@@ -4055,7 +4104,7 @@ async function main() {
       const runtime = await syncFund(entry, holdingsHistoryByCode);
       const currentState = normalizePersistedState(entry.code, persistedStateByCode[entry.code]);
       const reconciled = reconcileJournal(runtime, currentState.model, currentState.journal);
-      const estimate = estimateWatchlistFund(runtime, reconciled.model);
+      const estimate = estimateWatchlistFund(runtime, reconciled.model, reconciled.journal);
       const journal = recordEstimateSnapshot(reconciled.journal, runtime, estimate);
 
       funds.push(runtime);

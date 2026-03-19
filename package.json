@@ -7,6 +7,7 @@
   "scripts": {
     "sync:data": "node scripts/sync-funds.mjs && node scripts/sync-premium-compare.mjs",
     "sync:github-traffic": "node scripts/sync-github-traffic.mjs",
+    "import:github-traffic": "node scripts/import-github-traffic-history.mjs",
     "sync:research": "node scripts/generate-160723-research.mjs 160723 && node scripts/generate-161725-research.mjs",
     "sync:research:oil": "node scripts/generate-160723-research.mjs 160723 && node scripts/generate-160723-research.mjs 501018 && node scripts/generate-160723-research.mjs 161129",
     "sync:research:gold": "node scripts/generate-160723-research.mjs 160719 && node scripts/generate-160723-research.mjs 161116 && node scripts/generate-160723-research.mjs 164701",
@@ -20,6 +21,7 @@
     "sync:research:remaining": "node scripts/generate-160723-research.mjs 161226 && node scripts/generate-160723-research.mjs 161128",
     "sync:data:full": "npm run sync:data && npm run sync:research",
     "dev": "npm run sync:data && vite",
+    "manual:premium-entry": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/manual-premium-entry.ps1",
     "app:start": "node scripts/dev-auto-refresh.mjs",
     "build": "npm run sync:data && tsc && vite build",
     "build:static": "tsc && vite build",

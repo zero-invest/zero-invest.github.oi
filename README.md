@@ -64,6 +64,27 @@ npm run dev
 npm run app:start
 ```
 
+如果要录入第三方溢价率（本地弹窗，不在网站中展示），可使用：
+
+```powershell
+start-premium-entry.cmd
+```
+
+或：
+
+```powershell
+npm run manual:premium-entry
+```
+
+弹窗关闭时会自动保存，并同时写入以下两个文件：
+
+- `.cache/fund-sync/premium-compare-manual-local.json`（本地私有）
+- `public/generated/premium-compare-manual.json`（仓库共享，可用于 GitHub 线上展示）
+
+弹窗会记住你上次使用的日期和平台；下次打开时会直接回显该日期/平台已录入的溢价率，便于复核历史数据。
+
+后续执行 `npm run sync:data` 时会自动读取这两份手工录入数据并并入第三方误差统计。
+
 这个主入口会按交易时段调整频率：
 
 - A 股和美股开市时按 60 秒刷新
@@ -170,6 +191,8 @@ npm run sync:data:full
 - Pages 构建前会在 CI 执行 runtime 数据同步（sync:data），再构建并部署
 - 离线研究类 generated 文件仍以仓库已提交内容为准；如需展示本地私有训练结果，请先在本地生成并提交对应 generated 文件
 - 访客统计依赖 GH_TRAFFIC_TOKEN 仓库密钥；若未配置或权限不足，页面会显示访客数据不可用，并在 generated/github-traffic.json 写入失败原因
+- 若 token 暂时不可用，可先准备一个 `snapshots` JSON（例如 `public/generated/github-traffic-manual.json`），再执行 `npm run import:github-traffic -- public/generated/github-traffic-manual.json` 手工导入历史快照，恢复首页趋势展示
+- 若第三方溢价率接口不可用（例如 Sina 无溢价字段），可优先使用本地弹窗录入（`start-premium-entry.cmd` 或 `npm run manual:premium-entry`）；同步时会自动读取 `.cache/fund-sync/premium-compare-manual-local.json` 与 `public/generated/premium-compare-manual.json`。
 - 别人直接打开网址即可查看最近一次更新后的页面
 - 本地修改和本地构建不会自动发布到 GitHub Pages，必须有新的提交并推送到远端，工作流才会重新部署
 - 路由使用哈希模式，避免静态托管下的前端路由 404 问题

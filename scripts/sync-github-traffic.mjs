@@ -88,6 +88,15 @@ async function readHistory() {
   }
 }
 
+async function readExistingPayload() {
+  try {
+    const raw = await fs.readFile(outputPath, 'utf8');
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
 function pruneHistoryDays(snapshots) {
   if (!snapshots.length) {
     return [];
@@ -163,7 +172,17 @@ async function writePayload(payload) {
 
 async function main() {
   const history = await readHistory();
+  const existingPayload = await readExistingPayload();
   const cstClock = getCstClock(new Date());
+  const existingRecent7 = existingPayload?.recent7 && typeof existingPayload.recent7 === 'object'
+    ? existingPayload.recent7
+    : null;
+  const existingTotals = existingPayload?.totals && typeof existingPayload.totals === 'object'
+    ? existingPayload.totals
+    : null;
+  const existingSnapshotSummary = existingPayload?.snapshotSummary && typeof existingPayload.snapshotSummary === 'object'
+    ? existingPayload.snapshotSummary
+    : null;
   const basePayload = {
     generatedAt: new Date().toISOString(),
     source: 'github-traffic-api',
@@ -175,20 +194,20 @@ async function main() {
       snapshotHourCst: SNAPSHOT_HOUR_CST,
       windowMinutes: SNAPSHOT_WINDOW_MINUTES,
     },
-    snapshotSummary: summarizeSnapshots(history.snapshots),
+    snapshotSummary: existingSnapshotSummary || summarizeSnapshots(history.snapshots),
     recent7: {
-      days: [],
-      viewCount: 0,
-      viewUniques: 0,
-      cloneCount: 0,
-      cloneUniques: 0,
+      days: Array.isArray(existingRecent7?.days) ? existingRecent7.days : [],
+      viewCount: Number(existingRecent7?.viewCount) || 0,
+      viewUniques: Number(existingRecent7?.viewUniques) || 0,
+      cloneCount: Number(existingRecent7?.cloneCount) || 0,
+      cloneUniques: Number(existingRecent7?.cloneUniques) || 0,
     },
     snapshots: history.snapshots,
     totals: {
-      viewCount: 0,
-      viewUniques: 0,
-      cloneCount: 0,
-      cloneUniques: 0,
+      viewCount: Number(existingTotals?.viewCount) || 0,
+      viewUniques: Number(existingTotals?.viewUniques) || 0,
+      cloneCount: Number(existingTotals?.cloneCount) || 0,
+      cloneUniques: Number(existingTotals?.cloneUniques) || 0,
     },
   };
 

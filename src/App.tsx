@@ -14,7 +14,7 @@ const PAGE_OPTIONS: Array<{ key: ViewCategory; path: string; label: string; lead
   {
     key: 'qdii-lof',
     path: '/qdii-lof',
-    label: 'QDII类LOF',
+    label: '跨境 LOF',
     lead: 'QDII 官方净值通常会慢一个到两个交易日，具体以净值日期列为准。本页默认优先按可获取的前十大持仓推算净值，持仓覆盖不足部分再由海外代理篮子补齐，并叠加 USD/CNY 与误差修正项。',
     tableTitle: 'QDII LOF 列表',
     tableDescription: '本页默认按“前十大持仓优先 + 代理篮子补足 + 汇率/修正因子”估值；若暂时拿不到持仓报价，则自动回退到代理篮子。点击表头可排序。',
@@ -30,7 +30,7 @@ const PAGE_OPTIONS: Array<{ key: ViewCategory; path: string; label: string; lead
   {
     key: 'qdii-etf',
     path: '/qdii-etf',
-    label: 'QDII类ETF',
+    label: '跨境 ETF',
     lead: '这一页放跨境 QDII ETF。默认采用“前十大持仓优先 + 代理篮子补足 + 汇率/修正因子”口径，场内价格主要用于展示溢价率。',
     tableTitle: 'QDII ETF 列表',
     tableDescription: 'QDII ETF 页估值口径与 QDII LOF 一致：前十大持仓优先、代理篮子补足、汇率和修正因子联合驱动。点击表头可排序。',
@@ -429,10 +429,41 @@ interface PremiumCompareProviderRow {
   provider: string;
   sourceUrl: string;
   status: string;
+  premiumRateCurrent?: number | null;
+  hitCount60?: number;
   avgAbsProviderError30: number | null;
   avgAbsOurError30: number | null;
   avgAbsDelta30: number | null;
+  settledCount30?: number;
+  settledWindowSize?: number;
   sampleCount30: number;
+}
+
+interface PremiumCompareProviderDailyRow {
+  date: string;
+  time: string;
+  marketPrice: number | null;
+  providerPremiumRate: number;
+  ourReportedPremiumRate: number | null;
+  status: 'settled' | 'pending';
+  actualPremiumRate: number | null;
+  providerPremiumError: number | null;
+  ourPremiumError: number | null;
+  premiumErrorDelta: number | null;
+}
+
+interface PremiumCompareEastmoneyRow {
+  date: string;
+  time: string;
+  marketPrice: number;
+  providerPremiumRate: number;
+  providerEstimatedNav: number | null;
+  status: 'settled' | 'pending';
+  actualNav: number | null;
+  providerNavError: number | null;
+  ourReportedPremiumRate: number | null;
+  ourEstimatedNav: number | null;
+  ourNavError: number | null;
 }
 
 interface PremiumCompareCodePayload {
@@ -440,6 +471,13 @@ interface PremiumCompareCodePayload {
   name: string;
   snapshotAt: string;
   ourPremiumRate: number | null;
+  ourPremiumSummary?: {
+    settledCount30: number;
+    settledWindowSize: number;
+    avgAbsOurError30: number | null;
+  };
+  eastmoneyDailyValuations?: PremiumCompareEastmoneyRow[];
+  providerDailyComparisons?: Record<string, PremiumCompareProviderDailyRow[]>;
   providers: PremiumCompareProviderRow[];
 }
 
@@ -450,6 +488,31 @@ interface PremiumComparePayload {
 }
 
 const OFFLINE_RESEARCH_CODES = new Set(['160216', '160723', '161725', '501018', '161129', '160719', '161116', '164701', '501225', '513310', '161130', '160416', '162719', '162411', '161125', '161126', '161127', '162415', '159329', '513080', '520830', '513730', '164824', '160644', '159100', '520870', '160620', '161217', '161124', '501300', '160140', '520580', '159509', '501312', '501011', '501050', '160221', '165520', '167301', '161226', '161128', '513800', '513880', '513520', '513100', '513500', '159502', '513290', '159561', '513030', '513850', '513300', '159518', '163208', '159577', '513400', '159985']);
+const PREMIUM_COMPARE_DETAIL_CODES = new Set(['160723', '501018', '161129', '160416', '501225', '162719', '161128', '161125', '163208', '161126', '162411', '161130', '162415', '161116', '501312', '160719', '164701']);
+const PREMIUM_PROVIDER_LABELS: Record<string, string> = {
+  'eastmoney-fundgz': '东方财富 fundgz',
+  'eastmoney-quote': '东方财富行情',
+  etfpro: 'ETFPRO',
+  sina: '新浪',
+  xueqiu: '雪球',
+  'manual-jiuquaner': '韭圈儿(手工)',
+  'manual-xueqiu': '雪球(手工)',
+  'manual-sina-finance': '新浪财经(手工)',
+  'manual-huatai': '华泰(手工)',
+  'manual-huabao': '华宝(手工)',
+  'manual-xiaobeiyangji': '小倍养基(手工)',
+};
+
+function getPremiumProviderLabel(provider: string) {
+  const key = String(provider || '').trim();
+  if (PREMIUM_PROVIDER_LABELS[key]) {
+    return PREMIUM_PROVIDER_LABELS[key];
+  }
+  if (key.startsWith('manual-')) {
+    return `${key.replace('manual-', '')}(手工)`;
+  }
+  return key || '未知来源';
+}
 
 function getPointsDateRange(points: ResearchPoint[]) {
   if (!points.length) {
@@ -1130,6 +1193,7 @@ function HomePage({
   error,
   pageCategory,
   trainingMetricsByCode,
+  premiumCompareCodes,
 }: {
   funds: FundViewModel[];
   syncedAt: string;
@@ -1137,6 +1201,7 @@ function HomePage({
   error: string;
   pageCategory: ViewCategory;
   trainingMetricsByCode: Record<string, TrainingMetricSummary>;
+  premiumCompareCodes: Record<string, PremiumCompareCodePayload>;
 }) {
   const pageOption = getPageOption(pageCategory);
   const [favoriteCodes, setFavoriteCodes] = useState<string[]>(() => readFavoriteFundCodes());
@@ -1247,6 +1312,17 @@ function HomePage({
   }, [trafficSnapshots]);
   const latestTrafficDay = trafficSnapshots.length ? trafficSnapshots[trafficSnapshots.length - 1].date : '';
   const cumulativeSnapshotUniques = githubTraffic.snapshotSummary?.cumulativeViewUniques ?? trafficSnapshots.reduce((sum, item) => sum + (Number(item?.viewUniques) || 0), 0);
+  const recent7UniquesDisplay = Number(githubTraffic?.recent7?.viewUniques) > 0 ? String(githubTraffic.recent7.viewUniques) : '--';
+  const eastmoneyPremiumByCode = useMemo(() => {
+    const next: Record<string, number | null> = {};
+    for (const item of visibleFunds) {
+      const compare = premiumCompareCodes[item.runtime.code];
+      const eastmoney = compare?.providers?.find((provider) => provider.provider === 'eastmoney-fundgz');
+      const rate = eastmoney?.premiumRateCurrent;
+      next[item.runtime.code] = typeof rate === 'number' && Number.isFinite(rate) ? rate : null;
+    }
+    return next;
+  }, [premiumCompareCodes, visibleFunds]);
 
   const handleToggleFavorite = (code: string) => {
     setFavoriteCodes((current) => {
@@ -1302,7 +1378,7 @@ function HomePage({
           </div>
           <Link className="hero__fact hero__fact--link" to="/traffic" title="查看访客趋势详情">
             <span>最近7日访客</span>
-            <strong>{githubTraffic.available ? githubTraffic.recent7.viewUniques : '--'}</strong>
+            <strong>{recent7UniquesDisplay}</strong>
             <small className="hero__fact-subtle">
               累计访客（快照）{cumulativeSnapshotUniques}
               {latestTrafficDay ? `，最新快照 ${latestTrafficDay}` : ''}
@@ -1355,6 +1431,7 @@ function HomePage({
       <FundTable
         funds={visibleFunds}
         trainingMetricsByCode={trainingMetricsByCode}
+        eastmoneyPremiumByCode={eastmoneyPremiumByCode}
         formatCurrency={formatCurrency}
         formatPercent={formatPercent}
         title={pageOption.tableTitle}
@@ -1518,6 +1595,8 @@ function TrafficPage() {
     label: item.date,
     value: Number(item.viewCount) || 0,
   }));
+  const trafficRecent7UvDisplay = Number(githubTraffic?.recent7?.viewUniques) > 0 ? String(githubTraffic.recent7.viewUniques) : '--';
+  const trafficRecent7PvDisplay = Number(githubTraffic?.recent7?.viewCount) > 0 ? String(githubTraffic.recent7.viewCount) : '--';
 
   return (
     <main className="page">
@@ -1543,8 +1622,8 @@ function TrafficPage() {
         <div className="hero__facts hero__facts--single">
           <div className="hero__fact hero__fact--accent">
             <span>最近7日访客(UV)</span>
-            <strong>{githubTraffic.available ? githubTraffic.recent7.viewUniques : '--'}</strong>
-            <small className="hero__fact-subtle">最近7日浏览(PV) {githubTraffic.available ? githubTraffic.recent7.viewCount : '--'}</small>
+            <strong>{trafficRecent7UvDisplay}</strong>
+            <small className="hero__fact-subtle">最近7日浏览(PV) {trafficRecent7PvDisplay}</small>
           </div>
           <div className="hero__fact">
             <span>累计访客（快照）</span>
@@ -1717,7 +1796,6 @@ function DetailPage({ funds, syncedAt, loading }: { funds: FundViewModel[]; sync
   const recentProxyQuotes = fund.runtime.proxyQuotes ?? [];
 
   const historyPoints = fund.journal.errors.slice(-20);
-  const recentErrors = [...fund.journal.errors].slice(-20).reverse();
   const estimatedSeries = historyPoints.map((item) => ({ label: item.date, value: item.estimatedNav }));
   const actualSeries = historyPoints.map((item) => ({ label: item.date, value: item.actualNav }));
   const errorSeries = historyPoints.map((item) => ({ label: item.date, value: item.error }));
@@ -1725,7 +1803,6 @@ function DetailPage({ funds, syncedAt, loading }: { funds: FundViewModel[]; sync
   const actualNavByDate = new Map(fund.runtime.navHistory.map((item) => [item.date, item.nav]));
   const errorByDate = new Map(fund.journal.errors.map((item) => [item.date, item]));
   const recentSnapshots = [...fund.journal.snapshots].slice(-20).reverse();
-  const recentNavHistory = fund.runtime.navHistory.slice(0, 20);
   const top10WeightPercent = getTop10DisclosedWeightPercent(fund.runtime);
   const currentEstimateDate = fund.runtime.marketDate || fund.runtime.navDate;
   const currentSnapshot = recentSnapshots.find((item) => item.estimateDate === currentEstimateDate) ?? recentSnapshots[0];
@@ -1733,6 +1810,11 @@ function DetailPage({ funds, syncedAt, loading }: { funds: FundViewModel[]; sync
   const adaptiveShockTriggered = Boolean(currentSnapshot?.adaptiveShockTriggered);
   const showOfflineResearch = OFFLINE_RESEARCH_CODES.has(fund.runtime.code) && offlineResearch;
   const offlineChartVersion = offlineResearch?.generatedAt || syncedAt || Date.now().toString();
+  const shouldShowPremiumCompareDetails = PREMIUM_COMPARE_DETAIL_CODES.has(fund.runtime.code);
+  const premiumCompareProviders = premiumCompare?.providers ?? [];
+  const eastmoneyProvider = premiumCompareProviders.find((item) => item.provider === 'eastmoney-fundgz') ?? null;
+  const otherPremiumProviders = premiumCompareProviders.filter((item) => item.provider !== 'eastmoney-fundgz');
+  const ourPremiumSummary = premiumCompare?.ourPremiumSummary;
 
   return (
     <main className="page">
@@ -1741,11 +1823,10 @@ function DetailPage({ funds, syncedAt, loading }: { funds: FundViewModel[]; sync
           当前站点同步时间较旧，最新净值可能尚未刷新；这不是“更新中禁止查看”，而是部署或数据源还没产出更新。
         </section>
       ) : null}
+
       <section className="detail-header panel">
         <div>
-          <Link className="back-link" to={backPath}>
-            返回看板
-          </Link>
+          <Link className="back-link" to={backPath}>返回看板</Link>
           <span className="eyebrow">{fund.runtime.code} 详情</span>
           <h1>{fund.runtime.name}</h1>
           <p>{fund.runtime.benchmark || '该基金已纳入自动同步，但基准文本暂未抓取到。'}</p>
@@ -1754,10 +1835,6 @@ function DetailPage({ funds, syncedAt, loading }: { funds: FundViewModel[]; sync
           <div>
             <span>最新净值日期</span>
             <strong>{fund.runtime.navDate || '--'}</strong>
-          </div>
-          <div>
-            <span>场内现价时间</span>
-            <strong>{formatRuntimeTime(fund.runtime.marketDate, fund.runtime.marketTime)}</strong>
           </div>
           <div>
             <span>自动估值日期</span>
@@ -1772,40 +1849,16 @@ function DetailPage({ funds, syncedAt, loading }: { funds: FundViewModel[]; sync
 
       <section className="metrics-grid">
         <MetricCard label="当日预估净值" value={formatCurrency(fund.estimate.estimatedNav)} hint={`以 ${fund.runtime.navDate || '--'} 最近官方净值为锚`} tone="neutral" />
-        <MetricCard
-          label="场内价格"
-          value={formatCurrency(fund.runtime.marketPrice)}
-          hint={formatRuntimeTime(fund.runtime.marketDate, fund.runtime.marketTime)}
-          tone="neutral"
-        />
-        <MetricCard
-          label="场内涨跌幅"
-          value={formatPercent(getMarketChangeRate(fund.runtime))}
-          hint={`昨收 ${formatCurrency(fund.runtime.previousClose)}`}
-          tone={getMarketChangeRate(fund.runtime) >= 0 ? 'positive' : 'negative'}
-        />
-        <MetricCard
-          label="自动溢价率"
-          value={formatPercent(fund.estimate.premiumRate)}
-          hint={fund.estimate.premiumRate >= 0 ? '价格高于当日预估净值' : '价格低于当日预估净值'}
-          tone={premiumTone}
-        />
+        <MetricCard label="场内价格" value={formatCurrency(fund.runtime.marketPrice)} hint={formatRuntimeTime(fund.runtime.marketDate, fund.runtime.marketTime)} tone="neutral" />
+        <MetricCard label="场内涨跌幅" value={formatPercent(getMarketChangeRate(fund.runtime))} hint={`昨收 ${formatCurrency(fund.runtime.previousClose)}`} tone={getMarketChangeRate(fund.runtime) >= 0 ? 'positive' : 'negative'} />
+        <MetricCard label="自动溢价率" value={formatPercent(fund.estimate.premiumRate)} hint={fund.estimate.premiumRate >= 0 ? '价格高于当日预估净值' : '价格低于当日预估净值'} tone={premiumTone} />
       </section>
 
       <section className="panel summary-strip summary-strip--stacked">
-        <div>
-          <span>模型 MAE</span>
-          <strong>{formatPercent(fund.model.meanAbsError)}</strong>
-        </div>
-        <div>
-          <span>模型样本数</span>
-          <strong>{fund.model.sampleCount}</strong>
-        </div>
+        <div><span>模型 MAE</span><strong>{formatPercent(fund.model.meanAbsError)}</strong></div>
+        <div><span>模型样本数</span><strong>{fund.model.sampleCount}</strong></div>
         {adaptiveStatusEnabled ? (
-          <div>
-            <span>当日波动修正</span>
-            <strong className={adaptiveShockTriggered ? 'tone-positive' : 'muted-text'}>{adaptiveShockTriggered ? '已触发极端分支' : '未触发（常规分支）'}</strong>
-          </div>
+          <div><span>当日波动修正</span><strong className={adaptiveShockTriggered ? 'tone-positive' : 'muted-text'}>{adaptiveShockTriggered ? '已触发极端分支' : '未触发（常规分支）'}</strong></div>
         ) : null}
       </section>
 
@@ -1816,30 +1869,12 @@ function DetailPage({ funds, syncedAt, loading }: { funds: FundViewModel[]; sync
             <p>{driverLabels.summary} 它估的是“以最近官方净值为锚的当日预估净值”，不是已经公布出来的官方净值本身。</p>
           </div>
           <div className="coefficient-grid">
-            <div>
-              <span>alpha</span>
-              <strong>{formatBps(fund.model.alpha)}</strong>
-            </div>
-            <div>
-              <span>betaLead</span>
-              <strong>{fund.model.betaLead.toFixed(4)}</strong>
-            </div>
-            <div>
-              <span>betaGap</span>
-              <strong>{fund.model.betaGap.toFixed(4)}</strong>
-            </div>
-            <div>
-              <span>{driverLabels.primaryFactor}</span>
-              <strong>{formatPercent(fund.estimate.leadReturn)}</strong>
-            </div>
-            <div>
-              <span>{driverLabels.secondaryFactor}</span>
-              <strong>{formatPercent(fund.estimate.closeGapReturn)}</strong>
-            </div>
-            <div>
-              <span>最近训练</span>
-              <strong>{fund.model.lastUpdatedAt ? formatDateTime(fund.model.lastUpdatedAt) : '暂无'}</strong>
-            </div>
+            <div><span>alpha</span><strong>{formatBps(fund.model.alpha)}</strong></div>
+            <div><span>betaLead</span><strong>{fund.model.betaLead.toFixed(4)}</strong></div>
+            <div><span>betaGap</span><strong>{fund.model.betaGap.toFixed(4)}</strong></div>
+            <div><span>{driverLabels.primaryFactor}</span><strong>{formatPercent(fund.estimate.leadReturn)}</strong></div>
+            <div><span>{driverLabels.secondaryFactor}</span><strong>{formatPercent(fund.estimate.closeGapReturn)}</strong></div>
+            <div><span>最近训练</span><strong>{fund.model.lastUpdatedAt ? formatDateTime(fund.model.lastUpdatedAt) : '暂无'}</strong></div>
           </div>
         </div>
         <div className="split-panel__column">
@@ -1848,88 +1883,195 @@ function DetailPage({ funds, syncedAt, loading }: { funds: FundViewModel[]; sync
             <p>这里同时看净值误差和溢价率误差。净值误差口径为 估值 / 真实净值 - 1；已结算日期的场内价会尽量切到该日收盘参考价。</p>
           </div>
           <div className="summary-strip summary-strip--stacked">
-            <div>
-              <span>历史已结算样本</span>
-              <strong>{fund.journal.errors.length}</strong>
-            </div>
-            <div>
-              <span>最近估值误差</span>
-              <strong>{historyPoints.length > 0 ? formatPercent(historyPoints[historyPoints.length - 1].error) : '--'}</strong>
-            </div>
+            <div><span>历史已结算样本</span><strong>{fund.journal.errors.length}</strong></div>
+            <div><span>最近估值误差</span><strong>{historyPoints.length > 0 ? formatPercent(historyPoints[historyPoints.length - 1].error) : '--'}</strong></div>
           </div>
         </div>
       </section>
 
       <section className="mini-data-grid">
-        {premiumCompare?.providers?.length ? (
+        {!shouldShowPremiumCompareDetails && premiumCompare ? (
           <section className="chart-card">
             <div className="chart-card__header">
-              <h3>第三方溢价率对比</h3>
-              <div className="muted-text">对标真实净值的溢价率误差：第三方 vs 本站。误差差距 = 第三方误差 - 本站误差（负数表示本站更准）。</div>
+              <h3>第三方估值误差</h3>
+              <div className="muted-text">当前只在研究中的重点基金详情页展示分网站误差表，其他基金暂不展开。</div>
             </div>
-            <div className="table-scroll table-scroll--window">
-              <table className="mini-data-table">
-                <thead>
-                  <tr>
-                    <th>平台</th>
-                    <th>状态</th>
-                    <th>平台溢价率误差</th>
-                    <th>本站溢价率误差</th>
-                    <th>误差差距</th>
-                    <th>30天样本</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {premiumCompare.providers.map((item) => (
-                    <tr key={item.provider}>
-                      <td>{item.provider}</td>
-                      <td>
-                        {item.sourceUrl ? (
-                          <a className="fund-table__link" href={item.sourceUrl} target="_blank" rel="noreferrer">{item.status}</a>
-                        ) : item.status}
-                      </td>
-                      <td>{typeof item.avgAbsProviderError30 === 'number' ? formatPercent(item.avgAbsProviderError30) : '--'}</td>
-                      <td>{typeof item.avgAbsOurError30 === 'number' ? formatPercent(item.avgAbsOurError30) : '--'}</td>
-                      <td className={typeof item.avgAbsDelta30 === 'number' ? (item.avgAbsDelta30 < 0 ? 'tone-positive' : 'tone-negative') : 'muted-text'}>
-                        {typeof item.avgAbsDelta30 === 'number' ? formatPercent(item.avgAbsDelta30) : '--'}
-                      </td>
-                      <td>{item.sampleCount30}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <div className="mini-data-empty">该基金暂未开启分网站估值误差明细。</div>
           </section>
         ) : null}
 
-        {fund.runtime.estimateMode === 'proxy' && recentProxyQuotes.length > 0 ? (
+        {shouldShowPremiumCompareDetails && premiumCompare ? (
+          <section className="chart-card">
+            <div className="chart-card__header">
+              <h3>第三方误差总表</h3>
+              <div className="muted-text">总表汇总最近30条已结算样本；第一行是本站口径，后面是各来源。</div>
+            </div>
+            {premiumCompareProviders.length ? (
+              <div className="table-scroll table-scroll--window">
+                <table className="mini-data-table">
+                  <thead>
+                    <tr>
+                      <th>来源</th>
+                      <th>状态</th>
+                      <th>当前溢价率</th>
+                      <th>命中(60天)</th>
+                      <th>已结算(最近30条)</th>
+                      <th>来源误差MAE</th>
+                      <th>本站误差MAE</th>
+                      <th>误差差距</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>本站</td>
+                      <td>--</td>
+                      <td>--</td>
+                      <td>--</td>
+                      <td>{typeof ourPremiumSummary?.settledCount30 === 'number' ? ourPremiumSummary.settledCount30 : 0}/{typeof ourPremiumSummary?.settledWindowSize === 'number' ? ourPremiumSummary.settledWindowSize : 30}</td>
+                      <td>--</td>
+                      <td>{typeof ourPremiumSummary?.avgAbsOurError30 === 'number' ? formatPercent(ourPremiumSummary.avgAbsOurError30) : '--'}</td>
+                      <td>--</td>
+                    </tr>
+                    {premiumCompareProviders.map((providerItem) => (
+                      <tr key={`summary-${providerItem.provider}`}>
+                        <td>{getPremiumProviderLabel(providerItem.provider)}</td>
+                        <td>{providerItem.sourceUrl ? <a className="fund-table__link" href={providerItem.sourceUrl} target="_blank" rel="noreferrer">{providerItem.status}</a> : providerItem.status}</td>
+                        <td className={typeof providerItem.premiumRateCurrent === 'number' ? (providerItem.premiumRateCurrent >= 0 ? 'tone-positive' : 'tone-negative') : 'muted-text'}>{typeof providerItem.premiumRateCurrent === 'number' ? formatPercent(providerItem.premiumRateCurrent) : '--'}</td>
+                        <td>{typeof providerItem.hitCount60 === 'number' ? providerItem.hitCount60 : 0}</td>
+                        <td>{typeof providerItem.settledCount30 === 'number' ? providerItem.settledCount30 : providerItem.sampleCount30}/{typeof providerItem.settledWindowSize === 'number' ? providerItem.settledWindowSize : 30}</td>
+                        <td>{typeof providerItem.avgAbsProviderError30 === 'number' ? formatPercent(providerItem.avgAbsProviderError30) : '--'}</td>
+                        <td>{typeof providerItem.avgAbsOurError30 === 'number' ? formatPercent(providerItem.avgAbsOurError30) : '--'}</td>
+                        <td className={typeof providerItem.avgAbsDelta30 === 'number' ? (providerItem.avgAbsDelta30 <= 0 ? 'tone-positive' : 'tone-negative') : 'muted-text'}>{typeof providerItem.avgAbsDelta30 === 'number' ? formatPercent(providerItem.avgAbsDelta30) : '--'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : <div className="mini-data-empty">暂未抓到可用的第三方来源数据。</div>}
+          </section>
+        ) : null}
+
+        <section className="chart-card">
+          <div className="chart-card__header">
+            <h3>本站最近误差</h3>
+            <div className="muted-text">未结算日期显示估值快照；结算后自动回填真实净值与溢价误差。净值误差口径：估值 / 真实净值 - 1；溢价率误差口径：估算溢价率 - 实际收盘溢价率。</div>
+          </div>
+          {recentSnapshots.length > 0 ? (
+            <div className="table-scroll table-scroll--window">
+              <table className="mini-data-table">
+                <thead><tr><th>日期</th><th>状态</th><th>估值</th><th>参考场内价</th><th>价格口径</th><th>对应真实净值</th><th>净值误差</th><th>估算溢价率</th><th>实际收盘溢价率</th><th>溢价率误差</th></tr></thead>
+                <tbody>
+                  {recentSnapshots.map((item) => {
+                    const settled = errorByDate.get(item.estimateDate);
+                    const actualNav = settled?.actualNav ?? actualNavByDate.get(item.estimateDate);
+                    const hasActual = typeof actualNav === 'number';
+                    const estimateError = settled?.error;
+                    const premiumError = settled?.premiumError;
+                    return (
+                      <tr key={item.estimateDate}>
+                        <td>{item.estimateDate}</td>
+                        <td className={hasActual ? 'tone-positive' : 'muted-text'}>{hasActual ? '已结算' : '待净值'}</td>
+                        <td>{formatCurrency(item.estimatedNav)}</td>
+                        <td>{formatCurrency(item.marketPrice)}</td>
+                        <td>{item.marketPriceType === 'close' ? '收盘' : '快照'}</td>
+                        <td>{formatOptionalCurrency(actualNav)}</td>
+                        <td className={typeof estimateError === 'number' ? (estimateError >= 0 ? 'tone-positive' : 'tone-negative') : 'muted-text'}>{typeof estimateError === 'number' ? formatPercent(estimateError) : '--'}</td>
+                        <td className={item.premiumRate >= 0 ? 'tone-positive' : 'tone-negative'}>{formatPercent(item.premiumRate)}</td>
+                        <td className={typeof settled?.actualPremiumRate === 'number' ? ((settled.actualPremiumRate ?? 0) >= 0 ? 'tone-positive' : 'tone-negative') : 'muted-text'}>{typeof settled?.actualPremiumRate === 'number' ? formatPercent(settled.actualPremiumRate) : '--'}</td>
+                        <td className={typeof premiumError === 'number' ? (premiumError >= 0 ? 'tone-positive' : 'tone-negative') : 'muted-text'}>{typeof premiumError === 'number' ? formatPercent(premiumError) : '--'}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          ) : <div className="mini-data-empty">还没有历史估值记录。</div>}
+        </section>
+
+        {shouldShowPremiumCompareDetails && premiumCompare ? (
+          <section className="chart-card">
+            <div className="chart-card__header"><h3>东财估值误差（东财日度）</h3><div className="muted-text">按东财溢价率反算估值；待结算日先展示，结算后自动补东财估值误差。</div></div>
+            {premiumCompare.eastmoneyDailyValuations?.length ? (
+              <div className="table-scroll table-scroll--window">
+                <table className="mini-data-table">
+                  <thead><tr><th>日期</th><th>快照时间</th><th>场内价</th><th>东财溢价率</th><th>东财反算估值</th><th>状态</th><th>真实净值</th><th>东财估值误差</th></tr></thead>
+                  <tbody>
+                    {[...premiumCompare.eastmoneyDailyValuations].reverse().map((item) => (
+                      <tr key={`${item.date}-${item.time || 'na'}`}>
+                        <td>{item.date}</td><td>{item.time || '--'}</td><td>{formatCurrency(item.marketPrice)}</td><td>{formatPercent(item.providerPremiumRate)}</td><td>{typeof item.providerEstimatedNav === 'number' ? formatCurrency(item.providerEstimatedNav) : '--'}</td>
+                        <td className={item.status === 'settled' ? 'tone-positive' : 'muted-text'}>{item.status === 'settled' ? '已结算' : '待结算'}</td>
+                        <td>{typeof item.actualNav === 'number' ? formatCurrency(item.actualNav) : '--'}</td>
+                        <td className={typeof item.providerNavError === 'number' ? (item.providerNavError >= 0 ? 'tone-positive' : 'tone-negative') : 'muted-text'}>{typeof item.providerNavError === 'number' ? formatPercent(item.providerNavError) : '--'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : <div className="mini-data-empty">暂未抓到可用于反算的东财溢价率快照。</div>}
+          </section>
+        ) : null}
+
+        {shouldShowPremiumCompareDetails && premiumCompare ? otherPremiumProviders.map((item) => (
+          <section className="chart-card" key={`provider-card-${item.provider}`}>
+            <div className="chart-card__header">
+              <h3>{getPremiumProviderLabel(item.provider)}日度误差</h3>
+              <div className="muted-text">仅保留最近30条已结算样本，并保留已抓到溢价率但尚未结算的待验证样本。</div>
+            </div>
+            {premiumCompare.providerDailyComparisons?.[item.provider]?.length ? (
+              <div className="table-scroll table-scroll--window">
+                <table className="mini-data-table">
+                  <thead><tr><th>日期</th><th>快照时间</th><th>场内价</th><th>来源溢价率</th><th>本站溢价率</th><th>状态</th><th>实际收盘溢价率</th><th>来源误差</th><th>本站误差</th><th>误差差距</th></tr></thead>
+                  <tbody>
+                    {[...premiumCompare.providerDailyComparisons[item.provider]].reverse().map((dailyItem) => (
+                      <tr key={`${item.provider}-${dailyItem.date}-${dailyItem.time || 'na'}`}>
+                        <td>{dailyItem.date}</td><td>{dailyItem.time || '--'}</td><td>{typeof dailyItem.marketPrice === 'number' ? formatCurrency(dailyItem.marketPrice) : '--'}</td><td>{formatPercent(dailyItem.providerPremiumRate)}</td>
+                        <td className={typeof dailyItem.ourReportedPremiumRate === 'number' ? (dailyItem.ourReportedPremiumRate >= 0 ? 'tone-positive' : 'tone-negative') : 'muted-text'}>{typeof dailyItem.ourReportedPremiumRate === 'number' ? formatPercent(dailyItem.ourReportedPremiumRate) : '--'}</td>
+                        <td className={dailyItem.status === 'settled' ? 'tone-positive' : 'muted-text'}>{dailyItem.status === 'settled' ? '已结算' : '待结算'}</td>
+                        <td className={typeof dailyItem.actualPremiumRate === 'number' ? (dailyItem.actualPremiumRate >= 0 ? 'tone-positive' : 'tone-negative') : 'muted-text'}>{typeof dailyItem.actualPremiumRate === 'number' ? formatPercent(dailyItem.actualPremiumRate) : '--'}</td>
+                        <td className={typeof dailyItem.providerPremiumError === 'number' ? (dailyItem.providerPremiumError <= 0 ? 'tone-positive' : 'tone-negative') : 'muted-text'}>{typeof dailyItem.providerPremiumError === 'number' ? formatPercent(dailyItem.providerPremiumError) : '--'}</td>
+                        <td className={typeof dailyItem.ourPremiumError === 'number' ? (dailyItem.ourPremiumError <= 0 ? 'tone-positive' : 'tone-negative') : 'muted-text'}>{typeof dailyItem.ourPremiumError === 'number' ? formatPercent(dailyItem.ourPremiumError) : '--'}</td>
+                        <td className={typeof dailyItem.premiumErrorDelta === 'number' ? (dailyItem.premiumErrorDelta <= 0 ? 'tone-positive' : 'tone-negative') : 'muted-text'}>{typeof dailyItem.premiumErrorDelta === 'number' ? formatPercent(dailyItem.premiumErrorDelta) : '--'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : <div className="mini-data-empty">该来源暂无日度记录。</div>}
+          </section>
+        )) : null}
+
+        {fund.runtime.proxyBasketName || recentProxyQuotes.length > 0 ? (
           <section className="chart-card">
             <div className="chart-card__header">
               <h3>代理篮子</h3>
               <div className="muted-text">{fund.runtime.proxyBasketName || '代理篮子'} {formatRuntimeTime(fund.runtime.proxyQuoteDate || '', fund.runtime.proxyQuoteTime || '')}</div>
             </div>
-            <div className="table-scroll table-scroll--window">
-              <table className="mini-data-table">
-                <thead>
-                  <tr>
-                    <th>代码</th>
-                    <th>名称</th>
-                    <th>权重</th>
-                    <th>涨跌幅</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {recentProxyQuotes.map((item) => (
-                    <tr key={item.ticker}>
-                      <td>{item.ticker}</td>
-                      <td>{item.name}</td>
-                      <td>{formatPercent(item.weight)}</td>
-                      <td className={getProxyChange(item.currentPrice, item.previousClose) >= 0 ? 'tone-positive' : 'tone-negative'}>{formatPercent(getProxyChange(item.currentPrice, item.previousClose))}</td>
+            {recentProxyQuotes.length > 0 ? (
+              <div className="table-scroll table-scroll--window">
+                <table className="mini-data-table">
+                  <thead>
+                    <tr>
+                      <th>代码</th>
+                      <th>名称</th>
+                      <th>权重</th>
+                      <th>涨跌幅</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {recentProxyQuotes.map((item) => (
+                      <tr key={item.ticker}>
+                        <td>{item.ticker}</td>
+                        <td>{item.name}</td>
+                        <td>{formatPercent(item.weight)}</td>
+                        <td className={getProxyChange(item.currentPrice, item.previousClose) >= 0 ? 'tone-positive' : 'tone-negative'}>{formatPercent(getProxyChange(item.currentPrice, item.previousClose))}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="mini-data-empty">该基金当前有代理篮子配置，但本次同步未抓到可展示的代理行情明细。</div>
+            )}
           </section>
         ) : null}
 
@@ -1970,124 +2112,6 @@ function DetailPage({ funds, syncedAt, loading }: { funds: FundViewModel[]; sync
           </section>
         ) : null}
 
-        <section className="chart-card">
-          <div className="chart-card__header">
-            <h3>最近估值记录</h3>
-            <div className="muted-text">未结算日期显示当时快照价；已结算日期会优先改用该日收盘参考价，并同步计算净值误差与溢价率误差</div>
-          </div>
-          {recentSnapshots.length > 0 ? (
-            <div className="table-scroll table-scroll--window">
-              <table className="mini-data-table">
-                <thead>
-                  <tr>
-                    <th>估值日期</th>
-                    <th>估值</th>
-                    <th>参考场内价</th>
-                    <th>价格口径</th>
-                    <th>对应真实净值</th>
-                    <th>净值误差</th>
-                    <th>溢价率误差</th>
-                    <th>状态</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {recentSnapshots.map((item) => {
-                    const settled = errorByDate.get(item.estimateDate);
-                    const actualNav = settled?.actualNav ?? actualNavByDate.get(item.estimateDate);
-                    const hasActual = typeof actualNav === 'number';
-                    const estimateError = settled?.error;
-                    const premiumError = settled?.premiumError;
-
-                    return (
-                      <tr key={item.estimateDate}>
-                        <td>{item.estimateDate}</td>
-                        <td>{formatCurrency(item.estimatedNav)}</td>
-                        <td>{formatCurrency(item.marketPrice)}</td>
-                        <td>{item.marketPriceType === 'close' ? '收盘' : '快照'}</td>
-                        <td>{formatOptionalCurrency(actualNav)}</td>
-                        <td className={typeof estimateError === 'number' ? (estimateError >= 0 ? 'tone-positive' : 'tone-negative') : 'muted-text'}>
-                          {typeof estimateError === 'number' ? formatPercent(estimateError) : '--'}
-                        </td>
-                        <td className={typeof premiumError === 'number' ? (premiumError >= 0 ? 'tone-positive' : 'tone-negative') : 'muted-text'}>
-                          {typeof premiumError === 'number' ? formatPercent(premiumError) : '--'}
-                        </td>
-                        <td className={hasActual ? 'tone-positive' : 'muted-text'}>{hasActual ? '已结算' : '待净值'}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <div className="mini-data-empty">还没有历史估值记录。</div>
-          )}
-        </section>
-
-        <section className="chart-card">
-          <div className="chart-card__header">
-            <h3>最近误差记录</h3>
-            <div className="muted-text">净值误差口径为 估值 / 真实净值 - 1；溢价率误差口径为 估算溢价率 - 实际收盘溢价率</div>
-          </div>
-          {recentErrors.length > 0 ? (
-            <div className="table-scroll table-scroll--window">
-              <table className="mini-data-table">
-                <thead>
-                  <tr>
-                    <th>结算日期</th>
-                    <th>参考场内价</th>
-                    <th>估值</th>
-                    <th>真实净值</th>
-                    <th>净值误差</th>
-                    <th>估算溢价率</th>
-                    <th>实际收盘溢价率</th>
-                    <th>溢价率误差</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {recentErrors.map((item) => (
-                    <tr key={item.date}>
-                      <td>{item.date}</td>
-                      <td>{formatOptionalCurrency(item.marketPrice)}</td>
-                      <td>{formatCurrency(item.estimatedNav)}</td>
-                      <td>{formatCurrency(item.actualNav)}</td>
-                      <td className={item.error >= 0 ? 'tone-positive' : 'tone-negative'}>{formatPercent(item.error)}</td>
-                      <td className={item.premiumRate >= 0 ? 'tone-positive' : 'tone-negative'}>{formatPercent(item.premiumRate)}</td>
-                      <td className={(item.actualPremiumRate ?? 0) >= 0 ? 'tone-positive' : 'tone-negative'}>{typeof item.actualPremiumRate === 'number' ? formatPercent(item.actualPremiumRate) : '--'}</td>
-                      <td className={(item.premiumError ?? 0) >= 0 ? 'tone-positive' : 'tone-negative'}>{typeof item.premiumError === 'number' ? formatPercent(item.premiumError) : '--'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <div className="mini-data-empty">还没有已结算的误差记录。</div>
-          )}
-        </section>
-
-        <section className="chart-card">
-          <div className="chart-card__header">
-            <h3>最近抓到的官方净值</h3>
-            <div className="muted-text">这里展示同步脚本当前抓到的最近一个多月净值</div>
-          </div>
-          <div className="table-scroll table-scroll--window">
-            <table className="mini-data-table">
-              <thead>
-                <tr>
-                  <th>净值日期</th>
-                  <th>官方净值</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentNavHistory.map((item) => (
-                  <tr key={item.date}>
-                    <td>{item.date}</td>
-                    <td>{formatCurrency(item.nav)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
       </section>
 
       {showOfflineResearch ? (
@@ -2158,6 +2182,7 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [trainingMetricsByCode, setTrainingMetricsByCode] = useState<Record<string, TrainingMetricSummary>>({});
+  const [premiumCompareCodes, setPremiumCompareCodes] = useState<Record<string, PremiumCompareCodePayload>>({});
 
   useEffect(() => {
     let active = true;
@@ -2182,7 +2207,7 @@ export default function App() {
           const initialModel = normalizeWatchlistModel(persistedState?.model ?? readWatchlistModel(runtime.code));
           const initialJournal = normalizeFundJournal(persistedState?.journal ?? readFundJournal(runtime.code));
           const reconciled = reconcileJournal(runtime, initialModel, initialJournal);
-          const estimate = estimateWatchlistFund(runtime, reconciled.model);
+          const estimate = estimateWatchlistFund(runtime, reconciled.model, reconciled.journal);
           const journal = recordEstimateSnapshot(reconciled.journal, runtime, estimate);
 
           writeWatchlistModel(runtime.code, reconciled.model);
@@ -2312,6 +2337,36 @@ export default function App() {
     };
   }, [syncedAt]);
 
+  useEffect(() => {
+    let active = true;
+
+    async function loadPremiumCompareCodes() {
+      try {
+        const response = await fetch(`generated/premium-compare.json?ts=${Date.now()}`);
+        if (!response.ok) {
+          throw new Error(`premium compare ${response.status}`);
+        }
+
+        const payload = (await response.json()) as PremiumComparePayload;
+        if (!active) {
+          return;
+        }
+
+        setPremiumCompareCodes(payload?.codes ?? {});
+      } catch {
+        if (active) {
+          setPremiumCompareCodes({});
+        }
+      }
+    }
+
+    void loadPremiumCompareCodes();
+
+    return () => {
+      active = false;
+    };
+  }, [syncedAt]);
+
   return (
     <div className="app-shell">
       <div className="background-orb background-orb--amber" />
@@ -2319,11 +2374,11 @@ export default function App() {
       <AppErrorBoundary>
         <Routes>
           <Route path="/" element={<Navigate to="/qdii-lof" replace />} />
-          <Route path="/domestic-lof" element={<HomePage funds={funds} syncedAt={syncedAt} loading={loading} error={error} pageCategory="domestic-lof" trainingMetricsByCode={trainingMetricsByCode} />} />
-          <Route path="/qdii-lof" element={<HomePage funds={funds} syncedAt={syncedAt} loading={loading} error={error} pageCategory="qdii-lof" trainingMetricsByCode={trainingMetricsByCode} />} />
-          <Route path="/qdii-etf" element={<HomePage funds={funds} syncedAt={syncedAt} loading={loading} error={error} pageCategory="qdii-etf" trainingMetricsByCode={trainingMetricsByCode} />} />
-          <Route path="/domestic-etf" element={<HomePage funds={funds} syncedAt={syncedAt} loading={loading} error={error} pageCategory="domestic-etf" trainingMetricsByCode={trainingMetricsByCode} />} />
-          <Route path="/favorites" element={<HomePage funds={funds} syncedAt={syncedAt} loading={loading} error={error} pageCategory="favorites" trainingMetricsByCode={trainingMetricsByCode} />} />
+          <Route path="/domestic-lof" element={<HomePage funds={funds} syncedAt={syncedAt} loading={loading} error={error} pageCategory="domestic-lof" trainingMetricsByCode={trainingMetricsByCode} premiumCompareCodes={premiumCompareCodes} />} />
+          <Route path="/qdii-lof" element={<HomePage funds={funds} syncedAt={syncedAt} loading={loading} error={error} pageCategory="qdii-lof" trainingMetricsByCode={trainingMetricsByCode} premiumCompareCodes={premiumCompareCodes} />} />
+          <Route path="/qdii-etf" element={<HomePage funds={funds} syncedAt={syncedAt} loading={loading} error={error} pageCategory="qdii-etf" trainingMetricsByCode={trainingMetricsByCode} premiumCompareCodes={premiumCompareCodes} />} />
+          <Route path="/domestic-etf" element={<HomePage funds={funds} syncedAt={syncedAt} loading={loading} error={error} pageCategory="domestic-etf" trainingMetricsByCode={trainingMetricsByCode} premiumCompareCodes={premiumCompareCodes} />} />
+          <Route path="/favorites" element={<HomePage funds={funds} syncedAt={syncedAt} loading={loading} error={error} pageCategory="favorites" trainingMetricsByCode={trainingMetricsByCode} premiumCompareCodes={premiumCompareCodes} />} />
           <Route path="/docs" element={<DocsPage />} />
           <Route path="/traffic" element={<TrafficPage />} />
           <Route path="/etf" element={<Navigate to="/qdii-etf" replace />} />
