@@ -531,6 +531,25 @@ async function main() {
       ...providers.map((provider) => provider.provider),
       ...Object.keys(history?.[code] || {}),
     ]);
+    const dateMarketSnapshotMap = new Map();
+    const dateOurPremiumMap = new Map();
+    for (const providerName of providerSet) {
+      const providerRows = sortRowsByDateTime(history?.[code]?.[providerName] ?? []);
+      for (const row of providerRows) {
+        const date = String(row?.date || '').trim();
+        if (!date) {
+          continue;
+        }
+        const rowMarketPrice = toFiniteNumber(row?.marketPrice);
+        const rowOurPremiumRate = toFiniteNumber(row?.ourPremiumRate);
+        if (Number.isFinite(rowMarketPrice)) {
+          dateMarketSnapshotMap.set(date, rowMarketPrice);
+        }
+        if (Number.isFinite(rowOurPremiumRate)) {
+          dateOurPremiumMap.set(date, rowOurPremiumRate);
+        }
+      }
+    }
 
     const settledOurRows = errorRows
       .map((row) => {
@@ -640,10 +659,14 @@ async function main() {
 
             const marketPriceResolved = Number.isFinite(marketPriceAtSnapshot)
               ? marketPriceAtSnapshot
-              : (date === marketDate && Number.isFinite(marketPriceFallback) ? marketPriceFallback : Number.NaN);
+              : (Number.isFinite(toFiniteNumber(dateMarketSnapshotMap.get(date)))
+                ? toFiniteNumber(dateMarketSnapshotMap.get(date))
+                : (date === marketDate && Number.isFinite(marketPriceFallback) ? marketPriceFallback : Number.NaN));
             const ourReportedPremiumResolved = Number.isFinite(ourReportedPremiumRate)
               ? ourReportedPremiumRate
-              : (date === marketDate && Number.isFinite(ourPremiumRateFallback) ? ourPremiumRateFallback : Number.NaN);
+              : (Number.isFinite(toFiniteNumber(dateOurPremiumMap.get(date)))
+                ? toFiniteNumber(dateOurPremiumMap.get(date))
+                : (date === marketDate && Number.isFinite(ourPremiumRateFallback) ? ourPremiumRateFallback : Number.NaN));
 
             const actualPremiumRate = toFiniteNumber(actualPremiumByDate.get(date));
             const isSettled = Number.isFinite(actualPremiumRate);
