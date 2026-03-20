@@ -220,6 +220,118 @@ function getRecent7TrafficFallback(traffic: GithubTrafficPayload) {
   };
 }
 
+interface PublicTrafficCounterDay {
+  date: string;
+  views: number;
+}
+
+interface PublicTrafficCounter {
+  available: boolean;
+  source: string;
+  totalViews: number;
+  todayViews: number;
+  recent7Views: number;
+  days: PublicTrafficCounterDay[];
+  reason?: string;
+}
+
+const COUNTAPI_NAMESPACE = 'lof-premium-rate-web';
+const COUNTAPI_TOTAL_KEY = 'site-views-total';
+const COUNTAPI_DAILY_PREFIX = 'site-views-day-';
+const LOCAL_VISIT_MARK_PREFIX = 'traffic-hit-mark-';
+
+function getDefaultPublicTrafficCounter(): PublicTrafficCounter {
+  return {
+    available: false,
+    source: 'countapi',
+    totalViews: 0,
+    todayViews: 0,
+    recent7Views: 0,
+    days: [],
+    reason: '',
+  };
+}
+
+function getCstDateKey(date: Date): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Shanghai',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(date);
+}
+
+function getRecentCstDateKeys(dayCount: number): string[] {
+  const now = new Date();
+  return Array.from({ length: dayCount }, (_, index) => {
+    const next = new Date(now);
+    next.setDate(now.getDate() - (dayCount - 1 - index));
+    return getCstDateKey(next);
+  });
+}
+
+function shouldHitPublicCounter(dateKey: string): boolean {
+  try {
+    const markerKey = `${LOCAL_VISIT_MARK_PREFIX}${dateKey}`;
+    const marked = window.localStorage.getItem(markerKey);
+    if (marked) {
+      return false;
+    }
+    window.localStorage.setItem(markerKey, '1');
+    return true;
+  } catch {
+    return true;
+  }
+}
+
+async function requestCountApiValue(key: string, mode: 'get' | 'hit'): Promise<number> {
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), 6000);
+  try {
+    const response = await fetch(`https://api.countapi.xyz/${mode}/${COUNTAPI_NAMESPACE}/${key}`, {
+      cache: 'no-store',
+      signal: controller.signal,
+    });
+    if (!response.ok) {
+      return 0;
+    }
+    const payload = (await response.json()) as { value?: number };
+    return Number(payload?.value) || 0;
+  } catch {
+    return 0;
+  } finally {
+    window.clearTimeout(timeout);
+  }
+}
+
+async function loadPublicTrafficCounter(): Promise<PublicTrafficCounter> {
+  const today = getCstDateKey(new Date());
+  const dayKeys = getRecentCstDateKeys(7);
+  const shouldHit = shouldHitPublicCounter(today);
+
+  const [totalViews, todayViews, dayValues] = await Promise.all([
+    requestCountApiValue(COUNTAPI_TOTAL_KEY, shouldHit ? 'hit' : 'get'),
+    requestCountApiValue(`${COUNTAPI_DAILY_PREFIX}${today}`, shouldHit ? 'hit' : 'get'),
+    Promise.all(dayKeys.map(async (dateKey) => {
+      const views = await requestCountApiValue(`${COUNTAPI_DAILY_PREFIX}${dateKey}`, 'get');
+      return { date: dateKey, views };
+    })),
+  ]);
+
+  const recent7Views = dayValues.reduce((sum, item) => sum + item.views, 0);
+  const available = totalViews > 0 || todayViews > 0 || recent7Views > 0;
+
+  return {
+    available,
+    source: 'countapi',
+    totalViews,
+    todayViews,
+    recent7Views,
+    days: dayValues,
+    reason: available ? '' : 'public-counter-empty',
+  };
+}
+
 function getPageOption(pageCategory: ViewCategory) {
   return PAGE_OPTIONS.find((item) => item.key === pageCategory) ?? PAGE_OPTIONS[0];
 }
@@ -1240,6 +1352,7 @@ function HomePage({
   const [favoriteCodes, setFavoriteCodes] = useState<string[]>(() => readFavoriteFundCodes());
   const [orderedCodes, setOrderedCodes] = useState<string[]>(() => readFundOrder(pageCategory));
   const [githubTraffic, setGithubTraffic] = useState<GithubTrafficPayload>(() => getDefaultGithubTrafficPayload());
+  const [publicTraffic, setPublicTraffic] = useState<PublicTrafficCounter>(() => getDefaultPublicTrafficCounter());
 
   useEffect(() => {
     setOrderedCodes(readFundOrder(pageCategory));
@@ -1270,6 +1383,23 @@ function HomePage({
     }
 
     void loadGithubTraffic();
+
+    return () => {
+      active = false;
+    };
+  }, [syncedAt]);
+
+  useEffect(() => {
+    let active = true;
+
+    async function refreshPublicTrafficCounter() {
+      const payload = await loadPublicTrafficCounter();
+      if (active) {
+        setPublicTraffic(payload);
+      }
+    }
+
+    void refreshPublicTrafficCounter();
 
     return () => {
       active = false;
@@ -1345,13 +1475,18 @@ function HomePage({
   }, [trafficSnapshots]);
   const latestTrafficDay = trafficSnapshots.length ? trafficSnapshots[trafficSnapshots.length - 1].date : '';
   const recent7Fallback = getRecent7TrafficFallback(githubTraffic);
+  const usePublicTrafficFallback = !githubTraffic.available && !trafficSnapshots.length && publicTraffic.available;
   const cumulativeSnapshotUniques = Number(githubTraffic.snapshotSummary?.cumulativeViewUniques)
     || Number(githubTraffic.totals?.viewUniques)
     || trafficSnapshots.reduce((sum, item) => sum + (Number(item?.viewUniques) || 0), 0);
-  const recent7UniquesDisplay = String(recent7Fallback.viewUniques);
+  const recent7UniquesDisplay = String(usePublicTrafficFallback ? publicTraffic.recent7Views : recent7Fallback.viewUniques);
+  const cumulativeUniquesDisplay = usePublicTrafficFallback ? publicTraffic.totalViews : cumulativeSnapshotUniques;
+  const latestTrafficDateDisplay = usePublicTrafficFallback
+    ? (publicTraffic.days.length ? publicTraffic.days[publicTraffic.days.length - 1].date : '')
+    : latestTrafficDay;
   const homeTrafficStateText = githubTraffic.available
     ? 'API可用'
-    : (trafficSnapshots.length ? '快照可用' : '未配置');
+    : (trafficSnapshots.length ? '快照可用' : (publicTraffic.available ? '实时计数可用' : '未配置'));
   const eastmoneyPremiumByCode = useMemo(() => {
     const next: Record<string, number | null> = {};
     for (const item of visibleFunds) {
@@ -1419,8 +1554,8 @@ function HomePage({
             <span>最近7日访客</span>
             <strong>{recent7UniquesDisplay}</strong>
             <small className="hero__fact-subtle">
-              累计访客（快照）{cumulativeSnapshotUniques}
-              {latestTrafficDay ? `，最新快照 ${latestTrafficDay}` : ''}
+              累计访客（{usePublicTrafficFallback ? '实时计数' : '快照'}）{cumulativeUniquesDisplay}
+              {latestTrafficDateDisplay ? `，最新快照 ${latestTrafficDateDisplay}` : ''}
             </small>
             {trafficTrendPoints ? (
               <svg className="traffic-mini-chart" viewBox="0 0 120 26" aria-label="访客趋势图">
@@ -1433,7 +1568,7 @@ function HomePage({
             <strong>{loading ? '同步中' : error ? '同步异常' : homeTrafficStateText}</strong>
             <small className="hero__fact-subtle">
               本页未训练基金 {untrainedCount} 只，已收藏 {favoriteVisibleCount} 只
-              {!githubTraffic.available && githubTraffic.reason ? `；访客数据不可用：${githubTraffic.reason}` : ''}
+              {!githubTraffic.available && githubTraffic.reason ? `；GitHub访客不可用：${githubTraffic.reason}` : ''}
             </small>
           </div>
           <div className="hero__fact hero__fact--wide">
@@ -1584,6 +1719,7 @@ function DocsPage() {
 
 function TrafficPage() {
   const [githubTraffic, setGithubTraffic] = useState<GithubTrafficPayload>(() => getDefaultGithubTrafficPayload());
+  const [publicTraffic, setPublicTraffic] = useState<PublicTrafficCounter>(() => getDefaultPublicTrafficCounter());
 
   useEffect(() => {
     let active = true;
@@ -1616,6 +1752,23 @@ function TrafficPage() {
     };
   }, []);
 
+  useEffect(() => {
+    let active = true;
+
+    async function refreshPublicTrafficCounter() {
+      const payload = await loadPublicTrafficCounter();
+      if (active) {
+        setPublicTraffic(payload);
+      }
+    }
+
+    void refreshPublicTrafficCounter();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
   const recentTrafficDays = githubTraffic.recent7?.days ?? [];
   const trafficSnapshots = (githubTraffic.snapshots ?? []).slice(-30);
   const snapshotVisitorSeries = trafficSnapshots.map((item) => ({
@@ -1635,8 +1788,23 @@ function TrafficPage() {
     value: Number(item.viewCount) || 0,
   }));
   const trafficRecent7Fallback = getRecent7TrafficFallback(githubTraffic);
-  const trafficRecent7UvDisplay = String(trafficRecent7Fallback.viewUniques);
-  const trafficRecent7PvDisplay = String(trafficRecent7Fallback.viewCount);
+  const usePublicTrafficFallback = !githubTraffic.available && !trafficSnapshots.length && publicTraffic.available;
+  const trafficRecent7UvDisplay = String(usePublicTrafficFallback ? publicTraffic.recent7Views : trafficRecent7Fallback.viewUniques);
+  const trafficRecent7PvDisplay = String(usePublicTrafficFallback ? publicTraffic.recent7Views : trafficRecent7Fallback.viewCount);
+  const trafficTotalVisitorsDisplay = usePublicTrafficFallback
+    ? publicTraffic.totalViews
+    : (githubTraffic.snapshotSummary?.cumulativeViewUniques ?? 0);
+  const trafficTotalDaysDisplay = usePublicTrafficFallback
+    ? publicTraffic.days.filter((item) => item.views > 0).length
+    : (githubTraffic.snapshotSummary?.totalDays ?? 0);
+  const trafficStateDisplay = githubTraffic.available
+    ? '可用'
+    : (usePublicTrafficFallback ? '公开计数可用' : '不可用');
+  const trafficStateHint = githubTraffic.available
+    ? '由 GitHub traffic API 提供'
+    : (usePublicTrafficFallback
+      ? 'GitHub 不可用时，自动使用公开计数兜底'
+      : (githubTraffic.reason || publicTraffic.reason || '未知原因'));
 
   return (
     <main className="page">
@@ -1667,13 +1835,13 @@ function TrafficPage() {
           </div>
           <div className="hero__fact">
             <span>累计访客（快照）</span>
-            <strong>{githubTraffic.snapshotSummary?.cumulativeViewUniques ?? 0}</strong>
-            <small className="hero__fact-subtle">已记录天数 {githubTraffic.snapshotSummary?.totalDays ?? 0}</small>
+            <strong>{trafficTotalVisitorsDisplay}</strong>
+            <small className="hero__fact-subtle">已记录天数 {trafficTotalDaysDisplay}</small>
           </div>
           <div className="hero__fact">
             <span>数据状态</span>
-            <strong>{githubTraffic.available ? '可用' : '不可用'}</strong>
-            <small className="hero__fact-subtle">{githubTraffic.available ? '由 GitHub traffic API 提供' : (githubTraffic.reason || '未知原因')}</small>
+            <strong>{trafficStateDisplay}</strong>
+            <small className="hero__fact-subtle">{trafficStateHint}</small>
           </div>
         </div>
       </section>
@@ -1701,6 +1869,7 @@ function TrafficPage() {
         <ul className="docs-list">
           <li>最近7日访客：GitHub traffic API 返回的滚动 7 天去重访客总和。</li>
           <li>累计访客（快照）：每天固定时段抓取一次，便于比较长期变化趋势。</li>
+          <li>若 GitHub traffic API 不可用，会自动切换到公开计数器，保证站点仍可展示访客数字。</li>
           <li>快照时间默认北京时间中午，窗口内只记一次，避免同一天重复累计。</li>
         </ul>
       </section>
