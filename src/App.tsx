@@ -222,31 +222,36 @@ function getRecent7TrafficFallback(traffic: GithubTrafficPayload) {
 
 interface PublicTrafficCounterDay {
   date: string;
-  views: number;
+  uniqueDevices: number;
 }
 
 interface PublicTrafficCounter {
   available: boolean;
   source: string;
-  totalViews: number;
-  todayViews: number;
-  recent7Views: number;
+  totalUniqueDevices: number;
+  todayUniqueDevices: number;
+  active7UniqueDevices: number;
   days: PublicTrafficCounterDay[];
   reason?: string;
 }
 
+const COUNTAPI_ENDPOINTS = ['https://api.countapi.xyz', 'https://countapi.xyz'];
 const COUNTAPI_NAMESPACE = 'lof-premium-rate-web';
-const COUNTAPI_TOTAL_KEY = 'site-views-total';
-const COUNTAPI_DAILY_PREFIX = 'site-views-day-';
-const LOCAL_VISIT_MARK_PREFIX = 'traffic-hit-mark-';
+const COUNTAPI_TOTAL_KEY = 'uv-total-devices';
+const COUNTAPI_DAILY_PREFIX = 'uv-day-';
+const COUNTAPI_ACTIVE7_BUCKET_PREFIX = 'uv-active7-bucket-';
+const LOCAL_DEVICE_ID_KEY = 'traffic-device-id';
+const LOCAL_DEVICE_DAILY_MARK_PREFIX = 'traffic-device-daily-hit-';
+const LOCAL_DEVICE_7D_MARK_PREFIX = 'traffic-device-7d-hit-';
+const LOCAL_DEVICE_VISIT_DAYS_KEY = 'traffic-device-visit-days';
 
 function getDefaultPublicTrafficCounter(): PublicTrafficCounter {
   return {
     available: false,
     source: 'countapi',
-    totalViews: 0,
-    todayViews: 0,
-    recent7Views: 0,
+    totalUniqueDevices: 0,
+    todayUniqueDevices: 0,
+    active7UniqueDevices: 0,
     days: [],
     reason: '',
   };
@@ -270,11 +275,32 @@ function getRecentCstDateKeys(dayCount: number): string[] {
   });
 }
 
-function shouldHitPublicCounter(dateKey: string): boolean {
+function parseCstDayIndex(dateKey: string): number {
+  const [year, month, day] = dateKey.split('-').map((item) => Number(item));
+  if (!year || !month || !day) {
+    return 0;
+  }
+  return Math.floor(Date.UTC(year, month - 1, day) / 86_400_000);
+}
+
+function getDeviceId(): string {
   try {
-    const markerKey = `${LOCAL_VISIT_MARK_PREFIX}${dateKey}`;
-    const marked = window.localStorage.getItem(markerKey);
-    if (marked) {
+    const cached = window.localStorage.getItem(LOCAL_DEVICE_ID_KEY);
+    if (cached) {
+      return cached;
+    }
+    const seeded = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+    window.localStorage.setItem(LOCAL_DEVICE_ID_KEY, seeded);
+    return seeded;
+  } catch {
+    return 'anonymous-device';
+  }
+}
+
+function shouldHitDeviceDailyCounter(dateKey: string): boolean {
+  try {
+    const markerKey = `${LOCAL_DEVICE_DAILY_MARK_PREFIX}${dateKey}`;
+    if (window.localStorage.getItem(markerKey)) {
       return false;
     }
     window.localStorage.setItem(markerKey, '1');
@@ -284,51 +310,103 @@ function shouldHitPublicCounter(dateKey: string): boolean {
   }
 }
 
-async function requestCountApiValue(key: string, mode: 'get' | 'hit'): Promise<number> {
-  const controller = new AbortController();
-  const timeout = window.setTimeout(() => controller.abort(), 6000);
+function shouldHitDevice7dCounter(bucketKey: string): boolean {
   try {
-    const response = await fetch(`https://api.countapi.xyz/${mode}/${COUNTAPI_NAMESPACE}/${key}`, {
-      cache: 'no-store',
-      signal: controller.signal,
-    });
-    if (!response.ok) {
-      return 0;
+    const markerKey = `${LOCAL_DEVICE_7D_MARK_PREFIX}${bucketKey}`;
+    if (window.localStorage.getItem(markerKey)) {
+      return false;
     }
-    const payload = (await response.json()) as { value?: number };
-    return Number(payload?.value) || 0;
+    window.localStorage.setItem(markerKey, '1');
+    return true;
   } catch {
-    return 0;
-  } finally {
-    window.clearTimeout(timeout);
+    return true;
   }
+}
+
+function updateLocalDeviceVisitDays(today: string): string[] {
+  try {
+    const raw = window.localStorage.getItem(LOCAL_DEVICE_VISIT_DAYS_KEY);
+    const days = Array.isArray(raw ? JSON.parse(raw) : []) ? (JSON.parse(raw || '[]') as string[]) : [];
+    const merged = Array.from(new Set([...days, today])).sort((left, right) => left.localeCompare(right));
+    window.localStorage.setItem(LOCAL_DEVICE_VISIT_DAYS_KEY, JSON.stringify(merged.slice(-90)));
+    return merged;
+  } catch {
+    return [today];
+  }
+}
+
+async function requestCountApiValue(key: string, mode: 'get' | 'hit'): Promise<{ value: number; ok: boolean }> {
+  for (const endpoint of COUNTAPI_ENDPOINTS) {
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 6000);
+    try {
+      const response = await fetch(`${endpoint}/${mode}/${COUNTAPI_NAMESPACE}/${key}`, {
+        cache: 'no-store',
+        signal: controller.signal,
+      });
+      if (!response.ok) {
+        continue;
+      }
+      const payload = (await response.json()) as { value?: number };
+      return { value: Number(payload?.value) || 0, ok: true };
+    } catch {
+      continue;
+    } finally {
+      window.clearTimeout(timeout);
+    }
+  }
+
+  return { value: 0, ok: false };
 }
 
 async function loadPublicTrafficCounter(): Promise<PublicTrafficCounter> {
   const today = getCstDateKey(new Date());
+  const todayIndex = parseCstDayIndex(today);
+  const active7Bucket = String(Math.floor(todayIndex / 7));
+  const deviceId = getDeviceId();
   const dayKeys = getRecentCstDateKeys(7);
-  const shouldHit = shouldHitPublicCounter(today);
+  const shouldHitDaily = shouldHitDeviceDailyCounter(today);
+  const shouldHitActive7 = shouldHitDevice7dCounter(active7Bucket);
+  const localVisitDays = updateLocalDeviceVisitDays(today);
 
-  const [totalViews, todayViews, dayValues] = await Promise.all([
-    requestCountApiValue(COUNTAPI_TOTAL_KEY, shouldHit ? 'hit' : 'get'),
-    requestCountApiValue(`${COUNTAPI_DAILY_PREFIX}${today}`, shouldHit ? 'hit' : 'get'),
+  const [totalUniqueRes, todayUniqueRes, active7UniqueRes, dayValues] = await Promise.all([
+    requestCountApiValue(COUNTAPI_TOTAL_KEY, shouldHitDaily ? 'hit' : 'get'),
+    requestCountApiValue(`${COUNTAPI_DAILY_PREFIX}${today}`, shouldHitDaily ? 'hit' : 'get'),
+    requestCountApiValue(`${COUNTAPI_ACTIVE7_BUCKET_PREFIX}${active7Bucket}`, shouldHitActive7 ? 'hit' : 'get'),
     Promise.all(dayKeys.map(async (dateKey) => {
-      const views = await requestCountApiValue(`${COUNTAPI_DAILY_PREFIX}${dateKey}`, 'get');
-      return { date: dateKey, views };
+      const daily = await requestCountApiValue(`${COUNTAPI_DAILY_PREFIX}${dateKey}`, 'get');
+      return { date: dateKey, uniqueDevices: daily.value };
     })),
   ]);
 
-  const recent7Views = dayValues.reduce((sum, item) => sum + item.views, 0);
-  const available = totalViews > 0 || todayViews > 0 || recent7Views > 0;
+  const countApiReachable = totalUniqueRes.ok || todayUniqueRes.ok || active7UniqueRes.ok;
+  if (countApiReachable) {
+    const available = totalUniqueRes.value > 0 || todayUniqueRes.value > 0 || active7UniqueRes.value > 0 || dayValues.some((item) => item.uniqueDevices > 0);
+    return {
+      available,
+      source: 'countapi-device-uv',
+      totalUniqueDevices: totalUniqueRes.value,
+      todayUniqueDevices: todayUniqueRes.value,
+      active7UniqueDevices: active7UniqueRes.value,
+      days: dayValues,
+      reason: available ? '' : 'countapi-empty',
+    };
+  }
+
+  const recent7LocalSet = new Set(localVisitDays.filter((dateKey) => parseCstDayIndex(dateKey) >= todayIndex - 6));
+  const recent7LocalDays = dayKeys.map((dateKey) => ({
+    date: dateKey,
+    uniqueDevices: recent7LocalSet.has(dateKey) ? 1 : 0,
+  }));
 
   return {
-    available,
-    source: 'countapi',
-    totalViews,
-    todayViews,
-    recent7Views,
-    days: dayValues,
-    reason: available ? '' : 'public-counter-empty',
+    available: true,
+    source: `local-device:${deviceId}`,
+    totalUniqueDevices: 1,
+    todayUniqueDevices: 1,
+    active7UniqueDevices: recent7LocalSet.size > 0 ? 1 : 0,
+    days: recent7LocalDays,
+    reason: 'countapi-unreachable-local-fallback',
   };
 }
 
@@ -1479,14 +1557,15 @@ function HomePage({
   const cumulativeSnapshotUniques = Number(githubTraffic.snapshotSummary?.cumulativeViewUniques)
     || Number(githubTraffic.totals?.viewUniques)
     || trafficSnapshots.reduce((sum, item) => sum + (Number(item?.viewUniques) || 0), 0);
-  const recent7UniquesDisplay = String(usePublicTrafficFallback ? publicTraffic.recent7Views : recent7Fallback.viewUniques);
-  const cumulativeUniquesDisplay = usePublicTrafficFallback ? publicTraffic.totalViews : cumulativeSnapshotUniques;
+  const recent7UniquesDisplay = String(usePublicTrafficFallback ? publicTraffic.active7UniqueDevices : recent7Fallback.viewUniques);
+  const todayUniquesDisplay = String(usePublicTrafficFallback ? publicTraffic.todayUniqueDevices : recent7Fallback.viewUniques);
+  const cumulativeUniquesDisplay = usePublicTrafficFallback ? publicTraffic.totalUniqueDevices : cumulativeSnapshotUniques;
   const latestTrafficDateDisplay = usePublicTrafficFallback
     ? (publicTraffic.days.length ? publicTraffic.days[publicTraffic.days.length - 1].date : '')
     : latestTrafficDay;
   const homeTrafficStateText = githubTraffic.available
     ? 'API可用'
-    : (trafficSnapshots.length ? '快照可用' : (publicTraffic.available ? '实时计数可用' : '未配置'));
+    : (trafficSnapshots.length ? '快照可用' : (publicTraffic.available ? '设备计数可用' : '未配置'));
   const eastmoneyPremiumByCode = useMemo(() => {
     const next: Record<string, number | null> = {};
     for (const item of visibleFunds) {
@@ -1550,11 +1629,11 @@ function HomePage({
             <span>代理估值数</span>
             <strong>{proxyDrivenCount}</strong>
           </div>
-          <Link className="hero__fact hero__fact--link" to="/traffic" title="查看访客趋势详情">
-            <span>最近7日访客</span>
+          <Link className="hero__fact hero__fact--link hero__fact--traffic" to="/traffic" title="查看访客趋势详情">
+            <span>近7日活跃设备</span>
             <strong>{recent7UniquesDisplay}</strong>
             <small className="hero__fact-subtle">
-              累计访客（{usePublicTrafficFallback ? '实时计数' : '快照'}）{cumulativeUniquesDisplay}
+              今日设备访客 {todayUniquesDisplay}，累计设备 {cumulativeUniquesDisplay}
               {latestTrafficDateDisplay ? `，最新快照 ${latestTrafficDateDisplay}` : ''}
             </small>
             {trafficTrendPoints ? (
@@ -1789,13 +1868,14 @@ function TrafficPage() {
   }));
   const trafficRecent7Fallback = getRecent7TrafficFallback(githubTraffic);
   const usePublicTrafficFallback = !githubTraffic.available && !trafficSnapshots.length && publicTraffic.available;
-  const trafficRecent7UvDisplay = String(usePublicTrafficFallback ? publicTraffic.recent7Views : trafficRecent7Fallback.viewUniques);
-  const trafficRecent7PvDisplay = String(usePublicTrafficFallback ? publicTraffic.recent7Views : trafficRecent7Fallback.viewCount);
+  const trafficRecent7UvDisplay = String(usePublicTrafficFallback ? publicTraffic.active7UniqueDevices : trafficRecent7Fallback.viewUniques);
+  const trafficTodayUvDisplay = String(usePublicTrafficFallback ? publicTraffic.todayUniqueDevices : trafficRecent7Fallback.viewUniques);
+  const trafficRecent7PvDisplay = String(usePublicTrafficFallback ? publicTraffic.active7UniqueDevices : trafficRecent7Fallback.viewCount);
   const trafficTotalVisitorsDisplay = usePublicTrafficFallback
-    ? publicTraffic.totalViews
+    ? publicTraffic.totalUniqueDevices
     : (githubTraffic.snapshotSummary?.cumulativeViewUniques ?? 0);
   const trafficTotalDaysDisplay = usePublicTrafficFallback
-    ? publicTraffic.days.filter((item) => item.views > 0).length
+    ? publicTraffic.days.filter((item) => item.uniqueDevices > 0).length
     : (githubTraffic.snapshotSummary?.totalDays ?? 0);
   const trafficStateDisplay = githubTraffic.available
     ? '可用'
@@ -1803,7 +1883,7 @@ function TrafficPage() {
   const trafficStateHint = githubTraffic.available
     ? '由 GitHub traffic API 提供'
     : (usePublicTrafficFallback
-      ? 'GitHub 不可用时，自动使用公开计数兜底'
+      ? 'GitHub 不可用时，自动使用设备计数兜底'
       : (githubTraffic.reason || publicTraffic.reason || '未知原因'));
 
   return (
@@ -1829,12 +1909,12 @@ function TrafficPage() {
         </div>
         <div className="hero__facts hero__facts--single">
           <div className="hero__fact hero__fact--accent">
-            <span>最近7日访客(UV)</span>
+            <span>近7日活跃设备(UV)</span>
             <strong>{trafficRecent7UvDisplay}</strong>
-            <small className="hero__fact-subtle">最近7日浏览(PV) {trafficRecent7PvDisplay}</small>
+            <small className="hero__fact-subtle">今日设备访客 {trafficTodayUvDisplay}，近7日浏览(PV) {trafficRecent7PvDisplay}</small>
           </div>
           <div className="hero__fact">
-            <span>累计访客（快照）</span>
+            <span>累计设备访客</span>
             <strong>{trafficTotalVisitorsDisplay}</strong>
             <small className="hero__fact-subtle">已记录天数 {trafficTotalDaysDisplay}</small>
           </div>
@@ -1867,9 +1947,9 @@ function TrafficPage() {
         </div>
 
         <ul className="docs-list">
-          <li>最近7日访客：GitHub traffic API 返回的滚动 7 天去重访客总和。</li>
-          <li>累计访客（快照）：每天固定时段抓取一次，便于比较长期变化趋势。</li>
-          <li>若 GitHub traffic API 不可用，会自动切换到公开计数器，保证站点仍可展示访客数字。</li>
+          <li>近7日活跃设备：优先显示 GitHub 口径；不可用时切换到设备计数口径。</li>
+          <li>每日设备访客：同一设备同一天只计一次，避免刷新刷量。</li>
+          <li>累计设备访客：用于观察长期增长，和当日活跃是不同口径。</li>
           <li>快照时间默认北京时间中午，窗口内只记一次，避免同一天重复累计。</li>
         </ul>
       </section>

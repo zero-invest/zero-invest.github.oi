@@ -324,6 +324,19 @@ small {
   background: linear-gradient(135deg, rgba(15, 118, 110, 0.14), rgba(244, 239, 230, 0.8)) !important;
 }
 
+.hero__fact--traffic {
+  background: linear-gradient(140deg, rgba(250, 245, 232, 0.96), rgba(242, 234, 214, 0.92)) !important;
+  border: 1px solid rgba(179, 157, 117, 0.28);
+}
+
+.hero__fact--traffic strong {
+  color: #8a5a1f;
+}
+
+.hero__fact--traffic .hero__fact-subtle {
+  color: #8e7a55;
+}
+
 .hero__fact--wide {
   grid-column: 1 / -1;
 }
