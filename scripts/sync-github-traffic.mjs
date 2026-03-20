@@ -174,6 +174,14 @@ async function main() {
   const history = await readHistory();
   const existingPayload = await readExistingPayload();
   const cstClock = getCstClock(new Date());
+  const historySnapshotSummary = summarizeSnapshots(history.snapshots);
+  const historyRecent7 = buildRecentSeven(history.snapshots);
+  const historyTotals = {
+    viewCount: sumMetric(history.snapshots, 'viewCount'),
+    viewUniques: sumMetric(history.snapshots, 'viewUniques'),
+    cloneCount: sumMetric(history.snapshots, 'cloneCount'),
+    cloneUniques: sumMetric(history.snapshots, 'cloneUniques'),
+  };
   const existingRecent7 = existingPayload?.recent7 && typeof existingPayload.recent7 === 'object'
     ? existingPayload.recent7
     : null;
@@ -183,6 +191,11 @@ async function main() {
   const existingSnapshotSummary = existingPayload?.snapshotSummary && typeof existingPayload.snapshotSummary === 'object'
     ? existingPayload.snapshotSummary
     : null;
+  const pickMetric = (preferred, fallback) => {
+    const preferredValue = Number(preferred) || 0;
+    const fallbackValue = Number(fallback) || 0;
+    return preferredValue > 0 ? preferredValue : fallbackValue;
+  };
   const basePayload = {
     generatedAt: new Date().toISOString(),
     source: 'github-traffic-api',
@@ -194,20 +207,24 @@ async function main() {
       snapshotHourCst: SNAPSHOT_HOUR_CST,
       windowMinutes: SNAPSHOT_WINDOW_MINUTES,
     },
-    snapshotSummary: existingSnapshotSummary || summarizeSnapshots(history.snapshots),
+    snapshotSummary: existingSnapshotSummary && (Number(existingSnapshotSummary.totalDays) || 0) > 0
+      ? existingSnapshotSummary
+      : historySnapshotSummary,
     recent7: {
-      days: Array.isArray(existingRecent7?.days) ? existingRecent7.days : [],
-      viewCount: Number(existingRecent7?.viewCount) || 0,
-      viewUniques: Number(existingRecent7?.viewUniques) || 0,
-      cloneCount: Number(existingRecent7?.cloneCount) || 0,
-      cloneUniques: Number(existingRecent7?.cloneUniques) || 0,
+      days: Array.isArray(existingRecent7?.days) && existingRecent7.days.length
+        ? existingRecent7.days
+        : historyRecent7.days,
+      viewCount: pickMetric(existingRecent7?.viewCount, historyRecent7.viewCount),
+      viewUniques: pickMetric(existingRecent7?.viewUniques, historyRecent7.viewUniques),
+      cloneCount: pickMetric(existingRecent7?.cloneCount, historyRecent7.cloneCount),
+      cloneUniques: pickMetric(existingRecent7?.cloneUniques, historyRecent7.cloneUniques),
     },
     snapshots: history.snapshots,
     totals: {
-      viewCount: Number(existingTotals?.viewCount) || 0,
-      viewUniques: Number(existingTotals?.viewUniques) || 0,
-      cloneCount: Number(existingTotals?.cloneCount) || 0,
-      cloneUniques: Number(existingTotals?.cloneUniques) || 0,
+      viewCount: pickMetric(existingTotals?.viewCount, historyTotals.viewCount),
+      viewUniques: pickMetric(existingTotals?.viewUniques, historyTotals.viewUniques),
+      cloneCount: pickMetric(existingTotals?.cloneCount, historyTotals.cloneCount),
+      cloneUniques: pickMetric(existingTotals?.cloneUniques, historyTotals.cloneUniques),
     },
   };
 

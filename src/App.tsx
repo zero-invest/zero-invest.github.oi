@@ -204,6 +204,22 @@ function getHoursSinceSync(syncedAt: string): number | null {
   return Math.max(0, (Date.now() - syncedAtMs) / (1000 * 60 * 60));
 }
 
+function sumTrafficMetric(days: Array<{ viewCount?: number; viewUniques?: number; cloneCount?: number; cloneUniques?: number }>, key: 'viewCount' | 'viewUniques' | 'cloneCount' | 'cloneUniques') {
+  return days.reduce((sum, item) => sum + (Number(item?.[key]) || 0), 0);
+}
+
+function getRecent7TrafficFallback(traffic: GithubTrafficPayload) {
+  const sourceDays = (traffic.recent7?.days?.length
+    ? traffic.recent7.days
+    : ((traffic.snapshots?.length ? traffic.snapshots : traffic.last14Days) ?? [])
+  ).slice(-7);
+
+  return {
+    viewUniques: Number(traffic.recent7?.viewUniques) || sumTrafficMetric(sourceDays, 'viewUniques'),
+    viewCount: Number(traffic.recent7?.viewCount) || sumTrafficMetric(sourceDays, 'viewCount'),
+  };
+}
+
 function getPageOption(pageCategory: ViewCategory) {
   return PAGE_OPTIONS.find((item) => item.key === pageCategory) ?? PAGE_OPTIONS[0];
 }
@@ -1328,8 +1344,14 @@ function HomePage({
       .join(' ');
   }, [trafficSnapshots]);
   const latestTrafficDay = trafficSnapshots.length ? trafficSnapshots[trafficSnapshots.length - 1].date : '';
-  const cumulativeSnapshotUniques = githubTraffic.snapshotSummary?.cumulativeViewUniques ?? trafficSnapshots.reduce((sum, item) => sum + (Number(item?.viewUniques) || 0), 0);
-  const recent7UniquesDisplay = Number(githubTraffic?.recent7?.viewUniques) > 0 ? String(githubTraffic.recent7.viewUniques) : '--';
+  const recent7Fallback = getRecent7TrafficFallback(githubTraffic);
+  const cumulativeSnapshotUniques = Number(githubTraffic.snapshotSummary?.cumulativeViewUniques)
+    || Number(githubTraffic.totals?.viewUniques)
+    || trafficSnapshots.reduce((sum, item) => sum + (Number(item?.viewUniques) || 0), 0);
+  const recent7UniquesDisplay = String(recent7Fallback.viewUniques);
+  const homeTrafficStateText = githubTraffic.available
+    ? 'API可用'
+    : (trafficSnapshots.length ? '快照可用' : '未配置');
   const eastmoneyPremiumByCode = useMemo(() => {
     const next: Record<string, number | null> = {};
     for (const item of visibleFunds) {
@@ -1408,7 +1430,7 @@ function HomePage({
           </Link>
           <div className="hero__fact">
             <span>状态</span>
-            <strong>{loading ? '同步中' : error ? '同步异常' : '可用'}</strong>
+            <strong>{loading ? '同步中' : error ? '同步异常' : homeTrafficStateText}</strong>
             <small className="hero__fact-subtle">
               本页未训练基金 {untrainedCount} 只，已收藏 {favoriteVisibleCount} 只
               {!githubTraffic.available && githubTraffic.reason ? `；访客数据不可用：${githubTraffic.reason}` : ''}
@@ -1612,8 +1634,9 @@ function TrafficPage() {
     label: item.date,
     value: Number(item.viewCount) || 0,
   }));
-  const trafficRecent7UvDisplay = Number(githubTraffic?.recent7?.viewUniques) > 0 ? String(githubTraffic.recent7.viewUniques) : '--';
-  const trafficRecent7PvDisplay = Number(githubTraffic?.recent7?.viewCount) > 0 ? String(githubTraffic.recent7.viewCount) : '--';
+  const trafficRecent7Fallback = getRecent7TrafficFallback(githubTraffic);
+  const trafficRecent7UvDisplay = String(trafficRecent7Fallback.viewUniques);
+  const trafficRecent7PvDisplay = String(trafficRecent7Fallback.viewCount);
 
   return (
     <main className="page">
