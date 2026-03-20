@@ -1565,7 +1565,7 @@ function HomePage({
     : latestTrafficDay;
   const homeTrafficStateText = githubTraffic.available
     ? 'API可用'
-    : (trafficSnapshots.length ? '快照可用' : (publicTraffic.available ? '设备计数可用' : '未配置'));
+    : (trafficSnapshots.length ? '快照可用' : (publicTraffic.available ? '访客计数可用' : '未配置'));
   const eastmoneyPremiumByCode = useMemo(() => {
     const next: Record<string, number | null> = {};
     for (const item of visibleFunds) {
@@ -1630,10 +1630,10 @@ function HomePage({
             <strong>{proxyDrivenCount}</strong>
           </div>
           <Link className="hero__fact hero__fact--link hero__fact--traffic" to="/traffic" title="查看访客趋势详情">
-            <span>近7日活跃设备</span>
+            <span>近7日活跃访客</span>
             <strong>{recent7UniquesDisplay}</strong>
             <small className="hero__fact-subtle">
-              今日设备访客 {todayUniquesDisplay}，累计设备 {cumulativeUniquesDisplay}
+              今日访客 {todayUniquesDisplay}，累计访客 {cumulativeUniquesDisplay}
               {latestTrafficDateDisplay ? `，最新快照 ${latestTrafficDateDisplay}` : ''}
             </small>
             {trafficTrendPoints ? (
@@ -1883,7 +1883,7 @@ function TrafficPage() {
   const trafficStateHint = githubTraffic.available
     ? '由 GitHub traffic API 提供'
     : (usePublicTrafficFallback
-      ? 'GitHub 不可用时，自动使用设备计数兜底'
+      ? 'GitHub 不可用时，自动使用访客计数兜底'
       : (githubTraffic.reason || publicTraffic.reason || '未知原因'));
 
   return (
@@ -1909,12 +1909,12 @@ function TrafficPage() {
         </div>
         <div className="hero__facts hero__facts--single">
           <div className="hero__fact hero__fact--accent">
-            <span>近7日活跃设备(UV)</span>
+            <span>近7日活跃访客(UV)</span>
             <strong>{trafficRecent7UvDisplay}</strong>
-            <small className="hero__fact-subtle">今日设备访客 {trafficTodayUvDisplay}，近7日浏览(PV) {trafficRecent7PvDisplay}</small>
+            <small className="hero__fact-subtle">今日访客 {trafficTodayUvDisplay}，近7日浏览(PV) {trafficRecent7PvDisplay}</small>
           </div>
           <div className="hero__fact">
-            <span>累计设备访客</span>
+            <span>累计访客</span>
             <strong>{trafficTotalVisitorsDisplay}</strong>
             <small className="hero__fact-subtle">已记录天数 {trafficTotalDaysDisplay}</small>
           </div>
@@ -1947,9 +1947,9 @@ function TrafficPage() {
         </div>
 
         <ul className="docs-list">
-          <li>近7日活跃设备：优先显示 GitHub 口径；不可用时切换到设备计数口径。</li>
-          <li>每日设备访客：同一设备同一天只计一次，避免刷新刷量。</li>
-          <li>累计设备访客：用于观察长期增长，和当日活跃是不同口径。</li>
+          <li>近7日活跃访客：优先显示 GitHub 口径；不可用时切换到访客计数口径。</li>
+          <li>每日访客：同一设备同一天只计一次，避免刷新刷量。</li>
+          <li>累计访客：用于观察长期增长，和当日活跃是不同口径。</li>
           <li>快照时间默认北京时间中午，窗口内只记一次，避免同一天重复累计。</li>
         </ul>
       </section>
