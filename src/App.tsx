@@ -1456,6 +1456,12 @@ function HomePage({
   useEffect(() => {
     let active = true;
 
+    if (!syncedAt) {
+      return () => {
+        active = false;
+      };
+    }
+
     async function loadGithubTraffic() {
       try {
         const response = await fetch(`generated/github-traffic.json?ts=${Date.now()}`);
@@ -1486,6 +1492,12 @@ function HomePage({
 
   useEffect(() => {
     let active = true;
+
+    if (!syncedAt) {
+      return () => {
+        active = false;
+      };
+    }
 
     async function refreshPublicTrafficCounter() {
       const payload = await loadPublicTrafficCounter();
@@ -2626,6 +2638,13 @@ export default function App() {
   useEffect(() => {
     let active = true;
 
+    if (!syncedAt) {
+      setTrainingMetricsByCode({});
+      return () => {
+        active = false;
+      };
+    }
+
     async function loadTrainingMetrics() {
       const entries = await Promise.all(
         [...OFFLINE_RESEARCH_CODES].map(async (code) => {
@@ -2680,6 +2699,13 @@ export default function App() {
 
   useEffect(() => {
     let active = true;
+
+    if (!syncedAt) {
+      setPremiumCompareCodes({});
+      return () => {
+        active = false;
+      };
+    }
 
     async function loadPremiumCompareCodes() {
       try {
