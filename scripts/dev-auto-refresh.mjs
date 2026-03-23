@@ -17,6 +17,7 @@ const GIT_REMOTE = process.env.AUTO_PUSH_REMOTE || 'origin';
 const GIT_BRANCH = process.env.AUTO_PUSH_BRANCH || 'main';
 const ENABLE_GITHUB_PUSH = process.env.AUTO_PUSH_GITHUB !== '0';
 const GIT_PUSH_INTERVAL = Number.parseInt(process.env.AUTO_PUSH_INTERVAL_MS ?? '', 10) || DEFAULT_GIT_PUSH_INTERVAL;
+const BOOTSTRAP_PUSH_RETRY_INTERVAL_MS = Number.parseInt(process.env.AUTO_PUSH_BOOTSTRAP_RETRY_MS ?? '', 10) || (3 * 60 * 1000);
 const GIT_SYNC_PATHS = ['public/generated/funds-runtime.json'];
 const ENABLE_STARTUP_FULL_SYNC = process.env.SYNC_STARTUP_FULL_FIRST !== '0';
 const REGULAR_SYNC_BATCH_SIZE = process.env.SYNC_BATCH_SIZE;
@@ -148,36 +149,41 @@ async function hasNonRuntimeChanges() {
   return staged.code === 0 && staged.stdout.trim() !== '';
 }
 
-async function pushRuntimeUpdate() {
+async function pushRuntimeUpdate(options = {}) {
   if (!gitPushReady || pushing) {
-    return;
+    return false;
   }
+
+  const ignoreNonRuntimeChanges = Boolean(options.ignoreNonRuntimeChanges);
 
   pushing = true;
   try {
-    if (await hasNonRuntimeChanges()) {
+    if (!ignoreNonRuntimeChanges && await hasNonRuntimeChanges()) {
       console.warn('[auto-refresh] skipped runtime auto push: non-runtime changes detected.');
-      return;
+      return false;
     }
 
     const status = await runCommandCapture('git', ['status', '--porcelain', '--', ...GIT_SYNC_PATHS]);
     if (status.code !== 0 || status.stdout.trim() === '') {
-      return;
+      // No runtime delta means online is already up-to-date for this path.
+      return true;
     }
 
     await runCommand('git', ['add', '--', ...GIT_SYNC_PATHS]);
 
     const staged = await runCommandCapture('git', ['diff', '--cached', '--name-only', '--', ...GIT_SYNC_PATHS]);
     if (staged.code !== 0 || staged.stdout.trim() === '') {
-      return;
+      return true;
     }
 
     const stamp = new Date().toISOString();
     await runCommand('git', ['commit', '-m', `chore(auto): refresh runtime data ${stamp}`]);
     await runCommand('git', ['push', GIT_REMOTE, `HEAD:${GIT_BRANCH}`]);
     console.log('[auto-refresh] pushed runtime data to GitHub.');
+    return true;
   } catch (error) {
     console.error('[auto-refresh] git push failed:', error instanceof Error ? error.message : error);
+    return false;
   } finally {
     pushing = false;
   }
@@ -227,7 +233,25 @@ async function main() {
   if (!synced) {
     await syncOnce();
   }
-  await pushRuntimeUpdate();
+  let initialPushCompleted = !gitPushReady;
+
+  const tryBootstrapPush = async () => {
+    if (initialPushCompleted || !gitPushReady) {
+      return true;
+    }
+
+    const ok = await pushRuntimeUpdate({ ignoreNonRuntimeChanges: true });
+    if (ok) {
+      initialPushCompleted = true;
+      process.stdout.write('[auto-refresh] bootstrap push completed; switching to regular push schedule.\n');
+    } else {
+      process.stdout.write(`[auto-refresh] bootstrap push failed; retry in ${Math.round(BOOTSTRAP_PUSH_RETRY_INTERVAL_MS / 1000)}s.\n`);
+    }
+
+    return ok;
+  };
+
+  await tryBootstrapPush();
 
   if (!fs.existsSync(viteBin)) {
     throw new Error(`Vite 未安装，缺少文件: ${viteBin}`);
@@ -255,15 +279,48 @@ async function main() {
     });
   }, getSyncInterval());
 
-  let gitTimer = setTimeout(function scheduleGitPush() {
-    void pushRuntimeUpdate().finally(() => {
-      gitTimer = setTimeout(scheduleGitPush, GIT_PUSH_INTERVAL);
-    });
-  }, GIT_PUSH_INTERVAL);
+  let gitTimer = 0;
+  let bootstrapPushTimer = 0;
+
+  const scheduleRegularPush = () => {
+    if (!gitPushReady) {
+      return;
+    }
+
+    gitTimer = setTimeout(function runRegularPush() {
+      void pushRuntimeUpdate().finally(() => {
+        scheduleRegularPush();
+      });
+    }, GIT_PUSH_INTERVAL);
+  };
+
+  const scheduleBootstrapPush = () => {
+    if (!gitPushReady || initialPushCompleted) {
+      scheduleRegularPush();
+      return;
+    }
+
+    bootstrapPushTimer = setTimeout(function runBootstrapPush() {
+      void tryBootstrapPush().finally(() => {
+        if (initialPushCompleted) {
+          scheduleRegularPush();
+        } else {
+          scheduleBootstrapPush();
+        }
+      });
+    }, BOOTSTRAP_PUSH_RETRY_INTERVAL_MS);
+  };
+
+  if (initialPushCompleted) {
+    scheduleRegularPush();
+  } else {
+    scheduleBootstrapPush();
+  }
 
   const shutdown = () => {
     clearTimeout(timer);
     clearTimeout(gitTimer);
+    clearTimeout(bootstrapPushTimer);
     vite.kill();
     process.exit(0);
   };
@@ -273,6 +330,7 @@ async function main() {
   vite.on('exit', (code) => {
     clearTimeout(timer);
     clearTimeout(gitTimer);
+    clearTimeout(bootstrapPushTimer);
     process.exit(code ?? 0);
   });
 }
