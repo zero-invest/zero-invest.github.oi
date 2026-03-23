@@ -2134,7 +2134,22 @@ function DetailPage({ funds, syncedAt, loading }: { funds: FundViewModel[]; sync
   const providerStatsByName = new Map(premiumCompareProviders.map((item) => [item.provider, item]));
   const eastmoneyProvider = premiumCompareProviders.find((item) => item.provider === 'eastmoney-fundgz') ?? null;
   const eastmoneyRows = premiumCompare?.eastmoneyDailyValuations ?? [];
-  const hasEastmoneyRows = eastmoneyRows.length > 0;
+  const eastmoneyProviderRowsRaw = providerDailyComparisons['eastmoney-fundgz'] ?? [];
+  const eastmoneyProviderRows = eastmoneyProviderRowsRaw.length > 0
+    ? eastmoneyProviderRowsRaw
+    : eastmoneyRows.map((item) => ({
+      date: item.date,
+      time: item.time,
+      marketPrice: item.marketPrice,
+      providerPremiumRate: item.providerPremiumRate,
+      ourReportedPremiumRate: typeof item.ourReportedPremiumRate === 'number' ? item.ourReportedPremiumRate : null,
+      status: item.status,
+      actualPremiumRate: null,
+      providerPremiumError: null,
+      ourPremiumError: null,
+      premiumErrorDelta: null,
+    }));
+  const hasEastmoneyRows = eastmoneyProviderRows.length > 0;
   const providersWithRows = Object.entries(providerDailyComparisons)
     .filter((entry) => Array.isArray(entry[1]) && entry[1].length > 0)
     .map((entry) => entry[0]);
@@ -2357,20 +2372,26 @@ function DetailPage({ funds, syncedAt, loading }: { funds: FundViewModel[]; sync
 
         {shouldShowPremiumCompareDetails && premiumCompare ? (
           <section className="chart-card">
-            <div className="chart-card__header"><h3>东财估值误差（东财日度）</h3><div className="muted-text">按东财溢价率反算估值；待结算日先展示，结算后自动补东财估值误差。</div></div>
-            {premiumCompare.eastmoneyDailyValuations?.length ? (
+            <div className="chart-card__header"><h3>东财日度误差</h3><div className="muted-text">与其他来源保持一致：展示来源误差、本站误差和误差差距。待结算样本会先展示，结算后自动补齐误差字段。</div></div>
+            {eastmoneyProviderRows.length ? (
               <div className="table-scroll table-scroll--window">
                 <table className="mini-data-table">
-                  <thead><tr><th>日期</th><th>快照时间</th><th>场内价</th><th>东财溢价率</th><th>东财反算估值</th><th>状态</th><th>真实净值</th><th>东财估值误差</th></tr></thead>
+                  <thead><tr><th>日期</th><th>快照时间</th><th>场内价</th><th>来源溢价率</th><th>来源反算估值</th><th>本站溢价率</th><th>状态</th><th>实际收盘溢价率</th><th>来源误差</th><th>本站误差</th><th>误差差距</th></tr></thead>
                   <tbody>
-                    {[...premiumCompare.eastmoneyDailyValuations].reverse().map((item) => (
-                      <tr key={`${item.date}-${item.time || 'na'}`}>
-                        <td>{item.date}</td><td>{item.time || '--'}</td><td>{formatCurrency(item.marketPrice)}</td><td>{formatPercent(item.providerPremiumRate)}</td><td>{typeof item.providerEstimatedNav === 'number' ? formatCurrency(item.providerEstimatedNav) : '--'}</td>
-                        <td className={item.status === 'settled' ? 'tone-positive' : 'muted-text'}>{item.status === 'settled' ? '已结算' : '待结算'}</td>
-                        <td>{typeof item.actualNav === 'number' ? formatCurrency(item.actualNav) : '--'}</td>
-                        <td className={typeof item.providerNavError === 'number' ? (item.providerNavError >= 0 ? 'tone-positive' : 'tone-negative') : 'muted-text'}>{typeof item.providerNavError === 'number' ? formatPercent(item.providerNavError) : '--'}</td>
-                      </tr>
-                    ))}
+                    {[...eastmoneyProviderRows].reverse().map((item) => {
+                      const estimatedNav = getEstimatedNavFromPremium(item.marketPrice, item.providerPremiumRate);
+                      return (
+                        <tr key={`eastmoney-${item.date}-${item.time || 'na'}`}>
+                          <td>{item.date}</td><td>{item.time || '--'}</td><td>{typeof item.marketPrice === 'number' ? formatCurrency(item.marketPrice) : '--'}</td><td>{formatPercent(item.providerPremiumRate)}</td><td>{typeof estimatedNav === 'number' ? formatCurrency(estimatedNav) : '--'}</td>
+                          <td className={typeof item.ourReportedPremiumRate === 'number' ? (item.ourReportedPremiumRate >= 0 ? 'tone-positive' : 'tone-negative') : 'muted-text'}>{typeof item.ourReportedPremiumRate === 'number' ? formatPercent(item.ourReportedPremiumRate) : '--'}</td>
+                          <td className={item.status === 'settled' ? 'tone-positive' : 'muted-text'}>{item.status === 'settled' ? '已结算' : '待结算'}</td>
+                          <td className={typeof item.actualPremiumRate === 'number' ? (item.actualPremiumRate >= 0 ? 'tone-positive' : 'tone-negative') : 'muted-text'}>{typeof item.actualPremiumRate === 'number' ? formatPercent(item.actualPremiumRate) : '--'}</td>
+                          <td className={typeof item.providerPremiumError === 'number' ? (item.providerPremiumError <= 0 ? 'tone-positive' : 'tone-negative') : 'muted-text'}>{typeof item.providerPremiumError === 'number' ? formatPercent(item.providerPremiumError) : '--'}</td>
+                          <td className={typeof item.ourPremiumError === 'number' ? (item.ourPremiumError <= 0 ? 'tone-positive' : 'tone-negative') : 'muted-text'}>{typeof item.ourPremiumError === 'number' ? formatPercent(item.ourPremiumError) : '--'}</td>
+                          <td className={getPremiumGapDisplay(getPremiumGapDelta(item.providerPremiumError, item.ourPremiumError, item.premiumErrorDelta)).className}>{getPremiumGapDisplay(getPremiumGapDelta(item.providerPremiumError, item.ourPremiumError, item.premiumErrorDelta)).text}</td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
