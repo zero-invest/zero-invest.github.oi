@@ -7,10 +7,10 @@ on:
       - main
   schedule:
     # Beijing time is UTC+8.
-    # Day session: 09:00-16:59 CST, every 15 minutes.
-    - cron: '*/15 1-8 * * 1-5'
-    # US night session: 21:00-04:59 CST, every 15 minutes.
-    - cron: '*/15 13-20 * * 1-5'
+    # Day session: 09:00-16:59 CST, every 5 minutes.
+    - cron: '*/5 1-8 * * 1-5'
+    # US night session: 21:00-04:59 CST, every 5 minutes.
+    - cron: '*/5 13-20 * * 1-5'
 
 permissions:
   contents: read
@@ -61,6 +61,9 @@ jobs:
 
       - name: Sync Funds Runtime Data
         run: npm run sync:data
+        env:
+          # Keep each scheduled run short to avoid queue backlog under 5-minute cadence.
+          SYNC_BATCH_SIZE: '8'
 
       - name: Build Site
         run: npm run build:static
