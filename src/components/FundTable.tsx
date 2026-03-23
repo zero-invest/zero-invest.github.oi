@@ -246,11 +246,11 @@ export function FundTable({
       <div>东财估值溢价</div>
       <div>{sortable ? renderSortLabel('溢价率', 'premiumRate') : renderFloatingHeaderLabel('溢价率', 'premiumRate')}</div>
       <div>限购</div>
-      <div>{sortable ? renderSortLabel('训练误差', 'meanAbsError') : renderFloatingHeaderLabel('训练误差', 'meanAbsError')}</div>
+      <div>{sortable ? renderSortLabel('涨跌幅', 'changeRate') : renderFloatingHeaderLabel('涨跌幅', 'changeRate')}</div>
       <div>{sortable ? renderSortLabel('最近误差', 'latestError') : renderFloatingHeaderLabel('最近误差', 'latestError')}</div>
       <div>{sortable ? renderSortLabel('30d误差', 'error30d') : renderFloatingHeaderLabel('30d误差', 'error30d')}</div>
+      <div>{sortable ? renderSortLabel('训练误差', 'meanAbsError') : renderFloatingHeaderLabel('训练误差', 'meanAbsError')}</div>
       <div>{sortable ? renderSortLabel('现价', 'marketPrice') : renderFloatingHeaderLabel('现价', 'marketPrice')}</div>
-      <div>{sortable ? renderSortLabel('涨跌幅', 'changeRate') : renderFloatingHeaderLabel('涨跌幅', 'changeRate')}</div>
       <div>{sortable ? renderSortLabel('估值', 'estimatedNav') : renderFloatingHeaderLabel('估值', 'estimatedNav')}</div>
       <div>{sortable ? renderSortLabel('净值', 'officialNavT1') : renderFloatingHeaderLabel('净值', 'officialNavT1')}</div>
       <div>净值日期</div>
@@ -284,11 +284,11 @@ export function FundTable({
             <col className="fund-table__col fund-table__col--provider-premium" />
             <col className="fund-table__col fund-table__col--premium" />
             <col className="fund-table__col fund-table__col--limit" />
-            <col className="fund-table__col fund-table__col--error" />
+            <col className="fund-table__col fund-table__col--change" />
             <col className="fund-table__col fund-table__col--recent-error" />
             <col className="fund-table__col fund-table__col--error-30d" />
+            <col className="fund-table__col fund-table__col--error" />
             <col className="fund-table__col fund-table__col--market" />
-            <col className="fund-table__col fund-table__col--change" />
             <col className="fund-table__col fund-table__col--estimate" />
             <col className="fund-table__col fund-table__col--nav" />
             <col className="fund-table__col fund-table__col--nav-date" />
@@ -303,11 +303,11 @@ export function FundTable({
               <th title="东财 fundgz 估值计算的溢价率（第三方口径）。">东财估值溢价</th>
               <th>{renderSortLabel('溢价率', 'premiumRate')}</th>
               <th title="当前是否存在购买限额限制。点击基金详情页可查看最新限购政策。">限购</th>
-              <th>{renderSortLabel('训练误差', 'meanAbsError')}</th>
+              <th title="这个交易日场内价相对前一交易日的涨跌幅。">{renderSortLabel('涨跌幅', 'changeRate')}</th>
               <th>{renderSortLabel('最近误差', 'latestError')}</th>
               <th>{renderSortLabel('30d误差', 'error30d')}</th>
+              <th>{renderSortLabel('训练误差', 'meanAbsError')}</th>
               <th title="当前场内交易价格（实时更新）。以该日期该时间为准。">{renderSortLabel('现价', 'marketPrice')}</th>
-              <th title="这个交易日场内价相对前一交易日的涨跌幅。">{renderSortLabel('涨跌幅', 'changeRate')}</th>
               <th title="当日净值的估值。">{renderSortLabel('估值', 'estimatedNav')}</th>
               <th title="基金官方公布的最近一次净值。可能是 T-1 日或 T-2 日，具体看右侧净值日期列。">{renderSortLabel('净值', 'officialNavT1')}</th>
               <th title="官方净值对应的日期。T-1 表示上一个交易日，T-2 表示上上个交易日。">净值日期</th>
@@ -366,15 +366,15 @@ export function FundTable({
                   <td className={getLimitClass(fund.runtime.purchaseLimit)}>
                     {fund.runtime.purchaseLimit || '待校验'}
                   </td>
-                  <td className={typeof training30Error === 'number' ? (training30Error > 0.02 ? 'tone-positive' : 'tone-negative') : 'muted-text'}>
-                    {typeof training30Error === 'number' ? formatPercent(training30Error) : '未训练'}
-                  </td>
+                  <td className={changeRate >= 0 ? 'tone-positive' : 'tone-negative'}>{formatPercent(changeRate)}</td>
                   <td className={typeof latestError === 'number' ? (latestError >= 0 ? 'tone-positive' : 'tone-negative') : 'muted-text'}>
                     {typeof latestError === 'number' ? formatPercent(latestError) : '--'}
                   </td>
                   <td>{typeof avg30dError === 'number' ? formatPercent(avg30dError) : '--'}</td>
+                  <td className={typeof training30Error === 'number' ? (training30Error > 0.02 ? 'tone-positive' : 'tone-negative') : 'muted-text'}>
+                    {typeof training30Error === 'number' ? formatPercent(training30Error) : '未训练'}
+                  </td>
                   <td>{formatCurrency(fund.runtime.marketPrice)}</td>
-                  <td className={changeRate >= 0 ? 'tone-positive' : 'tone-negative'}>{formatPercent(changeRate)}</td>
                   <td>{formatCurrency(fund.estimate.estimatedNav)}</td>
                   <td>{formatCurrency(fund.runtime.officialNavT1)}</td>
                   <td>{fund.runtime.navDate || '--'}</td>
