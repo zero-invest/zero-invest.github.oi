@@ -2152,6 +2152,22 @@ function DetailPage({ funds, syncedAt, loading }: { funds: FundViewModel[]; sync
       stats: providerStatsByName.get(provider) ?? null,
     }));
   const ourPremiumSummary = premiumCompare?.ourPremiumSummary;
+  const getPremiumGapDelta = (
+    sourceError: number | null | undefined,
+    ourError: number | null | undefined,
+    fallbackDelta?: number | null,
+  ) => {
+    if (typeof sourceError === 'number' && Number.isFinite(sourceError)
+      && typeof ourError === 'number' && Number.isFinite(ourError)) {
+      // Gap is based on absolute error magnitude: our worse => positive, our better => negative.
+      return Math.abs(ourError) - Math.abs(sourceError);
+    }
+    if (typeof fallbackDelta === 'number' && Number.isFinite(fallbackDelta)) {
+      return fallbackDelta;
+    }
+    return null;
+  };
+
   const getPremiumGapDisplay = (delta: number | null | undefined) => {
     if (typeof delta !== 'number' || !Number.isFinite(delta)) {
       return { className: 'muted-text', text: '--' };
@@ -2160,9 +2176,11 @@ function DetailPage({ funds, syncedAt, loading }: { funds: FundViewModel[]; sync
       return { className: 'muted-text', text: '--' };
     }
     if (delta > 0) {
-      return { className: 'tone-negative', text: `↓ ${formatPercent(Math.abs(delta))}` };
+      // Our error is larger than source error: up arrow + green.
+      return { className: 'tone-negative', text: `↑ ${formatPercent(Math.abs(delta))}` };
     }
-    return { className: 'tone-positive', text: `↑ ${formatPercent(Math.abs(delta))}` };
+    // Our error is smaller than source error: down arrow + red.
+    return { className: 'tone-positive', text: `↓ ${formatPercent(Math.abs(delta))}` };
   };
 
   return (
@@ -2290,7 +2308,7 @@ function DetailPage({ funds, syncedAt, loading }: { funds: FundViewModel[]; sync
                         <td>{typeof providerItem.settledCount30 === 'number' ? providerItem.settledCount30 : providerItem.sampleCount30}/{typeof providerItem.settledWindowSize === 'number' ? providerItem.settledWindowSize : 30}</td>
                         <td>{typeof providerItem.avgAbsProviderError30 === 'number' ? formatPercent(providerItem.avgAbsProviderError30) : '--'}</td>
                         <td>{typeof providerItem.avgAbsOurError30 === 'number' ? formatPercent(providerItem.avgAbsOurError30) : '--'}</td>
-                        <td className={getPremiumGapDisplay(providerItem.avgAbsDelta30).className}>{getPremiumGapDisplay(providerItem.avgAbsDelta30).text}</td>
+                        <td className={getPremiumGapDisplay(getPremiumGapDelta(providerItem.avgAbsProviderError30, providerItem.avgAbsOurError30, providerItem.avgAbsDelta30)).className}>{getPremiumGapDisplay(getPremiumGapDelta(providerItem.avgAbsProviderError30, providerItem.avgAbsOurError30, providerItem.avgAbsDelta30)).text}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -2382,7 +2400,7 @@ function DetailPage({ funds, syncedAt, loading }: { funds: FundViewModel[]; sync
                           <td className={typeof dailyItem.actualPremiumRate === 'number' ? (dailyItem.actualPremiumRate >= 0 ? 'tone-positive' : 'tone-negative') : 'muted-text'}>{typeof dailyItem.actualPremiumRate === 'number' ? formatPercent(dailyItem.actualPremiumRate) : '--'}</td>
                           <td className={typeof dailyItem.providerPremiumError === 'number' ? (dailyItem.providerPremiumError <= 0 ? 'tone-positive' : 'tone-negative') : 'muted-text'}>{typeof dailyItem.providerPremiumError === 'number' ? formatPercent(dailyItem.providerPremiumError) : '--'}</td>
                           <td className={typeof dailyItem.ourPremiumError === 'number' ? (dailyItem.ourPremiumError <= 0 ? 'tone-positive' : 'tone-negative') : 'muted-text'}>{typeof dailyItem.ourPremiumError === 'number' ? formatPercent(dailyItem.ourPremiumError) : '--'}</td>
-                          <td className={getPremiumGapDisplay(dailyItem.premiumErrorDelta).className}>{getPremiumGapDisplay(dailyItem.premiumErrorDelta).text}</td>
+                          <td className={getPremiumGapDisplay(getPremiumGapDelta(dailyItem.providerPremiumError, dailyItem.ourPremiumError, dailyItem.premiumErrorDelta)).className}>{getPremiumGapDisplay(getPremiumGapDelta(dailyItem.providerPremiumError, dailyItem.ourPremiumError, dailyItem.premiumErrorDelta)).text}</td>
                         </tr>
                       );
                     })}
