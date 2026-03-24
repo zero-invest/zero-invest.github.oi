@@ -14,8 +14,8 @@ type ViewCategory = 'qdii-lof' | 'domestic-lof' | 'qdii-etf' | 'domestic-etf' | 
 async function fetchGeneratedJson<T>(fileName: string): Promise<T> {
   const ts = Date.now();
   const candidates = [
-    `generated/${fileName}?ts=${ts}`,
     `${REMOTE_GENERATED_BASE}/${fileName}?ts=${ts}`,
+    `generated/${fileName}?ts=${ts}`,
   ];
 
   let lastError: Error | null = null;
@@ -2269,7 +2269,7 @@ function DetailPage({ funds, syncedAt, loading }: { funds: FundViewModel[]; sync
             </div>
             {summaryProviders.length ? (
               <div className="table-scroll table-scroll--window">
-                <table className="mini-data-table">
+                <table className="mini-data-table mini-data-table--summary">
                   <thead>
                     <tr>
                       <th>来源</th>
@@ -2319,8 +2319,8 @@ function DetailPage({ funds, syncedAt, loading }: { funds: FundViewModel[]; sync
           </div>
           {recentSnapshots.length > 0 ? (
             <div className="table-scroll table-scroll--window">
-              <table className="mini-data-table">
-                <thead><tr><th>日期</th><th>状态</th><th>估值</th><th>参考场内价</th><th>价格口径</th><th>对应真实净值</th><th>净值误差</th><th>估算溢价率</th><th>实际收盘溢价率</th><th>溢价率误差</th></tr></thead>
+              <table className="mini-data-table mini-data-table--snapshot">
+                <thead><tr><th>日期</th><th>状态</th><th>估值</th><th>场内价</th><th>口径</th><th>真实净值</th><th>净值误差</th><th>估算溢价</th><th>实收溢价</th><th>溢价误差</th></tr></thead>
                 <tbody>
                   {recentSnapshots.map((item) => {
                     const settled = errorByDate.get(item.estimateDate);
@@ -2354,8 +2354,8 @@ function DetailPage({ funds, syncedAt, loading }: { funds: FundViewModel[]; sync
             <div className="chart-card__header"><h3>东财日度误差</h3><div className="muted-text">与其他来源保持一致：展示来源误差、本站误差和误差差距。待结算样本会先展示，结算后自动补齐误差字段。</div></div>
             {eastmoneyProviderRows.length ? (
               <div className="table-scroll table-scroll--window">
-                <table className="mini-data-table">
-                  <thead><tr><th>日期</th><th>快照时间</th><th>场内价</th><th>来源溢价率</th><th>来源反算估值</th><th>本站溢价率</th><th>状态</th><th>实际收盘溢价率</th><th>来源误差</th><th>本站误差</th><th>误差差距</th></tr></thead>
+                <table className="mini-data-table mini-data-table--compare">
+                  <thead><tr><th>日期</th><th>快照</th><th>场内价</th><th>来源溢价</th><th>来源估值</th><th>本站溢价</th><th>状态</th><th>实收溢价</th><th>来源误差</th><th>本站误差</th><th>差距</th></tr></thead>
                   <tbody>
                     {[...eastmoneyProviderRows].reverse().map((item) => {
                       const estimatedNav = getEstimatedNavFromPremium(item.marketPrice, item.providerPremiumRate);
@@ -2386,8 +2386,8 @@ function DetailPage({ funds, syncedAt, loading }: { funds: FundViewModel[]; sync
             </div>
             {item.rows.length ? (
               <div className="table-scroll table-scroll--window">
-                <table className="mini-data-table">
-                  <thead><tr><th>日期</th><th>快照时间</th><th>场内价</th><th>来源溢价率</th><th>来源反算估值</th><th>本站溢价率</th><th>状态</th><th>实际收盘溢价率</th><th>来源误差</th><th>本站误差</th><th>误差差距</th></tr></thead>
+                <table className="mini-data-table mini-data-table--compare">
+                  <thead><tr><th>日期</th><th>快照</th><th>场内价</th><th>来源溢价</th><th>来源估值</th><th>本站溢价</th><th>状态</th><th>实收溢价</th><th>来源误差</th><th>本站误差</th><th>差距</th></tr></thead>
                   <tbody>
                     {[...item.rows].reverse().map((dailyItem) => {
                       const estimatedNav = getEstimatedNavFromPremium(dailyItem.marketPrice, dailyItem.providerPremiumRate);
