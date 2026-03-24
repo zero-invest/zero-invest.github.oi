@@ -54,10 +54,17 @@ jobs:
           GH_TRAFFIC_SNAPSHOT_HOUR_CST: '12'
           GH_TRAFFIC_SNAPSHOT_WINDOW_MINUTES: '20'
 
-      - name: Sync Funds Runtime Data (full)
-        run: npm run sync:data
-        env:
-          SYNC_BATCH_SIZE: '9999'
+      - name: Sync Funds Runtime Data (fast)
+        run: node scripts/sync-funds.mjs
+
+      - name: Sync Premium Compare (every 30 minutes)
+        run: |
+          MINUTE=$(date -u +'%M')
+          if [ $((10#$MINUTE % 30)) -eq 0 ]; then
+            node scripts/sync-premium-compare.mjs
+          else
+            echo "Skip premium compare on minute ${MINUTE}; runtime-only refresh this round."
+          fi
 
       - name: Save Fund Sync Cache
         if: always()
