@@ -171,6 +171,7 @@ function normalizeWatchlistModel(input: Partial<WatchlistModel> | undefined): Wa
     alpha: pickNumber(source.alpha, fallback.alpha),
     betaLead: pickNumber(source.betaLead, fallback.betaLead),
     betaGap: pickNumber(source.betaGap, fallback.betaGap),
+      betaIntraday: pickNumber(source.betaIntraday, fallback.betaIntraday),
     learningRate: pickNumber(source.learningRate, fallback.learningRate),
     sampleCount: pickNumber(source.sampleCount, fallback.sampleCount),
     meanAbsError: pickNumber(source.meanAbsError, fallback.meanAbsError),
