@@ -8,18 +8,33 @@ import { estimateWatchlistFund, getDefaultWatchlistModel, reconcileJournal, reco
 import type { FundJournal, FundRuntimeData, FundViewModel, GithubTrafficPayload, RuntimePayload, WatchlistModel } from './types';
 const FAST_SYNC_INTERVAL = 60_000;
 const SLOW_SYNC_INTERVAL = 15 * 60_000;
-const REMOTE_GENERATED_BASE = 'https://raw.githubusercontent.com/987144016/lof-Premium-Rate-Web/main/public/generated';
+// Cloudflare Worker API 基础地址（请替换为你的实际 workers.dev 域名）
+const REMOTE_API_BASE = 'https://still-tooth-c5a4.987144016.workers.dev/api/runtime';
 const GENERATED_FETCH_TIMEOUT_MS = 4500;
 type ViewCategory = 'qdii-lof' | 'domestic-lof' | 'qdii-etf' | 'domestic-etf' | 'favorites';
 
+// 本地开发优先本地静态，线上优先 Worker API，兜底静态
 async function fetchGeneratedJson<T>(fileName: string): Promise<T> {
   const ts = Date.now();
-  // Always prefer the same-origin generated payload first.
-  // This is the most stable source for both local dev and online static hosting.
-  const candidates = [
-    `generated/${fileName}?ts=${ts}`,
-    `${REMOTE_GENERATED_BASE}/${fileName}?ts=${ts}`,
-  ];
+  const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  // 本地开发优先本地 generated/xxx.json，线上优先 API
+  const candidates: string[] = [];
+  if (isLocal) {
+    candidates.push(`generated/${fileName}?ts=${ts}`);
+  }
+  // API 路径
+  if (fileName === 'funds-runtime.json') {
+    candidates.push(`${REMOTE_API_BASE}/all`);
+  } else if (/^(\d+)-offline-research\.json$/.test(fileName)) {
+    const code = fileName.split('-')[0];
+    candidates.push(`${REMOTE_API_BASE}/latest?code=${code}`);
+  } else if (fileName === 'premium-compare.json') {
+    candidates.push(`${REMOTE_API_BASE}/premium-compare`);
+  }
+  // 线上兜底静态
+  if (!isLocal) {
+    candidates.push(`generated/${fileName}?ts=${ts}`);
+  }
 
   let lastError: Error | null = null;
   for (const url of candidates) {
@@ -27,17 +42,22 @@ async function fetchGeneratedJson<T>(fileName: string): Promise<T> {
     const timeout = setTimeout(() => controller.abort(), GENERATED_FETCH_TIMEOUT_MS);
     try {
       const response = await fetch(url, { cache: 'no-store', signal: controller.signal });
-      if (!response.ok) {
-        throw new Error(`http-${response.status}`);
+      if (!response.ok) throw new Error(`http-${response.status}`);
+      const data = await response.json();
+      if (fileName === 'funds-runtime.json') {
+        return data as T;
+      } else if (/^(\d+)-offline-research\.json$/.test(fileName)) {
+        return (data.fund || data) as T;
+      } else if (fileName === 'premium-compare.json') {
+        return data as T;
       }
-      return (await response.json()) as T;
+      throw new Error('未知数据结构');
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
     } finally {
       clearTimeout(timeout);
     }
   }
-
   throw lastError ?? new Error(`failed to load generated/${fileName}`);
 }
 

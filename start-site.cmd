@@ -1,4 +1,5 @@
 @echo off
+chcp 65001 >nul
 setlocal
 cd /d "%~dp0"
 
@@ -21,5 +22,12 @@ if not defined AUTO_PUSH_BOOTSTRAP_RETRY_MS set "AUTO_PUSH_BOOTSTRAP_RETRY_MS=18
 if not defined SYNC_STARTUP_FULL_FIRST set "SYNC_STARTUP_FULL_FIRST=1"
 if not defined SYNC_BOOTSTRAP_BATCH_SIZE set "SYNC_BOOTSTRAP_BATCH_SIZE=9999"
 if not defined SYNC_BATCH_SIZE set "SYNC_BATCH_SIZE=8"
-"%NODE_EXE%" scripts\dev-auto-refresh.mjs
+
+REM 创建日志目录（如果不存在）
+if not exist "%~dp0.cache\cloudflare" mkdir "%~dp0.cache\cloudflare"
+
+REM 直接启动网站
+echo Starting premium rate website...
+"%NODE_EXE%" "%~dp0scripts\dev-auto-refresh.mjs"
+
 endlocal

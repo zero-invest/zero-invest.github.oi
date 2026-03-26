@@ -1,9 +1,39 @@
+const projectRoot = process.cwd();
+// 自动同步到 Cloudflare D1/Worker 的计数器文件
+const CF_SYNC_COUNTER_FILE = path.join(projectRoot, '.cache', 'cloudflare', 'cf_sync_counter.txt');
+const CF_SYNC_TRIGGER_COUNT = 1; // 每次同步后自动导入D1并部署
+
+function readCfSyncCounter() {
+  try {
+    return Number(fs.readFileSync(CF_SYNC_COUNTER_FILE, 'utf8')) || 0;
+  } catch {
+    return 0;
+  }
+}
+
+function writeCfSyncCounter(val) {
+  try {
+    fs.mkdirSync(path.dirname(CF_SYNC_COUNTER_FILE), { recursive: true });
+    fs.writeFileSync(CF_SYNC_COUNTER_FILE, String(val), 'utf8');
+  } catch {}
+}
+
+async function syncCloudflareD1AndWorker() {
+  try {
+    await runCommand('npm', ['run', 'cloudflare:runtime:sql']);
+    await runCommand('wrangler', ['d1', 'execute', 'premium-runtime-db', '--file', '.cache/cloudflare/runtime-upsert.sql', '--remote']);
+    await runCommand('wrangler', ['deploy']);
+    console.log('[auto-refresh] Cloudflare D1/Worker 已自动同步');
+  } catch (err) {
+    console.error('[auto-refresh] Cloudflare D1/Worker 同步失败:', err instanceof Error ? err.message : err);
+  }
+}
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 
-const projectRoot = process.cwd();
+
 const nodeExecutable = process.execPath;
 const nodeDir = path.dirname(nodeExecutable);
 const viteBin = path.join(projectRoot, 'node_modules', 'vite', 'bin', 'vite.js');
@@ -18,7 +48,7 @@ const GIT_BRANCH = process.env.AUTO_PUSH_BRANCH || 'main';
 const ENABLE_GITHUB_PUSH = process.env.AUTO_PUSH_GITHUB !== '0';
 const GIT_PUSH_INTERVAL = Number.parseInt(process.env.AUTO_PUSH_INTERVAL_MS ?? '', 10) || DEFAULT_GIT_PUSH_INTERVAL;
 const BOOTSTRAP_PUSH_RETRY_INTERVAL_MS = Number.parseInt(process.env.AUTO_PUSH_BOOTSTRAP_RETRY_MS ?? '', 10) || (3 * 60 * 1000);
-const GIT_SYNC_PATHS = ['public/generated/funds-runtime.json'];
+const GIT_SYNC_PATHS = ['public/generated/funds-runtime.json', 'public/generated/premium-compare.json'];
 const ENABLE_STARTUP_FULL_SYNC = process.env.SYNC_STARTUP_FULL_FIRST !== '0';
 const REGULAR_SYNC_BATCH_SIZE = process.env.SYNC_BATCH_SIZE;
 const STARTUP_SYNC_BATCH_SIZE = process.env.SYNC_BOOTSTRAP_BATCH_SIZE || '9999';
@@ -190,7 +220,18 @@ async function syncOnce(options = {}) {
 
   syncing = true;
   try {
+    // 先后运行完整的数据生成脚本：funds + premium-compare（等同于 npm run sync:data）
     await runCommand(nodeExecutable, ['scripts/sync-funds.mjs'], { env });
+    await runCommand(nodeExecutable, ['scripts/sync-premium-compare.mjs'], { env });
+
+    // Cloudflare D1/Worker 自动同步计数逻辑
+    let cfSyncCounter = readCfSyncCounter() + 1;
+    if (cfSyncCounter >= CF_SYNC_TRIGGER_COUNT) {
+      await syncCloudflareD1AndWorker();
+      cfSyncCounter = 0;
+    }
+    writeCfSyncCounter(cfSyncCounter);
+
     return true;
   } catch (error) {
     console.error('[auto-refresh] sync failed:', error instanceof Error ? error.message : error);

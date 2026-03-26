@@ -1,0 +1,11 @@
+name = "lof-premium-rate-web-api"
+main = "src/index.js"
+compatibility_date = "2026-03-25"
+workers_dev = true
+
+account_id = "YOUR_CLOUDFLARE_ACCOUNT_ID"
+
+[[d1_databases]]
+binding = "RUNTIME_DB"
+database_name = "premium-runtime-db"
+database_id = "YOUR_D1_DATABASE_ID"
