@@ -32,25 +32,31 @@ function isAbortLikeError(error: unknown): boolean {
 }
 
 // 本地开发优先本地静态，线上优先 Worker API，兜底静态
+function isGithubPagesHost(hostname: string): boolean {
+  return hostname === 'github.io' || hostname.endsWith('.github.io');
+}
+
 async function fetchGeneratedJson<T>(fileName: string): Promise<T> {
   const ts = Date.now();
-  const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  const hostname = window.location.hostname;
+  const isLocal = hostname === 'localhost' || hostname === '127.0.0.1';
+  const preferStaticFirst = isLocal || isGithubPagesHost(hostname);
   // 本地开发优先本地 generated/xxx.json，线上优先 API
   const candidates: string[] = [];
-  if (isLocal) {
+  if (preferStaticFirst) {
     candidates.push(`generated/${fileName}?ts=${ts}`);
   }
   // API 路径
-  if (fileName === 'funds-runtime.json') {
+  if (!preferStaticFirst && fileName === 'funds-runtime.json') {
     candidates.push(`${REMOTE_API_BASE}/all`);
-  } else if (/^(\d+)-offline-research\.json$/.test(fileName)) {
+  } else if (!preferStaticFirst && /^(\d+)-offline-research\.json$/.test(fileName)) {
     const code = fileName.split('-')[0];
     candidates.push(`${REMOTE_API_BASE}/latest?code=${code}`);
-  } else if (fileName === 'premium-compare.json') {
+  } else if (!preferStaticFirst && fileName === 'premium-compare.json') {
     candidates.push(`${REMOTE_API_BASE}/premium-compare`);
   }
   // 线上兜底静态
-  if (!isLocal) {
+  if (!preferStaticFirst) {
     candidates.push(`generated/${fileName}?ts=${ts}`);
   }
 
@@ -800,6 +806,9 @@ function getPremiumProviderLabel(provider: string) {
   const key = String(provider || '').trim();
   if (PREMIUM_PROVIDER_LABELS[key]) {
     return PREMIUM_PROVIDER_LABELS[key];
+  }
+  if (key === 'manual-haoetf') {
+    return 'HaoETF(手工)';
   }
   if (key.startsWith('manual-')) {
     return `${key.replace('manual-', '')}(手工)`;
