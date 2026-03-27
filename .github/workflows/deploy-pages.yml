@@ -5,11 +5,10 @@ on:
   push:
     branches:
       - main
-  workflow_run:
-    workflows:
-      - Sync Generated Data
-    types:
-      - completed
+    # 只有代码文件变更才触发重新构建，纯数据更新不触发
+    paths-ignore:
+      - 'public/generated/**'
+      - '.cache/**'
 
 permissions:
   contents: read
@@ -17,21 +16,17 @@ permissions:
   id-token: write
 
 concurrency:
-  # Separate push and schedule queues so scheduled data refresh does not cancel code deployment.
-  group: pages-${{ github.event_name }}
-  # Only push runs should preempt older push runs; scheduled runs should not preempt deployments.
-  cancel-in-progress: ${{ github.event_name == 'push' }}
+  group: pages-deploy
+  cancel-in-progress: true
 
 jobs:
   build:
-    if: github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Restore Fund Sync Cache
-        id: fund-sync-cache-restore
         uses: actions/cache/restore@v4
         with:
           path: .cache/fund-sync
@@ -51,18 +46,7 @@ jobs:
       - name: Configure Pages
         uses: actions/configure-pages@v5
 
-      - name: Sync GitHub Traffic
-        run: npm run sync:github-traffic
-        env:
-          GH_TRAFFIC_REPO: ${{ github.repository }}
-          GH_TRAFFIC_TOKEN: ${{ secrets.GH_TRAFFIC_TOKEN }}
-          GH_TRAFFIC_SNAPSHOT_HOUR_CST: '12'
-          GH_TRAFFIC_SNAPSHOT_WINDOW_MINUTES: '20'
-
       - name: Sync Funds Runtime Data
-        # 由 sync-generated-data workflow 触发时数据已是最新，直接跳过重复同步
-        # 由 push 触发时需要同步一次
-        if: github.event_name == 'push'
         run: npm run sync:data
 
       - name: Build Site
