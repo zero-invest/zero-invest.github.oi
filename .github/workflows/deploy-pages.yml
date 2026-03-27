@@ -65,7 +65,8 @@ jobs:
         if: github.event_name == 'push'
         run: npm run sync:data
 
-      - name: Build Site        run: npm run build:static
+      - name: Build Site
+        run: npm run build:static
 
       - name: Save Fund Sync Cache
         if: always()
