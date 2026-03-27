@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-03-27T04:37:30.551Z",
-  "syncedAt": "2026-03-27T04:30:18.750Z",
+  "generatedAt": "2026-03-27T05:00:29.345Z",
+  "syncedAt": "2026-03-27T04:52:32.449Z",
   "codes": {
     "159100": {
       "code": "159100",
@@ -7892,9 +7892,9 @@
           },
           {
             "date": "2026-03-27",
-            "time": "11:23:15",
+            "time": "12:05:51",
             "marketPrice": 2.763,
-            "providerPremiumRate": -0.0858,
+            "providerPremiumRate": -0.0641,
             "ourReportedPremiumRate": -0.0024550509062026826,
             "status": "pending",
             "actualPremiumRate": null,
@@ -8325,9 +8325,9 @@
         },
         {
           "provider": "eastmoney-quote",
-          "sourceUrl": "https://fund.eastmoney.com/161125.html",
-          "status": "premium-unavailable",
-          "premiumRateCurrent": -0.0858,
+          "sourceUrl": "https://push2.eastmoney.com/api/qt/stock/get?invt=2&fltt=2&secid=0.161125&fields=f57,f58,f193,f194",
+          "status": "ok",
+          "premiumRateCurrent": -0.0641,
           "hitCount60": 6,
           "avgAbsProviderError30": 0.1564993205939264,
           "avgAbsOurError30": 0.011660322678033713,
