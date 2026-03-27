@@ -51,7 +51,7 @@ jobs:
 
       - name: Build Site
         env:
-          VITE_RUNTIME_API_BASE: https://api.leo2026.cloud/api/runtime
+          VITE_RUNTIME_API_BASE: https://lof-premium-rate-web-api.987144016.workers.dev
         run: npm run build:static
 
       - name: Save Fund Sync Cache
