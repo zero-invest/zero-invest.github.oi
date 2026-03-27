@@ -50,6 +50,8 @@ jobs:
         run: npm run sync:data
 
       - name: Build Site
+        env:
+          VITE_RUNTIME_API_BASE: https://api.leo2026.cloud/api/runtime
         run: npm run build:static
 
       - name: Save Fund Sync Cache

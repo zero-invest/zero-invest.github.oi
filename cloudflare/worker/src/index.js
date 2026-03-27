@@ -2,13 +2,12 @@ const OIL_CODES = ['160723', '501018', '161129', '160416', '162719', '162411', '
 
 const DEFAULT_RUNTIME_SYNC_SOURCE =
   'https://987144016.github.io/lof-Premium-Rate-Web/generated/funds-runtime.json';
-const DEFAULT_PREMIUM_COMPARE_SOURCE =
-  'https://987144016.github.io/lof-Premium-Rate-Web/generated/premium-compare.json';
 const DEFAULT_SYNC_INTERVAL_MINUTES = 5;
 const MAX_SYNC_INTERVAL_MINUTES = 60;
 
 // 导入自主同步引擎
 import { syncAllFunds, getAllFunds, getFundByCode } from './sync-engine.js';
+import { buildPremiumComparePayload } from './premium-compare-engine.js';
 
 function json(payload, status = 200) {
   return new Response(JSON.stringify(payload), {
@@ -66,7 +65,7 @@ function resolvePremiumCompareSource(env) {
   if (explicit) return explicit;
 
   const generatedBaseUrl = resolveGeneratedSourceBaseUrl(env);
-  return joinGeneratedSourceUrl(generatedBaseUrl, 'premium-compare.json') || DEFAULT_PREMIUM_COMPARE_SOURCE;
+  return joinGeneratedSourceUrl(generatedBaseUrl, 'premium-compare.json');
 }
 
 function resolveMinSyncIntervalMinutes(env) {
@@ -174,6 +173,17 @@ async function syncRuntimeFromSource(db, env, options = {}) {
   }
 
   const payload = await loadRuntimePayload(sourceUrl);
+  const latestFundCount = Number(latestRun?.fund_count || 0);
+  if (!options.force && latestFundCount > 0 && payload.funds.length < latestFundCount) {
+    return {
+      ok: true,
+      skipped: true,
+      reason: `Upstream fund count (${payload.funds.length}) smaller than current (${latestFundCount})`,
+      syncedAt: String(latestRun?.synced_at || ''),
+      fundCount: latestFundCount,
+      sourceUrl,
+    };
+  }
 
   if (!options.force && latestRun && String(latestRun.synced_at || '') === payload.syncedAt) {
     return {
@@ -332,16 +342,27 @@ async function handleGetManualPremiumEntries(request, env, db) {
 }
 
 // 处理溢价率对比请求
-async function handlePremiumCompareRequest(env) {
+async function handlePremiumCompareRequest(request, env, db) {
   try {
-    const sourceUrl = resolvePremiumCompareSource(env);
-    const payload = await loadJsonFromSource(sourceUrl);
+    const params = new URL(request.url).searchParams;
+    const force = params.get('force') === 'true';
+    const liveFetchLimit = Number.parseInt(String(params.get('liveFetchLimit') || ''), 10);
+    const payload = await buildPremiumComparePayload(db, {
+      force,
+      liveFetchLimit: Number.isFinite(liveFetchLimit) ? liveFetchLimit : undefined,
+    });
     return json({ ok: true, ...payload });
   } catch (error) {
-    return json(
-      { ok: false, error: error.message },
-      500
-    );
+    const fallbackSource = resolvePremiumCompareSource(env);
+    if (fallbackSource) {
+      try {
+        const payload = await loadJsonFromSource(fallbackSource);
+        return json({ ok: true, ...payload, fallbackSource, degraded: true });
+      } catch {
+        // ignore fallback error and return primary error below
+      }
+    }
+    return json({ ok: false, error: error.message }, 500);
   }
 }
 
@@ -362,14 +383,15 @@ async function handleSyncRequest(request, env, db) {
   try {
     const url = new URL(request.url);
     const force = url.searchParams.get('force') === 'true';
-    const useAutoSync = url.searchParams.get('mode') === 'auto';
+    const mode = String(url.searchParams.get('mode') || '').trim();
+    const useEngineSync = mode === 'engine';
 
     let result;
-    if (useAutoSync) {
-      // 使用自主同步引擎
+    if (useEngineSync) {
+      // 使用 Worker 自主抓取引擎（适合小规模补抓）
       result = await syncAllFunds(db, { force });
     } else {
-      // 使用原有的从外部源同步
+      // 默认使用全量 runtime 源同步（覆盖所有基金与详情字段）
       result = await syncRuntimeFromSource(db, env, { force });
     }
 
@@ -400,7 +422,7 @@ export default {
 
     if (url.pathname === '/api/runtime/premium-compare') {
       if (request.method !== 'GET') return json({ ok: false, error: 'Method Not Allowed' }, 405);
-      return handlePremiumCompareRequest(env);
+      return handlePremiumCompareRequest(request, env, db);
     }
 
     if (url.pathname === '/health') {
@@ -427,6 +449,8 @@ export default {
     if (request.method !== 'GET') return json({ ok: false, error: 'Method Not Allowed' }, 405);
 
     if (url.pathname === '/api/runtime/all') {
+      // 读接口前尝试按最小间隔自动对齐全量 runtime（不会高频重复抓）
+      await syncRuntimeFromSource(db, env, { force: false });
       const latest = await getLatestSyncedAt(db);
       const result = await db.prepare('SELECT code, runtime_json FROM latest_fund_runtime ORDER BY code').all();
       const funds = (result?.results || []).map(parseRuntimeRow).filter((item) => item && item.code);
@@ -471,12 +495,12 @@ export default {
     ctx.waitUntil(
       (async () => {
         try {
-          // Cron 触发时强制同步，跳过间隔检查
-          const result = await syncAllFunds(env.RUNTIME_DB, { force: true });
+          // Cron 触发时优先全量源同步，保证基金覆盖与详情字段完整
+          const result = await syncRuntimeFromSource(env.RUNTIME_DB, env, { force: false });
           if (result.ok) {
-            console.log('[Scheduled] Auto sync completed:', result);
+            console.log('[Scheduled] Runtime source sync completed:', result);
           } else {
-            console.error('[Scheduled] Auto sync failed:', result.error);
+            console.error('[Scheduled] Runtime source sync failed:', result.error);
           }
         } catch (error) {
           console.error('[Scheduled] Sync error:', error);
