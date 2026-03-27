@@ -267,37 +267,7 @@ async function main() {
 
   gitPushReady = await prepareGitPush();
 
-  let synced = false;
-  if (ENABLE_STARTUP_FULL_SYNC) {
-    process.stdout.write(`[auto-refresh] startup full sync enabled, SYNC_BATCH_SIZE=${STARTUP_SYNC_BATCH_SIZE}\n`);
-    synced = await syncOnce({ batchSizeOverride: STARTUP_SYNC_BATCH_SIZE });
-  }
-  if (!synced) {
-    await syncOnce();
-  }
-
-  let initialPushCompleted = !gitPushReady;
-
-  const tryBootstrapPush = async () => {
-    if (initialPushCompleted || !gitPushReady) {
-      return true;
-    }
-
-    const ok = await pushRuntimeUpdate();
-    if (ok) {
-      initialPushCompleted = true;
-      process.stdout.write('[auto-refresh] bootstrap push completed; switching to regular push schedule.\n');
-    } else {
-      process.stdout.write(
-        `[auto-refresh] bootstrap push failed; retry in ${Math.round(BOOTSTRAP_PUSH_RETRY_INTERVAL_MS / 1000)}s.\n`,
-      );
-    }
-
-    return ok;
-  };
-
-  await tryBootstrapPush();
-
+  // 先启动 Vite，立即打开浏览器
   if (!fs.existsSync(viteBin)) {
     throw new Error(`Vite not installed, missing file: ${viteBin}`);
   }
@@ -310,61 +280,78 @@ async function main() {
 
   process.stdout.write(`[auto-refresh] local url: http://${DEV_HOST}:${DEV_PORT}/#/qdii-lof\n`);
 
-  const handleOutput = (chunk, writer) => {
-    writer.write(chunk.toString());
+  vite.stdout?.on('data', (chunk) => process.stdout.write(chunk.toString()));
+  vite.stderr?.on('data', (chunk) => process.stderr.write(chunk.toString()));
+
+  let syncTimer = null;
+  let gitTimer = null;
+  let bootstrapPushTimer = null;
+  let initialPushCompleted = !gitPushReady;
+
+  const tryBootstrapPush = async () => {
+    if (initialPushCompleted || !gitPushReady) return true;
+    const ok = await pushRuntimeUpdate();
+    if (ok) {
+      initialPushCompleted = true;
+      process.stdout.write('[auto-refresh] bootstrap push completed; switching to regular push schedule.\n');
+    } else {
+      process.stdout.write(
+        `[auto-refresh] bootstrap push failed; retry in ${Math.round(BOOTSTRAP_PUSH_RETRY_INTERVAL_MS / 1000)}s.\n`,
+      );
+    }
+    return ok;
   };
 
-  vite.stdout?.on('data', (chunk) => handleOutput(chunk, process.stdout));
-  vite.stderr?.on('data', (chunk) => handleOutput(chunk, process.stderr));
-
-  let timer = setTimeout(function scheduleNext() {
-    void syncOnce().finally(() => {
-      timer = setTimeout(scheduleNext, getSyncInterval());
-    });
-  }, getSyncInterval());
-
-  let gitTimer = 0;
-  let bootstrapPushTimer = 0;
-
   const scheduleRegularPush = () => {
-    if (!gitPushReady) {
-      return;
-    }
-
+    if (!gitPushReady) return;
     gitTimer = setTimeout(function runRegularPush() {
-      void pushRuntimeUpdate().finally(() => {
-        scheduleRegularPush();
-      });
+      void pushRuntimeUpdate().finally(() => scheduleRegularPush());
     }, GIT_PUSH_INTERVAL);
   };
 
   const scheduleBootstrapPush = () => {
-    if (!gitPushReady || initialPushCompleted) {
-      scheduleRegularPush();
-      return;
-    }
-
+    if (!gitPushReady || initialPushCompleted) { scheduleRegularPush(); return; }
     bootstrapPushTimer = setTimeout(function runBootstrapPush() {
       void tryBootstrapPush().finally(() => {
-        if (initialPushCompleted) {
-          scheduleRegularPush();
-        } else {
-          scheduleBootstrapPush();
-        }
+        if (initialPushCompleted) scheduleRegularPush();
+        else scheduleBootstrapPush();
       });
     }, BOOTSTRAP_PUSH_RETRY_INTERVAL_MS);
   };
 
-  if (initialPushCompleted) {
-    scheduleRegularPush();
-  } else {
-    scheduleBootstrapPush();
-  }
+  // 启动定时分批同步循环
+  const startRegularSyncLoop = () => {
+    process.stdout.write(`[auto-refresh] switching to regular batched sync, SYNC_BATCH_SIZE=${REGULAR_SYNC_BATCH_SIZE || 8}\n`);
+    syncTimer = setTimeout(function scheduleNext() {
+      void syncOnce().finally(() => {
+        syncTimer = setTimeout(scheduleNext, getSyncInterval());
+      });
+    }, getSyncInterval());
+  };
+
+  // 后台全量同步，完成后再切换到定时分批
+  const runBackgroundFullSync = async () => {
+    if (ENABLE_STARTUP_FULL_SYNC) {
+      process.stdout.write(`[auto-refresh] background full sync started, SYNC_BATCH_SIZE=${STARTUP_SYNC_BATCH_SIZE}\n`);
+      await syncOnce({ batchSizeOverride: STARTUP_SYNC_BATCH_SIZE });
+      process.stdout.write('[auto-refresh] background full sync done.\n');
+    } else {
+      // 不做全量，直接跑一次普通同步
+      await syncOnce();
+    }
+    await tryBootstrapPush();
+    startRegularSyncLoop();
+    if (initialPushCompleted) scheduleRegularPush();
+    else scheduleBootstrapPush();
+  };
+
+  // 不阻塞主流程，后台跑
+  void runBackgroundFullSync();
 
   const shutdown = () => {
-    clearTimeout(timer);
-    clearTimeout(gitTimer);
-    clearTimeout(bootstrapPushTimer);
+    if (syncTimer) clearTimeout(syncTimer);
+    if (gitTimer) clearTimeout(gitTimer);
+    if (bootstrapPushTimer) clearTimeout(bootstrapPushTimer);
     vite.kill();
     process.exit(0);
   };
@@ -372,9 +359,9 @@ async function main() {
   process.on('SIGINT', shutdown);
   process.on('SIGTERM', shutdown);
   vite.on('exit', (code) => {
-    clearTimeout(timer);
-    clearTimeout(gitTimer);
-    clearTimeout(bootstrapPushTimer);
+    if (syncTimer) clearTimeout(syncTimer);
+    if (gitTimer) clearTimeout(gitTimer);
+    if (bootstrapPushTimer) clearTimeout(bootstrapPushTimer);
     process.exit(code ?? 0);
   });
 }

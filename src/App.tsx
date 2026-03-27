@@ -8,7 +8,7 @@ import { estimateWatchlistFund, getDefaultWatchlistModel, reconcileJournal, reco
 import type { FundJournal, FundRuntimeData, FundViewModel, GithubTrafficPayload, RuntimePayload, WatchlistModel } from './types';
 const FAST_SYNC_INTERVAL = 60_000;
 const SLOW_SYNC_INTERVAL = 15 * 60_000;
-const DEFAULT_REMOTE_API_BASE = 'https://still-tooth-c5a4.987144016.workers.dev/api/runtime';
+const DEFAULT_REMOTE_API_BASE = 'https://api.leo2026.cloud/api/runtime';
 const REMOTE_API_BASE = String(import.meta.env.VITE_RUNTIME_API_BASE || DEFAULT_REMOTE_API_BASE).replace(/\/+$/, '');
 const GENERATED_FETCH_TIMEOUT_MS = 4500;
 const TOAST_AUTO_CLOSE_MS = 3000;

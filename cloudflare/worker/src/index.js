@@ -7,6 +7,9 @@ const DEFAULT_PREMIUM_COMPARE_SOURCE =
 const DEFAULT_SYNC_INTERVAL_MINUTES = 5;
 const MAX_SYNC_INTERVAL_MINUTES = 60;
 
+// 导入自主同步引擎
+import { syncAllFunds, getAllFunds, getFundByCode } from './sync-engine.js';
+
 function json(payload, status = 200) {
   return new Response(JSON.stringify(payload), {
     status,
@@ -74,8 +77,7 @@ function resolveMinSyncIntervalMinutes(env) {
 
 async function getLatestRun(db) {
   return (
-    (await db
-      .prepare('SELECT id, synced_at, fund_count, source_url FROM runtime_runs ORDER BY id DESC LIMIT 1')
+    (await db      .prepare('SELECT id, synced_at, fund_count, source_url FROM runtime_runs ORDER BY id DESC LIMIT 1')
       .first()) || null
   );
 }
@@ -191,7 +193,8 @@ async function syncRuntimeFromSource(db, env, options = {}) {
   };
 }
 
-async function handleSyncRequest(request, env, db) {
+// 手动溢价率数据保存端点
+async function handleManualPremiumEntry(request, env, db) {
   if (request.method !== 'POST') return json({ ok: false, error: 'Method Not Allowed' }, 405);
 
   const syncToken = String(env.RUNTIME_SYNC_TOKEN || '').trim();
@@ -203,33 +206,178 @@ async function handleSyncRequest(request, env, db) {
   }
 
   try {
-    const result = await syncRuntimeFromSource(db, env, { force: true });
-    return json(result);
+    const data = await request.json();
+    
+    // 验证必要字段
+    if (!data || !data.code || !data.date || data.premiumRate === undefined) {
+      return json({ ok: false, error: 'Missing required fields: code, date, premiumRate' }, 400);
+    }
+
+    const code = String(data.code).trim();
+    const date = String(data.date).trim();
+    const premiumRate = Number(data.premiumRate);
+    const provider = String(data.provider || 'manual-cloudflare').trim();
+    const sourceUrl = String(data.sourceUrl || '').trim();
+    const status = String(data.status || 'manual-input').trim();
+    const time = String(data.time || '15:00:00').trim();
+
+    // 验证日期格式
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      return json({ ok: false, error: 'Invalid date format. Expected YYYY-MM-DD' }, 400);
+    }
+
+    // 验证溢价率是否为数字
+    if (isNaN(premiumRate)) {
+      return json({ ok: false, error: 'premiumRate must be a number' }, 400);
+    }
+
+    // 保存手动记录到数据库
+    const statements = [
+      db.prepare(
+        `INSERT OR REPLACE INTO manual_premium_entries 
+         (code, date, provider, premium_rate, source_url, status, time, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))`
+      ).bind(code, date, provider, premiumRate, sourceUrl, status, time),
+    ];
+
+    await db.batch(statements);
+
+    return json({
+      ok: true,
+      message: 'Manual premium entry saved successfully',
+      data: {
+        code,
+        date,
+        provider,
+        premiumRate,
+        sourceUrl,
+        status,
+        time
+      }
+    });
   } catch (error) {
     return json(
       {
         ok: false,
-        error: error instanceof Error ? error.message : 'Unknown sync error',
-        sourceUrl: resolveRuntimeSyncSource(env),
+        error: error instanceof Error ? error.message : 'Unknown error saving manual premium entry',
       },
       500,
     );
   }
 }
 
-async function handlePremiumCompareRequest(env) {
-  const sourceUrl = resolvePremiumCompareSource(env);
+// 获取手动记录数据
+async function getManualPremiumEntries(db, date, provider) {
+  let query = 'SELECT code, date, provider, premium_rate, source_url, status, time, created_at, updated_at FROM manual_premium_entries WHERE 1=1';
+  const params = [];
+
+  if (date) {
+    query += ' AND date = ?';
+    params.push(date);
+  }
+
+  if (provider) {
+    query += ' AND provider = ?';
+    params.push(provider);
+  }
+
+  query += ' ORDER BY code';
+
+  const result = await db.prepare(query).bind(...params).all();
+  return result.results || [];
+}
+
+async function handleGetManualPremiumEntries(request, env, db) {
+  if (request.method !== 'GET') return json({ ok: false, error: 'Method Not Allowed' }, 405);
+
+  const syncToken = String(env.RUNTIME_SYNC_TOKEN || '').trim();
+  const authorization = String(request.headers.get('authorization') || '').trim();
+  const bearerToken = authorization.startsWith('Bearer ') ? authorization.slice(7).trim() : '';
+
+  if (!syncToken || bearerToken !== syncToken) {
+    return json({ ok: false, error: 'Unauthorized' }, 401);
+  }
+
   try {
-    const payload = await loadJsonFromSource(sourceUrl);
-    return json(payload);
+    const url = new URL(request.url);
+    const date = url.searchParams.get('date');
+    const provider = url.searchParams.get('provider');
+
+    const entries = await getManualPremiumEntries(db, date, provider);
+    
+    return json({
+      ok: true,
+      count: entries.length,
+      entries: entries.map(entry => ({
+        code: entry.code,
+        date: entry.date,
+        provider: entry.provider,
+        premiumRate: entry.premium_rate,
+        sourceUrl: entry.source_url,
+        status: entry.status,
+        time: entry.time,
+        createdAt: entry.created_at,
+        updatedAt: entry.updated_at
+      }))
+    });
   } catch (error) {
     return json(
       {
         ok: false,
-        error: error instanceof Error ? error.message : 'Unknown premium compare error',
-        sourceUrl,
+        error: error instanceof Error ? error.message : 'Unknown error fetching manual premium entries',
       },
       500,
+    );
+  }
+}
+
+// 处理溢价率对比请求
+async function handlePremiumCompareRequest(env) {
+  try {
+    const sourceUrl = resolvePremiumCompareSource(env);
+    const payload = await loadJsonFromSource(sourceUrl);
+    return json({ ok: true, ...payload });
+  } catch (error) {
+    return json(
+      { ok: false, error: error.message },
+      500
+    );
+  }
+}
+
+// 处理手动同步请求
+async function handleSyncRequest(request, env, db) {
+  if (request.method !== 'POST') {
+    return json({ ok: false, error: 'Method Not Allowed' }, 405);
+  }
+
+  const syncToken = String(env.RUNTIME_SYNC_TOKEN || '').trim();
+  const authorization = String(request.headers.get('authorization') || '').trim();
+  const bearerToken = authorization.startsWith('Bearer ') ? authorization.slice(7).trim() : '';
+
+  if (!syncToken || bearerToken !== syncToken) {
+    return json({ ok: false, error: 'Unauthorized' }, 401);
+  }
+
+  try {
+    const url = new URL(request.url);
+    const force = url.searchParams.get('force') === 'true';
+    const useAutoSync = url.searchParams.get('mode') === 'auto';
+
+    let result;
+    if (useAutoSync) {
+      // 使用自主同步引擎
+      result = await syncAllFunds(db, { force });
+    } else {
+      // 使用原有的从外部源同步
+      result = await syncRuntimeFromSource(db, env, { force });
+    }
+
+    return json(result);
+  } catch (error) {
+    return json(
+      { ok: false, error: error.message },
+      500
     );
   }
 }
@@ -240,6 +388,15 @@ export default {
 
     const url = new URL(request.url);
     const db = env.RUNTIME_DB;
+
+    // 手动溢价率数据API端点
+    if (url.pathname === '/api/manual/premium-entry') {
+      return handleManualPremiumEntry(request, env, db);
+    }
+
+    if (url.pathname === '/api/manual/premium-entries') {
+      return handleGetManualPremiumEntries(request, env, db);
+    }
 
     if (url.pathname === '/api/runtime/premium-compare') {
       if (request.method !== 'GET') return json({ ok: false, error: 'Method Not Allowed' }, 405);
@@ -314,9 +471,15 @@ export default {
     ctx.waitUntil(
       (async () => {
         try {
-          await syncRuntimeFromSource(env.RUNTIME_DB, env, { force: false });
+          // 使用自主同步引擎直接抓取数据
+          const result = await syncAllFunds(env.RUNTIME_DB, { force: false });
+          if (result.ok) {
+            console.log('[Scheduled] Auto sync completed:', result);
+          } else {
+            console.error('[Scheduled] Auto sync failed:', result.error);
+          }
         } catch (error) {
-          console.error('scheduled runtime sync failed', error);
+          console.error('[Scheduled] Sync error:', error);
         }
       })(),
     );

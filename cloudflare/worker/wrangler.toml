@@ -6,10 +6,13 @@ workers_dev = true
 account_id = "d7c991c802a060808a087df47823f3fa"
 
 [vars]
-# Set this to the server that runs `npm run cloudflare:server`.
-# Leave it empty to keep the previous GitHub-based fallback.
+# 自主同步引擎配置
+# Worker 将直接从数据源（天天基金、新浪等）抓取数据，不再依赖此外部落户
 GENERATED_SOURCE_BASE_URL = "https://premium.leo2026.cloud/"
 RUNTIME_SYNC_MIN_INTERVAL_MINUTES = "5"
+
+# 可选：手动同步令牌（建议在生产环境设置）
+# RUNTIME_SYNC_TOKEN = "your-secret-token-here"
 
 [triggers]
 crons = ["*/5 * * * *"]
