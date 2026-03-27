@@ -191,6 +191,32 @@ async function fetchEstimatedNav(code) {
   }
 }
 
+/**
+ * 天天基金 - 限购状态
+ */
+async function fetchPurchaseStatus(code) {
+  try {
+    const url = `https://api.fund.eastmoney.com/Fund/GetSingleFundInfo?callback=x&fcode=${code}&fileds=FCODE,ISBUY,ISSALES,MINDT,DTZT,SHORTNAME`;
+    const res = await fetchWithTimeout(url, {
+      headers: { Referer: `https://fund.eastmoney.com/${code}.html`, 'User-Agent': UA },
+    });
+    if (!res.ok) throw new Error(`status ${res.status}`);
+    const text = await res.text();
+    const m = text.match(/x\((\{.*\})\)/s);
+    if (!m) throw new Error('no callback');
+    const data = JSON.parse(m[1])?.Data;
+    const isbuy = String(data?.ISBUY ?? '').trim();
+    const issales = String(data?.ISSALES ?? '').trim();
+    const buyStatus = isbuy === '4' ? '限大额' : ['1','2','3','8','9'].includes(isbuy) ? '开放申购' : isbuy ? '暂停申购' : '';
+    const redeemStatus = issales === '1' ? '开放赎回' : issales ? '暂停赎回' : '';
+    return { buyStatus, redeemStatus };
+  } catch (e) {
+    console.warn(`[purchase] ${code}: ${e.message}`);
+    return { buyStatus: '', redeemStatus: '' };
+  }
+}
+
+
 function calcProxyReturn(benchmark, quotesMap) {
   const weights = PROXY_BASKET_WEIGHTS[benchmark];
   if (!weights) return { proxyReturn: 0, proxyQuotes: [] };
@@ -211,10 +237,11 @@ function calcProxyReturn(benchmark, quotesMap) {
 }
 
 async function syncSingleFund(code, config, fundQuotesMap, usQuotesMap, fxRate) {
-  // 并发获取净值数据
-  const [navData, gzData] = await Promise.all([
+  // 并发获取净值 + 限购状态
+  const [navData, gzData, purchaseData] = await Promise.all([
     fetchOfficialNav(code),
     fetchEstimatedNav(code),
+    fetchPurchaseStatus(code),
   ]);
 
   const officialNavT1 = navData?.officialNavT1 || gzData?.officialNavT1FromGz || 0;
@@ -260,6 +287,8 @@ async function syncSingleFund(code, config, fundQuotesMap, usQuotesMap, fxRate) 
     proxyQuoteTime: new Date().toISOString().slice(11, 19),
 
     fx: { pair: 'USD/CNY', currentRate: fxRate, previousCloseRate: fxRate },
+    purchaseStatus: purchaseData.buyStatus,
+    redeemStatus: purchaseData.redeemStatus,
     updatedAt: new Date().toISOString(),
   };
 }

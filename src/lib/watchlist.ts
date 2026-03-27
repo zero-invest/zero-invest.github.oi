@@ -401,7 +401,7 @@ export function reconcileJournal(
   currentModel: WatchlistModel,
   currentJournal: FundJournal,
 ): { model: WatchlistModel; journal: FundJournal } {
-  const actualNavByDate = new Map(runtime.navHistory.map((item) => [item.date, item.nav]));
+  const actualNavByDate = new Map((runtime.navHistory ?? []).map((item) => [item.date, item.nav]));
   const normalizedJournal = pruneJournal({
     ...currentJournal,
     snapshots: (currentJournal.snapshots ?? []).map((item) => finalizeSnapshotWithClose(item, runtime)),
