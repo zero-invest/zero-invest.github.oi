@@ -471,8 +471,8 @@ export default {
     ctx.waitUntil(
       (async () => {
         try {
-          // 使用自主同步引擎直接抓取数据
-          const result = await syncAllFunds(env.RUNTIME_DB, { force: false });
+          // Cron 触发时强制同步，跳过间隔检查
+          const result = await syncAllFunds(env.RUNTIME_DB, { force: true });
           if (result.ok) {
             console.log('[Scheduled] Auto sync completed:', result);
           } else {

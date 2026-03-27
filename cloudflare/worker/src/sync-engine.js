@@ -197,6 +197,9 @@ async function syncSingleFund(code, config, quotesMap, fxRate) {
     navDate: fundInfo?.navDate || '',
     estimatedNav,
     estimatedNavChangeRate: fundInfo?.estimatedNavChangeRate || proxyReturn,
+    navHistory: [],
+    disclosedHoldings: [],
+    holdingQuotes: [],
 
     marketPrice,
     previousClose,
