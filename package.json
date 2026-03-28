@@ -25,9 +25,11 @@
     "sync:data:full": "npm run sync:data && npm run sync:research",
     "dev": "npm run sync:data && vite",
     "manual:premium-entry": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/manual-premium-entry.ps1",
+    "member:codes": "node scripts/generate-redeem-codes.mjs",
     "app:start": "node scripts/dev-auto-refresh.mjs",
     "build": "npm run sync:data && tsc && vite build",
     "build:static": "tsc && vite build",
+    "deploy:pages": "node scripts/deploy-pages.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

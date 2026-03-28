@@ -23,11 +23,14 @@ const STALE_LEAD_SIGNAL_THRESHOLD = 0.015;
 const STALE_LEAD_PROXY_BLEND = 0.65;
 const STALE_LEAD_CLAMP = 0.02;
 const JOURNAL_RETENTION_DAYS = 90;
-const GOLD_REALTIME_PROXY_CODES = new Set(['160719', '161116', '164701', '161226']);
+const GOLD_REALTIME_PROXY_CODES = new Set(['160719', '161116', '164701']);
+const SILVER_REALTIME_PROXY_CODES = new Set(['161226']);
 const GOLD_CONTINUOUS_FACTOR_WEIGHT_BY_CODE: Record<string, number> = {
   '160719': 0.7,
   '161116': 0.65,
   '164701': 0.65,
+};
+const SILVER_CONTINUOUS_FACTOR_WEIGHT_BY_CODE: Record<string, number> = {
   '161226': 0.65,
 };
 const GOLD_CONTINUOUS_FACTOR_MAX_MOVE = 0.08;
@@ -233,6 +236,26 @@ function blendGoldContinuousLeadReturn(runtime: FundRuntimeData, baseLeadReturn:
   return baseLeadReturn * (1 - weight) + continuous * weight;
 }
 
+function blendSilverContinuousLeadReturn(runtime: FundRuntimeData, baseLeadReturn: number, useProxyEstimate: boolean): number {
+  if (!useProxyEstimate || !SILVER_REALTIME_PROXY_CODES.has(runtime.code)) {
+    return baseLeadReturn;
+  }
+
+  const rawContinuous = Number(runtime.goldContinuousReturn);
+  if (!Number.isFinite(rawContinuous) || Math.abs(rawContinuous) > GOLD_CONTINUOUS_FACTOR_ANOMALY_MOVE) {
+    return baseLeadReturn;
+  }
+
+  const weightRaw = Number(SILVER_CONTINUOUS_FACTOR_WEIGHT_BY_CODE[runtime.code]);
+  const weight = Number.isFinite(weightRaw) ? Math.max(0, Math.min(0.9, weightRaw)) : 0;
+  if (!(weight > 0)) {
+    return baseLeadReturn;
+  }
+
+  const continuous = clamp(rawContinuous, GOLD_CONTINUOUS_FACTOR_MAX_MOVE);
+  return baseLeadReturn * (1 - weight) + continuous * weight;
+}
+
 function blendOilContinuousLeadReturn(runtime: FundRuntimeData, baseLeadReturn: number, useProxyEstimate: boolean): number {
   if (!useProxyEstimate || !OIL_CONTINUOUS_CODES.has(runtime.code)) {
     return baseLeadReturn;
@@ -259,6 +282,30 @@ function blendOilContinuousLeadReturn(runtime: FundRuntimeData, baseLeadReturn: 
 
 function applyGoldCloseForceImpliedReturn(runtime: FundRuntimeData, impliedReturn: number): number {
   if (!GOLD_REALTIME_PROXY_CODES.has(runtime.code)) {
+    return impliedReturn;
+  }
+
+  const marketTime = String(runtime.marketTime || '');
+  if (!marketTime || marketTime < GOLD_CLOSE_FORCE_TIME) {
+    return impliedReturn;
+  }
+
+  if (!(runtime.marketPrice > 0) || !(runtime.previousClose > 0)) {
+    return impliedReturn;
+  }
+
+  const marketReturn = runtime.marketPrice / runtime.previousClose - 1;
+  if (!Number.isFinite(marketReturn) || marketReturn >= 0) {
+    return impliedReturn;
+  }
+
+  const floorByMarket = Math.min(-0.0001, marketReturn * GOLD_CLOSE_FORCE_MARKET_WEIGHT);
+  const forcedFloor = Math.min(floorByMarket, GOLD_CLOSE_FORCE_MIN_DROP);
+  return Math.min(impliedReturn, forcedFloor);
+}
+
+function applySilverCloseForceImpliedReturn(runtime: FundRuntimeData, impliedReturn: number): number {
+  if (!SILVER_REALTIME_PROXY_CODES.has(runtime.code)) {
     return impliedReturn;
   }
 
@@ -365,7 +412,8 @@ export function estimateWatchlistFund(
         ? runtime.marketPrice / runtime.previousClose - 1
         : 0;
   const goldBlendedReturn = blendGoldContinuousLeadReturn(runtime, modeLeadReturn, useProxyEstimate);
-  const rawLeadReturn = blendOilContinuousLeadReturn(runtime, goldBlendedReturn, useProxyEstimate);
+  const silverBlendedReturn = blendSilverContinuousLeadReturn(runtime, goldBlendedReturn, useProxyEstimate);
+  const rawLeadReturn = blendOilContinuousLeadReturn(runtime, silverBlendedReturn, useProxyEstimate);
   const stabilizedLeadReturn = protectStaleLeadSignal(runtime, rawLeadReturn, useHoldingsEstimate, useProxyEstimate, journal);
   const leadReturn = clamp(stabilizedLeadReturn, useProxyEstimate ? MAX_PROXY_MOVE : MAX_MARKET_MOVE);
   const rawCloseGapReturn = useProxyEstimate
@@ -381,7 +429,8 @@ export function estimateWatchlistFund(
   const learnedBiasReturn = model.alpha;
   const betaIntra = enableIntradayFactor ? (model.betaIntraday ?? DEFAULT_BETA_INTRADAY) : 0;
   const rawImpliedReturn = learnedBiasReturn + model.betaLead * leadReturn + model.betaGap * closeGapReturn + betaIntra * clampedIntradayReturn;
-  const impliedReturn = applyGoldCloseForceImpliedReturn(runtime, rawImpliedReturn);
+  const goldCloseForcedReturn = applyGoldCloseForceImpliedReturn(runtime, rawImpliedReturn);
+  const impliedReturn = applySilverCloseForceImpliedReturn(runtime, goldCloseForcedReturn);
   const estimatedNav = anchorNav * (1 + impliedReturn);
   const premiumRate = estimatedNav > 0 ? runtime.marketPrice / estimatedNav - 1 : 0;
 

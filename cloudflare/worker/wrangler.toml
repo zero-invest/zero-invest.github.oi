@@ -21,3 +21,7 @@ crons = ["*/5 * * * *"]
 binding = "RUNTIME_DB"
 database_name = "premium-runtime-db"
 database_id = "e402561c-0aa2-4618-90f6-6bf007220683"
+
+[[r2_buckets]]
+binding = "ORDER_SCREENSHOT_BUCKET"
+bucket_name = "premium-order-screenshots"

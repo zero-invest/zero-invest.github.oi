@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link, Navigate, Route, Routes, useLocation, useParams } from 'react-router-dom';
+import { Link, Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { FundTable } from './components/FundTable';
 import { LineChart } from './components/LineChart';
 import { MetricCard } from './components/MetricCard';
@@ -12,6 +12,7 @@ const DEFAULT_REMOTE_API_BASE = 'https://api.leo2026.cloud/api/runtime';
 const REMOTE_API_BASE = String(import.meta.env.VITE_RUNTIME_API_BASE || DEFAULT_REMOTE_API_BASE).replace(/\/+$/, '');
 const GENERATED_FETCH_TIMEOUT_MS = 4500;
 const TOAST_AUTO_CLOSE_MS = 3000;
+const MEMBER_COPY = '非会员暂无权限查看基金详情，请先注册登录并开通会员。';
 
 // 获取 Worker API 基础 URL（用于训练指标等 API）
 function getRuntimeApiBase(): string {
@@ -41,7 +42,7 @@ function isAbortLikeError(error: unknown): boolean {
   return normalized.includes('aborted') || normalized.includes('aborterror') || normalized.includes('signal is aborted');
 }
 
-// 本地开发优先本地静态，线上优先 Worker API，兜底静态
+// 本地开发与 GitHub Pages 优先静态，其他线上环境可优先 Worker API，最后兜底静态
 function isGithubPagesHost(hostname: string): boolean {
   return hostname === 'github.io' || hostname.endsWith('.github.io');
 }
@@ -51,21 +52,19 @@ async function fetchGeneratedJson<T>(fileName: string): Promise<T> {
   const hostname = window.location.hostname;
   const isLocal = hostname === 'localhost' || hostname === '127.0.0.1';
   const preferStaticFirst = isLocal || isGithubPagesHost(hostname);
-  // 本地开发优先本地 generated/xxx.json，线上优先 API
+  const allowRuntimeApi = fileName === 'funds-runtime.json';
+  // 本地开发和 GitHub Pages 优先本地/静态 generated；其余线上环境 funds-runtime 优先 Worker API
   const candidates: string[] = [];
   if (preferStaticFirst) {
     candidates.push(`generated/${fileName}?ts=${ts}`);
   }
-  // API 路径
-  if (!preferStaticFirst && fileName === 'funds-runtime.json') {
+  // API 路径 — 仅 funds-runtime 走 Worker API；
+  // premium-compare 的历史数据由本地脚本维护，Worker D1 中没有完整历史，
+  // 因此始终走部署时打包的静态文件以保证数据完整性。
+  if (!preferStaticFirst && allowRuntimeApi) {
     candidates.push(`${REMOTE_API_BASE}/all`);
-  } else if (!preferStaticFirst && /^(\d+)-offline-research\.json$/.test(fileName)) {
-    const code = fileName.split('-')[0];
-    candidates.push(`${REMOTE_API_BASE}/latest?code=${code}`);
-  } else if (!preferStaticFirst && fileName === 'premium-compare.json') {
-    candidates.push(`${REMOTE_API_BASE}/premium-compare`);
   }
-  // 线上兜底静态
+  // 非静态优先的线上环境保留静态兜底
   if (!preferStaticFirst) {
     candidates.push(`generated/${fileName}?ts=${ts}`);
   }
@@ -81,7 +80,12 @@ async function fetchGeneratedJson<T>(fileName: string): Promise<T> {
       if (fileName === 'funds-runtime.json') {
         return data as T;
       } else if (/^(\d+)-offline-research\.json$/.test(fileName)) {
-        return (data.fund || data) as T;
+        const resolved = data.fund || data;
+        // 格式验证：确保返回的是 OfflineResearchSummary 而非 FundRuntimeData
+        if (resolved && typeof resolved === 'object' && 'segmented' in resolved) {
+          return resolved as T;
+        }
+        throw new Error('offline-research 数据格式不匹配');
       } else if (fileName === 'premium-compare.json') {
         return data as T;
       }
@@ -138,6 +142,140 @@ const PAGE_OPTIONS: Array<{ key: ViewCategory; path: string; label: string; lead
   },
 ];
 
+const DESKTOP_SHELL_NAV = [
+  { label: '跨境 LOF', to: '/qdii-lof' },
+  { label: '国内 LOF', to: '/domestic-lof' },
+  { label: '跨境 ETF', to: '/qdii-etf' },
+  { label: '国内 ETF', to: '/domestic-etf' },
+  { label: '我的收藏', to: '/favorites' },
+  { label: '会员中心', to: '/member' },
+  { label: '说明文档', to: '/docs' },
+  { label: '访客趋势', to: '/traffic' },
+];
+
+function DesktopShell({
+  currentPath,
+  currentUser,
+  title,
+  subtitle,
+  actions,
+  children,
+}: {
+  currentPath: string;
+  currentUser: AuthUser | null;
+  title: string;
+  subtitle: string;
+  actions?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [isDark, setIsDark] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return window.localStorage.getItem('premium-theme') === 'dark';
+  });
+  const [sidebarWidth, setSidebarWidth] = useState<number>(() => {
+    if (typeof window === 'undefined') return 220;
+    const saved = Number(window.localStorage.getItem('premium-sidebar-width') || '220');
+    return Number.isFinite(saved) ? Math.min(320, Math.max(180, saved)) : 220;
+  });
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = isDark ? 'dark' : 'light';
+    window.localStorage.setItem('premium-theme', isDark ? 'dark' : 'light');
+  }, [isDark]);
+
+  useEffect(() => {
+    document.documentElement.style.setProperty('--sidebar-width', `${sidebarWidth}px`);
+    window.localStorage.setItem('premium-sidebar-width', String(sidebarWidth));
+  }, [sidebarWidth]);
+
+  const startSidebarResize = (event: React.MouseEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    const startX = event.clientX;
+    const startWidth = sidebarWidth;
+
+    const handleMove = (moveEvent: MouseEvent) => {
+      const next = Math.min(320, Math.max(180, startWidth + moveEvent.clientX - startX));
+      setSidebarWidth(next);
+    };
+
+    const handleUp = () => {
+      window.removeEventListener('mousemove', handleMove);
+      window.removeEventListener('mouseup', handleUp);
+    };
+
+    window.addEventListener('mousemove', handleMove);
+    window.addEventListener('mouseup', handleUp);
+  };
+
+  return (
+    <main className="dashboard-shell">
+      <button className="mobile-shell-toggle" type="button" onClick={() => setMenuOpen((value) => !value)}>
+        ☰ 菜单
+      </button>
+      <aside className="dashboard-sidebar">
+        <div className="dashboard-brand">
+          <span className="dashboard-brand__mark">◆</span>
+          <div>
+            <strong>Premium</strong>
+          </div>
+        </div>
+        <nav className="dashboard-nav">
+          {DESKTOP_SHELL_NAV.map((item) => (
+            <Link key={item.to} className={`dashboard-nav__item${currentPath === item.to ? ' dashboard-nav__item--active' : ''}`} to={item.to}>
+              {item.label}
+            </Link>
+          ))}
+        </nav>
+        <div className="dashboard-sidebar__footer">
+          <span>{currentUser ? `当前状态：${currentUser.nickname}` : '当前状态：游客'}</span>
+          <small>{currentUser ? `会员状态：${currentUser.membership.isActive ? `有效，至 ${formatMemberExpiry(currentUser.membership.expiresAt)}` : '未开通'}` : '会员状态：未登录'}</small>
+          <span className="dashboard-sidebar__promo">
+            公众号：利奥的笔记
+          </span>
+        </div>
+        <div className="dashboard-sidebar__resizer" onMouseDown={startSidebarResize} />
+      </aside>
+      {menuOpen ? (
+        <div className="mobile-shell-drawer">
+          <div className="dashboard-brand">
+            <span className="dashboard-brand__mark">◆</span>
+            <div>
+              <strong>Premium</strong>
+            </div>
+          </div>
+          <nav className="dashboard-nav">
+            {DESKTOP_SHELL_NAV.map((item) => (
+              <Link key={item.to} className={`dashboard-nav__item${currentPath === item.to ? ' dashboard-nav__item--active' : ''}`} to={item.to} onClick={() => setMenuOpen(false)}>
+                {item.label}
+              </Link>
+            ))}
+          </nav>
+        </div>
+      ) : null}
+      <section className="dashboard-main">
+        <header className="dashboard-topbar">
+          <h1>{title}</h1>
+          <div className="dashboard-topbar__icons">
+            <button className="dashboard-icon-button" type="button" onClick={() => setIsDark((value) => !value)} aria-label="切换明暗模式">
+              {isDark ? '☀' : '◐'}
+            </button>
+            <Link className="dashboard-text-button dashboard-text-button--member" to="/member">
+              会员中心
+            </Link>
+            {currentUser ? (
+              <button className="dashboard-icon-button dashboard-icon-button--logout" type="button" onClick={() => { void fetchApi('/api/auth/logout', { method: 'POST' }).then(() => window.location.reload()).catch(() => window.location.reload()); }} aria-label="退出登录" title="退出登录">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>
+              </button>
+            ) : null}
+          </div>
+        </header>
+        {children}
+      </section>
+    </main>
+  );
+}
+
 const HOLDINGS_SIGNAL_MIN_COVERAGE_BY_CODE: Record<string, number> = {
   '513310': 0.55,
   '161128': 0.65,
@@ -186,6 +324,43 @@ function isUsTradingSession(date: Date) {
 
 function getRuntimeRefreshInterval(now = new Date()) {
   return isCnTradingSession(now) || isUsTradingSession(now) ? FAST_SYNC_INTERVAL : SLOW_SYNC_INTERVAL;
+}
+
+interface AuthUser {
+  id: number;
+  accountId: string;
+  accountType: string;
+  nickname: string;
+  inviteCode: string;
+  inviteRewardDeadlineAt: string;
+  membership: {
+    isActive: boolean;
+    expiresAt: string;
+    trialGrantedAt: string;
+  };
+}
+
+async function fetchApi<T>(path: string, init?: RequestInit): Promise<T> {
+  const response = await fetch(`${getRuntimeApiBase()}${path}`, {
+    credentials: 'include',
+    headers: {
+      'content-type': 'application/json',
+      ...(init?.headers || {}),
+    },
+    ...init,
+  });
+  const data = await response.json();
+  if (!response.ok || data?.ok === false) {
+    throw new Error(data?.error || `http-${response.status}`);
+  }
+  return data as T;
+}
+
+function formatMemberExpiry(value: string) {
+  if (!value) return '未开通';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '未开通';
+  return date.toLocaleString('zh-CN', { hour12: false });
 }
 
 function formatCurrency(value: number): string {
@@ -251,6 +426,29 @@ function formatDateTime(value: string): string {
 function formatRuntimeTime(date: string, time: string): string {
   const merged = `${date || '--'} ${time || ''}`.trim();
   return merged || '--';
+}
+
+const AUTHING_DOMAIN = 'https://sicfljueranf-demo.authing.cn';
+const AUTHING_APP_ID = '69c768cd00a8bf9c4493e994';
+const AUTHING_CALLBACK_PATH = '/auth/callback';
+
+function getAuthingCallbackUrl(): string {
+  if (typeof window === 'undefined') {
+    return `http://localhost:5173${AUTHING_CALLBACK_PATH}`;
+  }
+  return `${window.location.origin}${AUTHING_CALLBACK_PATH}`;
+}
+
+function buildAuthingAuthorizeUrl(hint: 'login' | 'register' = 'login'): string {
+  const state = JSON.stringify({ hint, returnTo: '/member', ts: Date.now() });
+  const params = new URLSearchParams({
+    client_id: AUTHING_APP_ID,
+    response_type: 'code',
+    scope: 'openid profile email phone',
+    redirect_uri: getAuthingCallbackUrl(),
+    state,
+  });
+  return `${AUTHING_DOMAIN}/oidc/auth?${params.toString()}`;
 }
 
 function getDefaultGithubTrafficPayload(): GithubTrafficPayload {
@@ -810,6 +1008,10 @@ const PREMIUM_PROVIDER_LABELS: Record<string, string> = {
   'manual-huatai': '华泰(手工)',
   'manual-huabao': '华宝(手工)',
   'manual-xiaobeiyangji': '小倍养基(手工)',
+  'manual-haoetf': 'HaoETF(手工)',
+  'manual-hs': '同花顺(手工)',
+  'manual-hslof': '同花顺LOF(手工)',
+  'manual-wind': '万得Wind(手工)',
 };
 
 function getPremiumProviderLabel(provider: string) {
@@ -1523,6 +1725,9 @@ function HomePage({
   pageCategory,
   trainingMetricsByCode,
   premiumCompareCodes,
+  isMember,
+  currentUser,
+  onRequireMember,
 }: {
   funds: FundViewModel[];
   syncedAt: string;
@@ -1531,6 +1736,9 @@ function HomePage({
   pageCategory: ViewCategory;
   trainingMetricsByCode: Record<string, TrainingMetricSummary>;
   premiumCompareCodes: Record<string, PremiumCompareCodePayload>;
+  isMember: boolean;
+  currentUser: AuthUser | null;
+  onRequireMember: (code: string) => void;
 }) {
   const pageOption = getPageOption(pageCategory);
   const [favoriteCodes, setFavoriteCodes] = useState<string[]>(() => readFavoriteFundCodes());
@@ -1716,83 +1924,15 @@ function HomePage({
   };
 
   return (
-    <main className="page">
-      <section className="hero panel hero--wide">
-        <div className="hero__copy">
-          <span className="eyebrow">本地缓存 + 免费行情 + 每基金独立模型</span>
-          <h1>溢价率日常看板</h1>
-          <div className="page-tabs" role="tablist" aria-label="基金分类页面">
-            {PAGE_OPTIONS.map((item) => (
-              <Link key={item.key} className={`page-tab${item.key === pageCategory ? ' page-tab--active' : ''}`} to={item.path}>
-                {item.label}
-              </Link>
-            ))}
-            <Link className="page-tab" to="/docs">
-              说明文档
-            </Link>
-          </div>
-          <p className="hero__lead">{pageOption.lead}</p>
-        </div>
-        <div className="hero__facts hero__facts--compact">
-          <div className="hero__fact hero__fact--accent">
-            <span>当前页基金数</span>
-            <strong>{visibleFunds.length}</strong>
-          </div>
-          <div className="hero__fact">
-            <span>代理估值数</span>
-            <strong>{proxyDrivenCount}</strong>
-          </div>
-          <Link className="hero__fact hero__fact--link" to="/traffic" title="查看访客趋势详情">
-            <span>近7日活跃访客</span>
-            <strong>{recent7UniquesDisplay}</strong>
-            <small className="hero__fact-subtle">
-              今日访客 {todayUniquesDisplay}，累计访客 {cumulativeUniquesDisplay}
-              {latestTrafficDateDisplay ? `，最新快照 ${latestTrafficDateDisplay}` : ''}
-            </small>
-            {trafficTrendPoints ? (
-              <svg className="traffic-mini-chart" viewBox="0 0 120 26" aria-label="访客趋势图">
-                <polyline points={trafficTrendPoints} />
-              </svg>
-            ) : null}
-          </Link>
-          <div className="hero__fact">
-            <span>状态</span>
-            <strong>{homeTrafficStateText}</strong>
-            <small className="hero__fact-subtle">
-              本页未训练基金 {untrainedCount} 只，已收藏 {favoriteVisibleCount} 只
-              {!githubTraffic.available && githubTraffic.reason ? `；GitHub访客不可用：${githubTraffic.reason}` : ''}
-            </small>
-          </div>
-          <div className="hero__fact hero__fact--wide">
-            <span>最近同步</span>
-            <strong>{syncedAt ? formatDateTime(syncedAt) : '等待同步'}</strong>
-            <small className="hero__fact-subtle">
-              交易时段约 60 秒自动刷新，切回页面会立即补拉一次。
-            </small>
-          </div>
-        </div>
-        <div className="hero__note">
-          <strong>公告栏</strong>
-          <p>
-            本页面仅用于基金溢价率观察与估值研究，不构成任何投资建议，也不保证数据实时、完整或绝对准确。
-          </p>
-          <div className="hero__bulletins">
-            <p>如需增加基金、增加功能或提供建议，可搜索公众号“利奥的笔记”加群反馈。</p>
-          </div>
-          <div className="hero__promo">
-            <span className="hero__promo-label">公众号</span>
-            <strong>利奥的笔记</strong>
-            <p>后续更新说明、误差复盘和新增基金支持会优先整理到公众号，微信搜索“利奥的笔记”即可找到。</p>
-          </div>
-        </div>
-      </section>
-
+    <DesktopShell
+      currentPath={pageOption.path}
+      currentUser={currentUser}
+      title={pageOption.label}
+      subtitle={pageOption.lead}
+      actions={<Link className="member-primary-btn" to="/member">{currentUser ? '进入会员中心' : '登录 / 注册'}</Link>}
+    >
       {error ? <section className="panel notice-panel">{error}</section> : null}
-      {!error && syncAgeHours !== null && syncAgeHours >= 12 ? (
-        <section className="panel notice-panel">
-          当前页面数据同步时间偏旧，最新净值和盘中估值可能还没刷新。这不会阻止进入详情页；如果详情页异常，通常是旧页面缓存和新数据不一致，先强制刷新一次。
-        </section>
-      ) : null}
+      {!error && syncAgeHours !== null && syncAgeHours >= 12 ? <section className="panel notice-panel">当前页面数据同步时间偏旧，建议稍后刷新再看。</section> : null}
 
       <FundTable
         funds={visibleFunds}
@@ -1800,43 +1940,32 @@ function HomePage({
         eastmoneyPremiumByCode={eastmoneyPremiumByCode}
         formatCurrency={formatCurrency}
         formatPercent={formatPercent}
+        isMember={isMember}
         title={pageOption.tableTitle}
         description={pageOption.tableDescription}
         pagePath={pageOption.path}
         favoriteCodes={favoriteCodes}
         onToggleFavorite={handleToggleFavorite}
         onReorder={pageCategory === 'favorites' ? handleFavoriteReorder : handleReorder}
+        onRequireMember={onRequireMember}
       />
 
-      <section className="panel notice-panel">
-        首页显示的是列表主看板。净值列展示最近一次已公布的官方净值，具体是 T-1 还是 T-2 直接看净值日期列；估值列展示的是当前预估净值。默认策略是“前十大持仓优先、代理篮子补足、汇率和误差修正联合驱动”；当持仓报价暂不可用时，会自动回退到代理篮子或场内信号。点击基金代码进入详情页后，可查看误差折线、净值误差、溢价率误差和历史估值口径。
-      </section>
-    </main>
+    </DesktopShell>
   );
 }
 
 function DocsPage() {
   return (
-    <main className="page">
-      <section className="hero panel hero--wide">
+    <DesktopShell currentPath="/docs" currentUser={null} title="说明文档" subtitle="口径定义、误差说明、估值流程与页面规则统一在这里查看。">
+      <section className="panel dashboard-hero-card">
         <div className="hero__copy">
           <span className="eyebrow">新手说明 + 口径定义 + 持续更新</span>
           <h1>估值说明文档</h1>
-          <div className="page-tabs" role="tablist" aria-label="页面导航">
-            {PAGE_OPTIONS.map((item) => (
-              <Link key={item.key} className="page-tab" to={item.path}>
-                {item.label}
-              </Link>
-            ))}
-            <Link className="page-tab page-tab--active" to="/docs">
-              说明文档
-            </Link>
-          </div>
           <p className="hero__lead">
             这个页面专门解释看板里每个指标是什么意思、估值大概怎么做、为什么会和盘中感受有偏差。后续新增规则、口径调整、异常处理都会优先补到这里。
           </p>
         </div>
-        <div className="hero__facts hero__facts--single">
+        <div className="dashboard-overview-grid">
           <div className="hero__fact hero__fact--accent">
             <span>阅读建议</span>
             <strong>先看误差定义，再看估值流程</strong>
@@ -1905,7 +2034,7 @@ function DocsPage() {
       <section className="panel notice-panel">
         说明页面会持续补充：例如新增误差口径、特殊基金处理逻辑、以及数据源异常时的兜底策略。你后续提到的解释需求都可以直接加在这里。
       </section>
-    </main>
+    </DesktopShell>
   );
 }
 
@@ -1995,27 +2124,14 @@ function TrafficPage() {
       : (githubTraffic.reason || publicTraffic.reason || '未知原因'));
 
   return (
-    <main className="page">
-      <section className="hero panel hero--wide">
+    <DesktopShell currentPath="/traffic" currentUser={null} title="访客趋势" subtitle="访客 UV/PV、快照趋势和公开计数兜底统一集中查看。">
+      <section className="panel dashboard-hero-card">
         <div className="hero__copy">
           <span className="eyebrow">GitHub Traffic 趋势</span>
           <h1>访客趋势页</h1>
-          <div className="page-tabs" role="tablist" aria-label="页面导航">
-            {PAGE_OPTIONS.map((item) => (
-              <Link key={item.key} className="page-tab" to={item.path}>
-                {item.label}
-              </Link>
-            ))}
-            <Link className="page-tab" to="/docs">
-              说明文档
-            </Link>
-            <Link className="page-tab page-tab--active" to="/traffic">
-              访客趋势
-            </Link>
-          </div>
           <p className="hero__lead">这里专门看访客趋势和快照口径，不占首页空间。最近 7 天看短期波动，固定时点快照看长期趋势。</p>
         </div>
-        <div className="hero__facts hero__facts--single">
+        <div className="dashboard-overview-grid">
           <div className="hero__fact hero__fact--accent">
             <span>近7日活跃访客(UV)</span>
             <strong>{trafficRecent7UvDisplay}</strong>
@@ -2061,7 +2177,7 @@ function TrafficPage() {
           <li>快照时间默认北京时间中午，窗口内只记一次，避免同一天重复累计。</li>
         </ul>
       </section>
-    </main>
+    </DesktopShell>
   );
 }
 
@@ -2170,7 +2286,7 @@ function DetailPage({ funds, syncedAt, loading }: { funds: FundViewModel[]; sync
   const currentSnapshot = recentSnapshots.find((item) => item.estimateDate === currentEstimateDate) ?? recentSnapshots[0];
   const adaptiveStatusEnabled = fund.runtime.code === '161725' && Boolean(currentSnapshot?.adaptiveUsed);
   const adaptiveShockTriggered = Boolean(currentSnapshot?.adaptiveShockTriggered);
-  const showOfflineResearch = OFFLINE_RESEARCH_CODES.has(fund.runtime.code) && offlineResearch;
+  const showOfflineResearch = OFFLINE_RESEARCH_CODES.has(fund.runtime.code) && offlineResearch && offlineResearch.segmented;
   const offlineChartVersion = offlineResearch?.generatedAt || syncedAt || Date.now().toString();
   const shouldShowPremiumCompareDetails = Boolean(premiumCompare);
   const premiumCompareProviders = premiumCompare?.providers ?? [];
@@ -2622,6 +2738,322 @@ function DetailPage({ funds, syncedAt, loading }: { funds: FundViewModel[]; sync
   );
 }
 
+function MemberGate({ message }: { message: string }) {
+  return (
+    <main className="page">
+      <section className="panel notice-panel">
+        <h2>会员权限说明</h2>
+        <p>{message}</p>
+        <p>注册登录即送 7 天会员；赞赏 5 元 = 30 天，赞赏 10 元 = 90 天，1 个月按 30 天计算。</p>
+        <div className="page-tabs">
+          <Link className="page-tab page-tab--active" to="/member">前往会员中心</Link>
+          <Link className="page-tab" to="/qdii-lof">返回首页</Link>
+        </div>
+      </section>
+    </main>
+  );
+}
+
+function AuthCallbackPage() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
+  const [message, setMessage] = useState('正在处理 Authing 登录回调...');
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const code = params.get('code');
+    const error = params.get('error');
+    const errorDescription = params.get('error_description');
+
+    if (error) {
+      setStatus('error');
+      setMessage(errorDescription || error || 'Authing 登录失败');
+      return;
+    }
+
+    if (!code) {
+      setStatus('error');
+      setMessage('没有收到授权 code。请返回会员中心重新发起登录。');
+      return;
+    }
+
+    setStatus('success');
+    setMessage('已成功收到 Authing 授权 code。当前已打通跳转与回调页，下一步只需把 code 提交给 Worker 建立你网站自己的登录态。');
+  }, [location.search]);
+
+  return (
+    <main className="page">
+      <section className="panel notice-panel auth-callback-panel">
+        <div className="panel__header">
+          <span className="eyebrow">AUTHING CALLBACK</span>
+          <h2>{status === 'success' ? '授权回调已接收' : status === 'error' ? '授权回调失败' : '正在处理授权回调'}</h2>
+          <p>{message}</p>
+        </div>
+        <div className="page-tabs">
+          <button className="member-primary-btn" type="button" onClick={() => navigate('/member')}>
+            返回会员中心
+          </button>
+          <a className="page-tab" href={buildAuthingAuthorizeUrl('login')}>
+            重新发起 Authing 登录
+          </a>
+        </div>
+      </section>
+    </main>
+  );
+}
+
+function MemberCenter({
+  currentUser,
+  onAuthingLogin,
+  onLogout,
+  onRedeem,
+  onCreateOrder,
+  onLoadOrders,
+  onLoadEvents,
+  onLoadAdminOrders,
+  onUpdateOrderOcr,
+  onGrantMembership,
+  onBlockUser,
+  pending,
+}: {
+  currentUser: AuthUser | null;
+  onAuthingLogin: (accessToken: string) => Promise<void>;
+  onLogout: () => Promise<void>;
+  onRedeem: (code: string) => Promise<void>;
+  onCreateOrder: (channel: 'wechat' | 'alipay', amountFen: number, screenshotUrl: string) => Promise<void>;
+  onLoadOrders: () => Promise<Array<Record<string, unknown>>>;
+  onLoadEvents: () => Promise<Array<Record<string, unknown>>>;
+  onLoadAdminOrders: () => Promise<Array<Record<string, unknown>>>;
+  onUpdateOrderOcr: (orderNo: string, ocrSummary: string) => Promise<void>;
+  onGrantMembership: (accountId: string, days: number, description: string) => Promise<void>;
+  onBlockUser: (accountId: string, status: 'blocked' | 'active') => Promise<void>;
+  pending: boolean;
+}) {
+  const [codeLoginForm, setCodeLoginForm] = useState({ email: '', code: '' });
+  const [codeSending, setCodeSending] = useState(false);
+  const [codeCountdown, setCodeCountdown] = useState(0);
+  const [codeNotice, setCodeNotice] = useState('');
+  const [redeemCode, setRedeemCode] = useState('');
+  const [orderForm, setOrderForm] = useState({ channel: 'wechat' as 'wechat' | 'alipay', amountFen: 500, screenshotUrl: '' });
+  const [uploadingScreenshot, setUploadingScreenshot] = useState(false);
+  const [orders, setOrders] = useState<Array<Record<string, unknown>>>([]);
+  const [events, setEvents] = useState<Array<Record<string, unknown>>>([]);
+  const [adminOrders, setAdminOrders] = useState<Array<Record<string, unknown>>>([]);
+  const [ocrInput, setOcrInput] = useState<Record<string, string>>({});
+  const [grantForm, setGrantForm] = useState({ accountId: '', days: 30, description: '管理员手工赠送会员' });
+  const [blockForm, setBlockForm] = useState({ accountId: '', status: 'blocked' as 'blocked' | 'active' });
+
+  useEffect(() => {
+    if (!currentUser) return;
+    void onLoadOrders().then(setOrders).catch(() => setOrders([]));
+    void onLoadEvents().then(setEvents).catch(() => setEvents([]));
+    if (currentUser.accountId === 'admin') {
+      void onLoadAdminOrders().then(setAdminOrders).catch(() => setAdminOrders([]));
+    }
+  }, [currentUser, onLoadAdminOrders, onLoadEvents, onLoadOrders]);
+
+  // 验证码倒计时
+  useEffect(() => {
+    if (codeCountdown <= 0) return;
+    const timer = window.setTimeout(() => setCodeCountdown((v) => v - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [codeCountdown]);
+
+  const handleSendCode = async () => {
+    const email = codeLoginForm.email.trim();
+    if (!email || codeSending || codeCountdown > 0) return;
+    setCodeSending(true);
+    try {
+      const result = await fetchApi<{ ok: true; message?: string }>('/api/auth/send-code', { method: 'POST', body: JSON.stringify({ email }) });
+      setCodeCountdown(60);
+      setCodeNotice(result.message || '验证码已发送，请留意邮箱。');
+    } catch (error) {
+      setCodeNotice(error instanceof Error ? error.message : '验证码发送失败');
+      throw error;
+    } finally {
+      setCodeSending(false);
+    }
+  };
+
+  const handleCodeLogin = async () => {
+    const email = codeLoginForm.email.trim();
+    const code = codeLoginForm.code.trim();
+    if (!email || !code) return;
+    await onAuthingLogin(JSON.stringify({ email, code }));
+  };
+
+  const handleScreenshotSelect = async (file: File | null) => {
+    if (!file) return;
+    setUploadingScreenshot(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const response = await fetch(`${getRuntimeApiBase()}/api/order/upload-screenshot`, {
+        method: 'POST',
+        credentials: 'include',
+        body: formData,
+      });
+      const data = await response.json();
+      if (!response.ok || data?.ok === false) {
+        throw new Error(data?.error || `http-${response.status}`);
+      }
+      setOrderForm((current) => ({ ...current, screenshotUrl: data.url || '' }));
+    } finally {
+      setUploadingScreenshot(false);
+    }
+  };
+
+  return (
+    <DesktopShell currentPath="/member" currentUser={currentUser} title="会员中心" subtitle="">
+      <div className="member-shell-inner">
+      {!currentUser ? (
+        <section className="member-login-center">
+          <div className="member-login-card">
+            <div className="member-login-card__header">
+              <h2 className="member-login-card__title">欢迎使用</h2>
+              <p className="member-login-card__desc">输入邮箱，接收验证码后即可登录或自动注册。</p>
+            </div>
+            <div className="member-login-card__body">
+              <label className="member-login-field">
+                <span className="member-login-field__label">邮箱地址</span>
+                <input
+                  className="member-login-field__input"
+                  value={codeLoginForm.email}
+                  onChange={(e) => setCodeLoginForm((s) => ({ ...s, email: e.target.value }))}
+                  placeholder="请输入邮箱"
+                  type="email"
+                  autoComplete="email"
+                />
+              </label>
+              <label className="member-login-field">
+                <span className="member-login-field__label">验证码</span>
+                <div className="member-login-code-row">
+                  <input
+                    className="member-login-field__input"
+                    value={codeLoginForm.code}
+                    onChange={(e) => setCodeLoginForm((s) => ({ ...s, code: e.target.value }))}
+                    placeholder="请输入验证码"
+                    maxLength={6}
+                    autoComplete="one-time-code"
+                  />
+                  <button
+                    className="member-login-code-btn"
+                    type="button"
+                    disabled={codeSending || codeCountdown > 0 || !codeLoginForm.email.trim()}
+                    onClick={() => void handleSendCode()}
+                  >
+                    {codeCountdown > 0 ? `${codeCountdown}s` : codeSending ? '发送中...' : '发送验证码'}
+                  </button>
+                </div>
+                {codeNotice ? <small className="member-login-field__hint">{codeNotice}</small> : null}
+              </label>
+              <button
+                className="member-login-submit"
+                type="button"
+                disabled={pending || !codeLoginForm.email.trim() || !codeLoginForm.code.trim()}
+                onClick={() => void handleCodeLogin()}
+              >
+                登录 / 注册
+              </button>
+            </div>
+          </div>
+        </section>
+      ) : (
+        <>
+          <section className="member-dashboard-grid">
+            <div className="member-panel member-panel--profile">
+              <h3>账户信息</h3>
+              <p>账号：{currentUser.accountId}</p>
+              <p>昵称：{currentUser.nickname}</p>
+              <p>会员到期：{formatMemberExpiry(currentUser.membership.expiresAt)}</p>
+              <button className="member-secondary-btn" type="button" disabled={pending} onClick={() => void onLogout()}>退出登录</button>
+            </div>
+            <div className="member-panel member-panel--redeem">
+              <h3>兑换码</h3>
+              <input value={redeemCode} onChange={(e) => setRedeemCode(e.target.value)} placeholder="输入兑换码" />
+              <button className="member-primary-btn" type="button" disabled={pending} onClick={() => void onRedeem(redeemCode)}>立即兑换</button>
+              <p>兑换成功后会员期限自动顺延，过期由服务端时间自动判定。</p>
+            </div>
+          </section>
+          <section className="member-dashboard-grid member-dashboard-grid--wide">
+            <div className="member-panel member-panel--sponsor">
+              <h3>赞赏开通</h3>
+              <select value={String(orderForm.amountFen)} onChange={(e) => setOrderForm((s) => ({ ...s, amountFen: Number(e.target.value) }))}>
+                <option value="500">5 元 = 30 天会员</option>
+                <option value="1000">10 元 = 90 天会员</option>
+              </select>
+              <select value={orderForm.channel} onChange={(e) => setOrderForm((s) => ({ ...s, channel: e.target.value as 'wechat' | 'alipay' }))}>
+                <option value="wechat">微信赞赏</option>
+                <option value="alipay">支付宝</option>
+              </select>
+              <input type="file" accept="image/*" onChange={(e) => void handleScreenshotSelect(e.target.files?.[0] ?? null)} />
+              <input value={orderForm.screenshotUrl} onChange={(e) => setOrderForm((s) => ({ ...s, screenshotUrl: e.target.value }))} placeholder="截图上传后自动回填地址" readOnly />
+              <button className="member-primary-btn member-primary-btn--gold" type="button" disabled={pending || uploadingScreenshot || !orderForm.screenshotUrl} onClick={() => void onCreateOrder(orderForm.channel, orderForm.amountFen, orderForm.screenshotUrl)}>{uploadingScreenshot ? '截图上传中...' : '提交待审核订单'}</button>
+              <p>当前已支持真实截图上传到云端存储；OCR 结果仍由管理审核页回填。</p>
+            </div>
+            <div className="member-panel member-panel--rules">
+              <h3>规则说明</h3>
+              <p>游客仅可查看首页基础内容，无法进入详情页。</p>
+              <p>首页对游客隐藏最近误差、30d误差两列。</p>
+              <p>被邀请人注册后 7 天内首次赞赏到账，上下级获得同样会员时长。</p>
+              <p>1 个月 = 30 天。</p>
+            </div>
+          </section>
+          <section className="member-dashboard-grid member-dashboard-grid--wide">
+            <div className="member-panel member-panel--orders">
+              <h3>我的订单</h3>
+              {orders.length ? orders.map((item) => <p key={String(item.order_no)}>{String(item.order_no)}｜{String(item.status)}｜{String(item.channel)}｜{Number(item.amount_fen || 0) / 100}元</p>) : <p>暂无订单</p>}
+            </div>
+            <div className="member-panel member-panel--events">
+              <h3>会员流水</h3>
+              {events.length ? events.map((item, index) => <p key={`${String(item.created_at)}-${index}`}>{String(item.created_at)}｜{String(item.event_type)}｜+{String(item.days)}天｜{String(item.description)}</p>) : <p>暂无流水</p>}
+            </div>
+          </section>
+          {currentUser.accountId === 'admin' ? (
+            <section className="member-dashboard-grid member-dashboard-grid--wide">
+              <div className="member-panel member-panel--admin member-panel--full">
+                <h3>审核后台</h3>
+                {adminOrders.length ? adminOrders.map((item) => {
+                  const orderNo = String(item.order_no || '');
+                  return (
+                    <div key={orderNo} className="admin-order-row">
+                      <p>{orderNo}｜{String(item.status)}｜OCR：{String(item.ocr_status)}｜{Number(item.amount_fen || 0) / 100}元</p>
+                      <input value={ocrInput[orderNo] || ''} onChange={(e) => setOcrInput((s) => ({ ...s, [orderNo]: e.target.value }))} placeholder="回填 OCR 摘要" />
+                      <button className="member-secondary-btn" type="button" disabled={pending} onClick={() => void onUpdateOrderOcr(orderNo, ocrInput[orderNo] || '')}>写入 OCR 摘要</button>
+                    </div>
+                  );
+                }) : <p>暂无待审核订单</p>}
+              </div>
+            </section>
+          ) : null}
+          {currentUser.accountId === 'admin' ? (
+            <section className="member-dashboard-grid member-dashboard-grid--wide">
+              <div className="member-panel member-panel--grant">
+                <h3>会员补单 / 手工赠送</h3>
+                <input value={grantForm.accountId} onChange={(e) => setGrantForm((s) => ({ ...s, accountId: e.target.value }))} placeholder="账号" />
+                <input type="number" value={grantForm.days} onChange={(e) => setGrantForm((s) => ({ ...s, days: Number(e.target.value) || 30 }))} placeholder="天数" />
+                <input value={grantForm.description} onChange={(e) => setGrantForm((s) => ({ ...s, description: e.target.value }))} placeholder="说明" />
+                <button className="member-primary-btn" type="button" disabled={pending} onClick={() => void onGrantMembership(grantForm.accountId, grantForm.days, grantForm.description)}>发放会员</button>
+              </div>
+              <div className="member-panel member-panel--block">
+                <h3>封禁 / 解封账户</h3>
+                <input value={blockForm.accountId} onChange={(e) => setBlockForm((s) => ({ ...s, accountId: e.target.value }))} placeholder="账号" />
+                <select value={blockForm.status} onChange={(e) => setBlockForm((s) => ({ ...s, status: e.target.value as 'blocked' | 'active' }))}>
+                  <option value="blocked">封禁</option>
+                  <option value="active">解封</option>
+                </select>
+                <button className="member-primary-btn member-primary-btn--danger" type="button" disabled={pending} onClick={() => void onBlockUser(blockForm.accountId, blockForm.status)}>{blockForm.status === 'blocked' ? '封禁账户' : '恢复账户'}</button>
+              </div>
+            </section>
+          ) : null}
+        </>
+      )}
+      </div>
+    </DesktopShell>
+  );
+}
+
 export default function App() {
   const [funds, setFunds] = useState<FundViewModel[]>([]);
   const [syncedAt, setSyncedAt] = useState('');
@@ -2630,6 +3062,8 @@ export default function App() {
   const [toasts, setToasts] = useState<Array<{ id: string; message: string; type: 'error' | 'success' | 'warning' }>>([]);
   const [trainingMetricsByCode, setTrainingMetricsByCode] = useState<Record<string, TrainingMetricSummary>>({});
   const [premiumCompareCodes, setPremiumCompareCodes] = useState<Record<string, PremiumCompareCodePayload>>({});
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
+  const [authPending, setAuthPending] = useState(false);
 
   const showToast = (message: string, type: 'error' | 'success' | 'warning' = 'error') => {
     const id = `${type}-${Date.now()}`;
@@ -2643,6 +3077,22 @@ export default function App() {
       setToasts((prev) => prev.filter((t) => t.id !== id));
     }, TOAST_AUTO_CLOSE_MS);
   };
+
+  useEffect(() => {
+    let active = true;
+    async function loadCurrentUser() {
+      try {
+        const payload = await fetchApi<{ ok: true; user: AuthUser }>('/api/auth/me', { method: 'GET' });
+        if (active) setCurrentUser(payload.user);
+      } catch {
+        if (active) setCurrentUser(null);
+      }
+    }
+    void loadCurrentUser();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -2661,7 +3111,19 @@ export default function App() {
       }
 
       try {
-        const payload = await fetchGeneratedJson<RuntimePayload>('funds-runtime.json');
+        let payload: RuntimePayload;
+        try {
+          payload = await fetchApi<RuntimePayload>('/api/runtime/all', { method: 'GET' });
+        } catch {
+          const staticPayload = await fetchGeneratedJson<{ syncedAt: string; funds: FundRuntimeData[] }>('funds-runtime.json');
+          payload = {
+            ok: true,
+            syncedAt: staticPayload.syncedAt,
+            funds: staticPayload.funds,
+            sourceUrl: '',
+            stateByCode: {},
+          } as RuntimePayload;
+        }
         const nextFunds = payload.funds.map((runtime: FundRuntimeData) => {
           const persistedState = payload.stateByCode?.[runtime.code];
           const initialModel = normalizeWatchlistModel(persistedState?.model ?? readWatchlistModel(runtime.code));
@@ -2840,6 +3302,98 @@ export default function App() {
     };
   }, [syncedAt]);
 
+  const isMember = Boolean(currentUser?.membership.isActive);
+
+  const refreshCurrentUser = async () => {
+    try {
+      const payload = await fetchApi<{ ok: true; user: AuthUser }>('/api/auth/me', { method: 'GET' });
+      setCurrentUser(payload.user);
+    } catch {
+      setCurrentUser(null);
+    }
+  };
+
+  const runAuthAction = async (runner: () => Promise<void>) => {
+    setAuthPending(true);
+    try {
+      await runner();
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : String(error), 'error');
+    } finally {
+      setAuthPending(false);
+    }
+  };
+
+  const handleLogin = async (accountId: string, password: string) => runAuthAction(async () => {
+    await fetchApi('/api/auth/login', { method: 'POST', body: JSON.stringify({ accountId, password }) });
+    await refreshCurrentUser();
+    showToast('登录成功', 'success');
+  });
+
+  const handleRegister = async (accountId: string, password: string, nickname: string, inviteCode: string) => runAuthAction(async () => {
+    await fetchApi('/api/auth/register', { method: 'POST', body: JSON.stringify({ accountId, password, nickname, inviteCode }) });
+    await refreshCurrentUser();
+    showToast('注册成功，已发放 7 天会员', 'success');
+  });
+
+  const handleAuthingLogin = async (payload: string) => runAuthAction(async () => {
+    const data = JSON.parse(payload) as { email: string; code: string };
+    await fetchApi('/api/auth/code-login', { method: 'POST', body: JSON.stringify(data) });
+    await refreshCurrentUser();
+    showToast('登录成功', 'success');
+  });
+
+  const handleLogout = async () => runAuthAction(async () => {
+    await fetchApi('/api/auth/logout', { method: 'POST' });
+    setCurrentUser(null);
+    showToast('已退出登录', 'success');
+  });
+
+  const handleRedeem = async (code: string) => runAuthAction(async () => {
+    await fetchApi('/api/redeem/apply', { method: 'POST', body: JSON.stringify({ code }) });
+    await refreshCurrentUser();
+    showToast('兑换成功', 'success');
+  });
+
+  const handleCreateOrder = async (channel: 'wechat' | 'alipay', amountFen: number, screenshotUrl: string) => runAuthAction(async () => {
+    await fetchApi('/api/order/create-manual', { method: 'POST', body: JSON.stringify({ channel, amountFen, screenshotUrl }) });
+    showToast('订单已提交，等待审核', 'success');
+  });
+
+  const handleLoadOrders = async () => {
+    const payload = await fetchApi<{ ok: true; orders: Array<Record<string, unknown>> }>('/api/order/my', { method: 'GET' });
+    return payload.orders || [];
+  };
+
+  const handleLoadEvents = async () => {
+    const payload = await fetchApi<{ ok: true; events: Array<Record<string, unknown>> }>('/api/member/events', { method: 'GET' });
+    return payload.events || [];
+  };
+
+  const handleLoadAdminOrders = async () => {
+    const payload = await fetchApi<{ ok: true; orders: Array<Record<string, unknown>> }>('/api/admin/orders', { method: 'GET' });
+    return payload.orders || [];
+  };
+
+  const handleUpdateOrderOcr = async (orderNo: string, ocrSummary: string) => runAuthAction(async () => {
+    await fetchApi('/api/admin/order/ocr', { method: 'POST', body: JSON.stringify({ orderNo, ocrStatus: 'reviewed', ocrSummary }) });
+    showToast('OCR 摘要已更新', 'success');
+  });
+
+  const handleGrantMembership = async (accountId: string, days: number, description: string) => runAuthAction(async () => {
+    await fetchApi('/api/admin/member/grant', { method: 'POST', body: JSON.stringify({ accountId, days, description }) });
+    showToast('会员补单成功', 'success');
+  });
+
+  const handleBlockUser = async (accountId: string, status: 'blocked' | 'active') => runAuthAction(async () => {
+    await fetchApi('/api/admin/user/block', { method: 'POST', body: JSON.stringify({ accountId, status }) });
+    showToast(status === 'blocked' ? '账号已封禁' : '账号已恢复', 'success');
+  });
+
+  const handleRequireMember = (code: string) => {
+    showToast(`${MEMBER_COPY} 基金代码：${code}`, 'warning');
+  };
+
   useEffect(() => {
     let active = true;
 
@@ -2896,16 +3450,18 @@ export default function App() {
       <AppErrorBoundary>
         <Routes>
           <Route path="/" element={<Navigate to="/qdii-lof" replace />} />
-          <Route path="/domestic-lof" element={<HomePage funds={funds} syncedAt={syncedAt} loading={loading} error={error} pageCategory="domestic-lof" trainingMetricsByCode={trainingMetricsByCode} premiumCompareCodes={premiumCompareCodes} />} />
-          <Route path="/qdii-lof" element={<HomePage funds={funds} syncedAt={syncedAt} loading={loading} error={error} pageCategory="qdii-lof" trainingMetricsByCode={trainingMetricsByCode} premiumCompareCodes={premiumCompareCodes} />} />
-          <Route path="/qdii-etf" element={<HomePage funds={funds} syncedAt={syncedAt} loading={loading} error={error} pageCategory="qdii-etf" trainingMetricsByCode={trainingMetricsByCode} premiumCompareCodes={premiumCompareCodes} />} />
-          <Route path="/domestic-etf" element={<HomePage funds={funds} syncedAt={syncedAt} loading={loading} error={error} pageCategory="domestic-etf" trainingMetricsByCode={trainingMetricsByCode} premiumCompareCodes={premiumCompareCodes} />} />
-          <Route path="/favorites" element={<HomePage funds={funds} syncedAt={syncedAt} loading={loading} error={error} pageCategory="favorites" trainingMetricsByCode={trainingMetricsByCode} premiumCompareCodes={premiumCompareCodes} />} />
+          <Route path="/auth/callback" element={<AuthCallbackPage />} />
+          <Route path="/domestic-lof" element={<HomePage funds={funds} syncedAt={syncedAt} loading={loading} error={error} pageCategory="domestic-lof" trainingMetricsByCode={trainingMetricsByCode} premiumCompareCodes={premiumCompareCodes} isMember={isMember} currentUser={currentUser} onRequireMember={handleRequireMember} />} />
+          <Route path="/qdii-lof" element={<HomePage funds={funds} syncedAt={syncedAt} loading={loading} error={error} pageCategory="qdii-lof" trainingMetricsByCode={trainingMetricsByCode} premiumCompareCodes={premiumCompareCodes} isMember={isMember} currentUser={currentUser} onRequireMember={handleRequireMember} />} />
+          <Route path="/qdii-etf" element={<HomePage funds={funds} syncedAt={syncedAt} loading={loading} error={error} pageCategory="qdii-etf" trainingMetricsByCode={trainingMetricsByCode} premiumCompareCodes={premiumCompareCodes} isMember={isMember} currentUser={currentUser} onRequireMember={handleRequireMember} />} />
+          <Route path="/domestic-etf" element={<HomePage funds={funds} syncedAt={syncedAt} loading={loading} error={error} pageCategory="domestic-etf" trainingMetricsByCode={trainingMetricsByCode} premiumCompareCodes={premiumCompareCodes} isMember={isMember} currentUser={currentUser} onRequireMember={handleRequireMember} />} />
+          <Route path="/favorites" element={<HomePage funds={funds} syncedAt={syncedAt} loading={loading} error={error} pageCategory="favorites" trainingMetricsByCode={trainingMetricsByCode} premiumCompareCodes={premiumCompareCodes} isMember={isMember} currentUser={currentUser} onRequireMember={handleRequireMember} />} />
+          <Route path="/member" element={<MemberCenter currentUser={currentUser} onAuthingLogin={handleAuthingLogin} onLogout={handleLogout} onRedeem={handleRedeem} onCreateOrder={handleCreateOrder} onLoadOrders={handleLoadOrders} onLoadEvents={handleLoadEvents} onLoadAdminOrders={handleLoadAdminOrders} onUpdateOrderOcr={handleUpdateOrderOcr} onGrantMembership={handleGrantMembership} onBlockUser={handleBlockUser} pending={authPending} />} />
           <Route path="/docs" element={<DocsPage />} />
           <Route path="/traffic" element={<TrafficPage />} />
           <Route path="/etf" element={<Navigate to="/qdii-etf" replace />} />
-          <Route path="/detail/:code" element={<DetailPage funds={funds} syncedAt={syncedAt} loading={loading} />} />
-          <Route path="/fund/:code" element={<DetailPage funds={funds} syncedAt={syncedAt} loading={loading} />} />
+          <Route path="/detail/:code" element={isMember ? <DetailPage funds={funds} syncedAt={syncedAt} loading={loading} /> : <MemberGate message={MEMBER_COPY} />} />
+          <Route path="/fund/:code" element={isMember ? <DetailPage funds={funds} syncedAt={syncedAt} loading={loading} /> : <MemberGate message={MEMBER_COPY} />} />
           <Route path="*" element={<Navigate to="/qdii-lof" replace />} />
         </Routes>
       </AppErrorBoundary>

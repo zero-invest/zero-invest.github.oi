@@ -12,12 +12,14 @@ interface FundTableProps {
   eastmoneyPremiumByCode: Record<string, number | null>;
   formatCurrency: (value: number) => string;
   formatPercent: (value: number) => string;
+  isMember: boolean;
   title: string;
   description: string;
   pagePath: string;
   favoriteCodes: string[];
   onToggleFavorite: (code: string) => void;
   onReorder: (orderedCodes: string[]) => void;
+  onRequireMember: (code: string) => void;
 }
 
 export function FundTable({
@@ -26,12 +28,14 @@ export function FundTable({
   eastmoneyPremiumByCode,
   formatCurrency,
   formatPercent,
+  isMember,
   title,
   description,
   pagePath,
   favoriteCodes,
   onToggleFavorite,
   onReorder,
+  onRequireMember,
 }: FundTableProps) {
     const SORT_LABEL_HINTS: Partial<Record<SortKey, string>> = {
       premiumRate: '场内交易价相对当日预估净值的偏离幅度。正数表示场内价高于预估净值（溢价），负数表示低于预估净值（折价）。',
@@ -249,8 +253,8 @@ export function FundTable({
       <div>{sortable ? renderSortLabel('溢价率', 'premiumRate') : renderFloatingHeaderLabel('溢价率', 'premiumRate')}</div>
       <div>限购</div>
       <div>{sortable ? renderSortLabel('涨跌幅', 'changeRate') : renderFloatingHeaderLabel('涨跌幅', 'changeRate')}</div>
-      <div>{sortable ? renderSortLabel('最近误差', 'latestError') : renderFloatingHeaderLabel('最近误差', 'latestError')}</div>
-      <div>{sortable ? renderSortLabel('30d误差', 'error30d') : renderFloatingHeaderLabel('30d误差', 'error30d')}</div>
+      {isMember ? <div>{sortable ? renderSortLabel('最近误差', 'latestError') : renderFloatingHeaderLabel('最近误差', 'latestError')}</div> : null}
+      {isMember ? <div>{sortable ? renderSortLabel('30d误差', 'error30d') : renderFloatingHeaderLabel('30d误差', 'error30d')}</div> : null}
       <div>{sortable ? renderSortLabel('训练误差', 'meanAbsError') : renderFloatingHeaderLabel('训练误差', 'meanAbsError')}</div>
       <div>{sortable ? renderSortLabel('现价', 'marketPrice') : renderFloatingHeaderLabel('现价', 'marketPrice')}</div>
       <div>{sortable ? renderSortLabel('估值', 'estimatedNav') : renderFloatingHeaderLabel('估值', 'estimatedNav')}</div>
@@ -287,8 +291,8 @@ export function FundTable({
             <col className="fund-table__col fund-table__col--premium" />
             <col className="fund-table__col fund-table__col--limit" />
             <col className="fund-table__col fund-table__col--change" />
-            <col className="fund-table__col fund-table__col--recent-error" />
-            <col className="fund-table__col fund-table__col--error-30d" />
+            {isMember ? <col className="fund-table__col fund-table__col--recent-error" /> : null}
+            {isMember ? <col className="fund-table__col fund-table__col--error-30d" /> : null}
             <col className="fund-table__col fund-table__col--error" />
             <col className="fund-table__col fund-table__col--market" />
             <col className="fund-table__col fund-table__col--estimate" />
@@ -306,8 +310,8 @@ export function FundTable({
               <th>{renderSortLabel('溢价率', 'premiumRate')}</th>
               <th title="当前是否存在购买限额限制。点击基金详情页可查看最新限购政策。">限购</th>
               <th title="这个交易日场内价相对前一交易日的涨跌幅。">{renderSortLabel('涨跌幅', 'changeRate')}</th>
-              <th>{renderSortLabel('最近误差', 'latestError')}</th>
-              <th>{renderSortLabel('30d误差', 'error30d')}</th>
+              {isMember ? <th>{renderSortLabel('最近误差', 'latestError')}</th> : null}
+              {isMember ? <th>{renderSortLabel('30d误差', 'error30d')}</th> : null}
               <th>{renderSortLabel('训练误差', 'meanAbsError')}</th>
               <th title="场内实时价格。">{renderSortLabel('现价', 'marketPrice')}</th>
               <th title="当日净值的估值。">{renderSortLabel('估值', 'estimatedNav')}</th>
@@ -353,11 +357,17 @@ export function FundTable({
                       <span aria-hidden="true">{isFavorite ? '★' : '☆'}</span>
                     </button>
                   </td>
-                  <td>
-                    <a className="fund-table__link" href={`#/fund/${fund.runtime.code}?from=${pagePath}`}>
-                      {fund.runtime.code}
-                    </a>
-                  </td>
+                   <td>
+                     {isMember ? (
+                       <a className="fund-table__link" href={`#/fund/${fund.runtime.code}?from=${pagePath}`}>
+                         {fund.runtime.code}
+                       </a>
+                     ) : (
+                       <button className="fund-table__link fund-table__link--button" type="button" onClick={() => onRequireMember(fund.runtime.code)}>
+                         {fund.runtime.code}
+                       </button>
+                     )}
+                   </td>
                   <td>
                     <span className={`fund-table__name${isFavorite ? ' fund-table__name--favorite' : ''}`} title={fullName}>{compactName}</span>
                   </td>
@@ -369,10 +379,12 @@ export function FundTable({
                     {fund.runtime.purchaseLimit || '待校验'}
                   </td>
                   <td className={changeRate >= 0 ? 'tone-positive' : 'tone-negative'}>{formatPercent(changeRate)}</td>
-                  <td className={typeof latestError === 'number' ? (latestError >= 0 ? 'tone-positive' : 'tone-negative') : 'muted-text'}>
-                    {typeof latestError === 'number' ? formatPercent(latestError) : '--'}
-                  </td>
-                  <td>{typeof avg30dError === 'number' ? formatPercent(avg30dError) : '--'}</td>
+                   {isMember ? (
+                     <td className={typeof latestError === 'number' ? (latestError >= 0 ? 'tone-positive' : 'tone-negative') : 'muted-text'}>
+                       {typeof latestError === 'number' ? formatPercent(latestError) : '--'}
+                     </td>
+                   ) : null}
+                   {isMember ? <td>{typeof avg30dError === 'number' ? formatPercent(avg30dError) : '--'}</td> : null}
                   <td className={typeof training30Error === 'number' ? (training30Error > 0.02 ? 'tone-positive' : 'tone-negative') : 'muted-text'}>
                     {typeof training30Error === 'number' ? formatPercent(training30Error) : '未训练'}
                   </td>
@@ -388,7 +400,7 @@ export function FundTable({
                       title="拖拽调整本页基金顺序"
                       aria-label={`拖拽调整 ${fund.runtime.code} 顺序`}
                     >
-                      <span aria-hidden="true">≡</span>
+                      <svg aria-hidden="true" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><line x1="2" y1="3.5" x2="12" y2="3.5" /><line x1="2" y1="7" x2="12" y2="7" /><line x1="2" y1="10.5" x2="12" y2="10.5" /></svg>
                     </button>
                   </td>
                 </tr>

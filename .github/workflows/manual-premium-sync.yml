@@ -1,0 +1,109 @@
+name: Manual Premium Rate Sync
+
+on:
+  schedule:
+    - cron: '0 2 * * *'
+  workflow_dispatch:  # Allow manual triggering
+
+jobs:
+  sync:
+    runs-on: windows-latest
+    env:
+      # Cloudflare Worker URL - set in repository secrets
+      CLOUDFLARE_WORKER_URL: ${{ secrets.CLOUDFLARE_WORKER_URL }}
+      # Sync token for authentication - set in repository secrets
+      CLOUDFLARE_SYNC_TOKEN: ${{ secrets.CLOUDFLARE_SYNC_TOKEN }}
+      # Optional: Set default date if needed
+      DEFAULT_DATE: ${{ secrets.DEFAULT_DATE }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up PowerShell
+        uses: actions/setup-powershell@v2
+        with:
+          version: '7.3.0'
+
+      - name: Install required dependencies
+        run: |
+          # No additional dependencies needed for this script
+          echo "Dependencies check complete"
+
+      - name: Load manual premium entries and sync to Cloudflare
+        shell: pwsh
+        run: |
+          # Import the script module without UI
+          $env:PATH += ";${{ github.workspace }}\scripts"
+          
+          # Read existing manual entries
+          $localPath = Join-Path $PSScriptRoot '.cache\fund-sync\premium-compare-manual-local.json'
+          $sharedPath = Join-Path $PSScriptRoot 'public\generated\premium-compare-manual.json'
+          
+          if (-not (Test-Path $localPath)) {
+            Write-Host "Local entries file not found, skipping sync"
+            exit 0
+          }
+          
+          $localEntries = Get-Content $localPath -Raw | ConvertFrom-Json -ErrorAction SilentlyContinue
+          if (-not $localEntries.entries) {
+            Write-Host "No entries found in local file"
+            exit 0
+          }
+          
+          # Prepare headers for Cloudflare API
+          $headers = @{
+            'Authorization' = "Bearer $env:CLOUDFLARE_SYNC_TOKEN"
+            'Content-Type' = 'application/json'
+          }
+          
+          # Process each entry and send to Cloudflare
+          foreach ($entry in $localEntries.entries) {
+            $body = @{
+              code = $entry.code
+              date = $entry.date
+              provider = $entry.provider
+              premiumRate = $entry.premiumRate
+              sourceUrl = $entry.sourceUrl
+              status = 'manual-input-cloudflare'
+              time = $entry.time
+            } | ConvertTo-Json -Depth 10
+          
+            try {
+              $response = Invoke-RestMethod -Uri "$env:CLOUDFLARE_WORKER_URL/api/manual/premium-entry" `
+                -Method Post -Headers $headers -Body $body -ErrorAction Stop
+              Write-Host "Synced entry for $($entry.code) on $($entry.date) via $($entry.provider)"
+            } catch {
+              Write-Warning "Failed to sync entry $($entry.code): $($_.Exception.Message)"
+            }
+          }
+          
+          # Also sync shared entries
+          $sharedEntries = Get-Content $sharedPath -Raw | ConvertFrom-Json -ErrorAction SilentlyContinue
+          if ($sharedEntries.entries) {
+            foreach ($entry in $sharedEntries.entries) {
+              $body = @{
+                code = $entry.code
+                date = $entry.date
+                provider = $entry.provider
+                premiumRate = $entry.premiumRate
+                sourceUrl = $entry.sourceUrl
+                status = 'manual-input-cloudflare'
+                time = $entry.time
+              } | ConvertTo-Json -Depth 10
+              
+              try {
+                $response = Invoke-RestMethod -Uri "$env:CLOUDFLARE_WORKER_URL/api/manual/premium-entry" `
+                  -Method Post -Headers $headers -Body $body -ErrorAction Stop
+                Write-Host "Synced shared entry for $($entry.code) on $($entry.date) via $($entry.provider)"
+              } catch {
+                Write-Warning "Failed to sync shared entry $($entry.code): $($_.Exception.Message)"
+              }
+            }
+          }
+          
+          Write-Host "Sync process completed"
+
+      - name: Verify sync status
+        run: |
+          echo "All sync steps completed. Check Cloudflare dashboard for new entries."

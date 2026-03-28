@@ -55,8 +55,14 @@ function getMarketPrefix(code) {
 const PROXY_BASKET_WEIGHTS = {
   '原油': { USO: 0.6, BNO: 0.4 },
   '黄金': { GLD: 0.7, IAU: 0.3 },
+  '白银': { SLV: 0.8, SIVR: 0.2 },
   '油气': { XOP: 0.5, XLE: 0.5 },
 };
+
+const SILVER_REALTIME_PROXY_CODES = new Set(['161226']);
+const SILVER_US_PROXY_TICKERS = new Set(['SLV', 'SIVR', 'AGQ']);
+const SILVER_REALTIME_CARRY_MAX_MOVE = 0.03;
+const SILVER_REALTIME_CARRY_ANOMALY_MOVE = 0.06;
 
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36';
 
@@ -272,6 +278,52 @@ function calcProxyReturn(config, quotesMap) {
   };
 }
 
+function getFundIntradayReturn(quote) {
+  const marketPrice = Number(quote?.marketPrice || 0);
+  const previousClose = Number(quote?.previousClose || 0);
+  if (!(marketPrice > 0) || !(previousClose > 0)) {
+    return null;
+  }
+  const value = marketPrice / previousClose - 1;
+  return Number.isFinite(value) ? value : null;
+}
+
+function applySilverRealtimeCarryToProxyQuotes(code, proxyQuotes, fundQuote) {
+  if (!SILVER_REALTIME_PROXY_CODES.has(code) || !Array.isArray(proxyQuotes) || proxyQuotes.length === 0) {
+    return proxyQuotes;
+  }
+
+  const anchorReturnRaw = getFundIntradayReturn(fundQuote);
+  if (!Number.isFinite(anchorReturnRaw)) {
+    return proxyQuotes;
+  }
+
+  if (Math.abs(anchorReturnRaw) > SILVER_REALTIME_CARRY_ANOMALY_MOVE) {
+    return proxyQuotes;
+  }
+
+  const carryReturn = Math.max(-SILVER_REALTIME_CARRY_MAX_MOVE, Math.min(SILVER_REALTIME_CARRY_MAX_MOVE, anchorReturnRaw));
+  return proxyQuotes.map((item) => {
+    const ticker = String(item?.ticker || '').toUpperCase();
+    const previousClose = Number(item?.previousClose || 0);
+    const currentPrice = Number(item?.currentPrice || 0);
+    if (!SILVER_US_PROXY_TICKERS.has(ticker) || !(previousClose > 0) || !(currentPrice > 0)) {
+      return item;
+    }
+
+    const carriedCurrent = currentPrice * (1 + carryReturn);
+    if (!Number.isFinite(carriedCurrent) || carriedCurrent <= 0) {
+      return item;
+    }
+
+    return {
+      ...item,
+      currentPrice: carriedCurrent,
+      changeRate: carriedCurrent / previousClose - 1,
+    };
+  });
+}
+
 async function syncSingleFund(code, config, fundQuotesMap, usQuotesMap, fxRate) {
   // 并发获取净值 + 限购状态
   const [navData, gzData, purchaseData] = await Promise.all([
@@ -290,7 +342,12 @@ async function syncSingleFund(code, config, fundQuotesMap, usQuotesMap, fxRate) 
   const previousClose = quote?.previousClose || officialNavT1 || 0;
   const name = quote?.name || config.name;
 
-  const { proxyReturn, proxyQuotes } = calcProxyReturn(config, usQuotesMap);
+  const proxyCalc = calcProxyReturn(config, usQuotesMap);
+  const proxyQuotes = applySilverRealtimeCarryToProxyQuotes(code, proxyCalc.proxyQuotes, quote);
+  const proxyWeightSum = proxyQuotes.reduce((sum, item) => sum + Math.max(0, Number(item?.weight) || 0), 0);
+  const proxyReturn = proxyWeightSum > 0
+    ? proxyQuotes.reduce((sum, item) => sum + (Number(item?.changeRate) || 0) * ((Number(item?.weight) || 0) / proxyWeightSum), 0)
+    : proxyCalc.proxyReturn;
   const marketReturn = previousClose > 0 && marketPrice > 0 ? marketPrice / previousClose - 1 : 0;
   const signalReturn = config.estimateMode === 'market' ? marketReturn : proxyReturn;
   const effectiveEstimatedNav = estimatedNav || (officialNavT1 > 0 ? officialNavT1 * (1 + signalReturn) : 0);

@@ -9,7 +9,7 @@ const viteBin = path.join(projectRoot, 'node_modules', 'vite', 'bin', 'vite.js')
 
 const FAST_SYNC_INTERVAL = 60_000;
 const SLOW_SYNC_INTERVAL = 15 * 60_000;
-const DEFAULT_GIT_PUSH_INTERVAL = 5 * 60_000;
+const DEFAULT_GIT_PUSH_INTERVAL = 30 * 60_000;
 const DEFAULT_BOOTSTRAP_PUSH_RETRY_INTERVAL_MS = 3 * 60 * 1000;
 
 const DEV_HOST = '127.0.0.1';
@@ -35,6 +35,17 @@ const CF_SYNC_TRIGGER_COUNT = Math.max(
 let syncing = false;
 let pushing = false;
 let gitPushReady = false;
+let lastGitPushAt = 0;
+
+function shouldPushNow(now = Date.now()) {
+  if (!gitPushReady) {
+    return false;
+  }
+  if (!lastGitPushAt) {
+    return true;
+  }
+  return now - lastGitPushAt >= GIT_PUSH_INTERVAL;
+}
 
 function getZonedClock(date, timeZone) {
   const parts = new Intl.DateTimeFormat('en-US', {
@@ -207,6 +218,7 @@ async function pushRuntimeUpdate() {
     const stamp = new Date().toISOString();
     await runCommand('git', ['commit', '-m', `chore(auto): refresh runtime data ${stamp}`]);
     await runCommand('git', ['push', GIT_REMOTE, `HEAD:${GIT_BRANCH}`]);
+    lastGitPushAt = Date.now();
     console.log('[auto-refresh] pushed runtime data to GitHub.');
     return true;
   } catch (error) {
@@ -245,8 +257,8 @@ async function syncOnce(options = {}) {
       writeCfSyncCounter(cfSyncCounter);
     }
 
-    // 同步完立即 push，不等定时器
-    if (!skipPush) {
+    // 仅在达到推送间隔后才 push，避免每次本地同步都触发 GitHub 重建
+    if (!skipPush && shouldPushNow()) {
       void pushRuntimeUpdate();
     }
 
@@ -299,7 +311,7 @@ async function main() {
     const ok = await pushRuntimeUpdate();
     if (ok) {
       initialPushCompleted = true;
-      process.stdout.write('[auto-refresh] bootstrap push completed; switching to regular push schedule.\n');
+    process.stdout.write('[auto-refresh] bootstrap push completed; switching to regular push schedule.\n');
     } else {
       process.stdout.write(
         `[auto-refresh] bootstrap push failed; retry in ${Math.round(BOOTSTRAP_PUSH_RETRY_INTERVAL_MS / 1000)}s.\n`,
@@ -309,11 +321,11 @@ async function main() {
   };
 
   const scheduleRegularPush = () => {
-    // push 现在由每次 syncOnce 完成后立即触发，这里只作为兜底保留
+    // push 默认按设定周期兜底检查一次；常规情况下由 syncOnce 在到点后触发
     if (!gitPushReady) return;
     gitTimer = setTimeout(function runRegularPush() {
       void pushRuntimeUpdate().finally(() => scheduleRegularPush());
-    }, GIT_PUSH_INTERVAL * 3); // 兜底：15分钟检查一次，防止漏推
+    }, GIT_PUSH_INTERVAL);
   };
 
   const scheduleBootstrapPush = () => {

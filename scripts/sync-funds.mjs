@@ -1126,15 +1126,19 @@ const PROXY_BASKETS = {
     components: [{ ticker: '159845', name: '中证1000ETF', weight: 1 }],
   },
 };
-const GOLD_REALTIME_PROXY_CODES = new Set(['160719', '161116', '164701', '161226']);
+const GOLD_REALTIME_PROXY_CODES = new Set(['160719', '161116', '164701']);
+const SILVER_REALTIME_PROXY_CODES = new Set(['161226']);
 const GOLD_US_PROXY_TICKERS = new Set(['GLD', 'IAU', 'UGL']);
 const GOLD_DOMESTIC_PROXY_TICKERS = new Set(['518880']);
+const SILVER_US_PROXY_TICKERS = new Set(['SLV', 'SIVR', 'AGQ']);
 const GOLD_REALTIME_CARRY_MAX_MOVE = 0.03;
 const GOLD_REALTIME_CARRY_ANOMALY_MOVE = 0.06;
 const GOLD_CONTINUOUS_FACTOR_WEIGHT_BY_CODE = {
   '160719': 0.7,
   '161116': 0.65,
   '164701': 0.65,
+};
+const SILVER_CONTINUOUS_FACTOR_WEIGHT_BY_CODE = {
   '161226': 0.65,
 };
 const GOLD_CONTINUOUS_FACTOR_MAX_MOVE = 0.08;
@@ -1366,6 +1370,50 @@ function applyGoldRealtimeCarryToProxyQuotes(proxyQuotes, marketDate, marketTime
     return {
       ...item,
       weight: (1 - domesticWeightTarget) * (baseWeight / nonDomesticTotalWeight),
+    };
+  });
+}
+
+function applySilverRealtimeCarryToProxyQuotes(proxyQuotes, marketDate, marketTime, anchorReturnRaw) {
+  if (!Array.isArray(proxyQuotes) || proxyQuotes.length === 0) {
+    return proxyQuotes;
+  }
+
+  if (!Number.isFinite(anchorReturnRaw)) {
+    return proxyQuotes;
+  }
+
+  if (Math.abs(anchorReturnRaw) > GOLD_REALTIME_CARRY_ANOMALY_MOVE) {
+    return proxyQuotes;
+  }
+
+  const hasStaleUsdSilver = proxyQuotes.some((item) => {
+    const ticker = String(item?.ticker || '').toUpperCase();
+    return SILVER_US_PROXY_TICKERS.has(ticker) && isQuoteStaleAgainstMarket(item, marketDate, marketTime);
+  });
+  if (!hasStaleUsdSilver) {
+    return proxyQuotes;
+  }
+
+  const silverReturn = clamp(anchorReturnRaw, -GOLD_REALTIME_CARRY_MAX_MOVE, GOLD_REALTIME_CARRY_MAX_MOVE);
+  return proxyQuotes.map((item) => {
+    const ticker = String(item?.ticker || '').toUpperCase();
+    const hasValidBase = Number.isFinite(item?.previousClose) && item.previousClose > 0;
+    const needsCarry = SILVER_US_PROXY_TICKERS.has(ticker) && hasValidBase && isQuoteStaleAgainstMarket(item, marketDate, marketTime);
+    if (!needsCarry) {
+      return item;
+    }
+
+    const carriedCurrent = item.currentPrice * (1 + silverReturn);
+    if (!Number.isFinite(carriedCurrent) || carriedCurrent <= 0) {
+      return item;
+    }
+
+    return {
+      ...item,
+      currentPrice: carriedCurrent,
+      quoteDate: String(marketDate || item.quoteDate || ''),
+      quoteTime: String(marketTime || item.quoteTime || ''),
     };
   });
 }
@@ -1685,8 +1733,109 @@ function blendGoldContinuousLeadReturn(runtime, baseLeadReturn, useProxyEstimate
   };
 }
 
+function blendSilverContinuousLeadReturn(runtime, baseLeadReturn, useProxyEstimate) {
+  if (!useProxyEstimate || !SILVER_REALTIME_PROXY_CODES.has(runtime.code)) {
+    return {
+      leadReturn: baseLeadReturn,
+      goldContinuousApplied: false,
+      goldContinuousReturn: null,
+      goldContinuousWeight: 0,
+    };
+  }
+
+  const rawContinuousReturn = toFiniteNumber(runtime.goldContinuousReturn);
+  if (!Number.isFinite(rawContinuousReturn) || Math.abs(rawContinuousReturn) > GOLD_CONTINUOUS_FACTOR_ANOMALY_MOVE) {
+    return {
+      leadReturn: baseLeadReturn,
+      goldContinuousApplied: false,
+      goldContinuousReturn: Number.isFinite(rawContinuousReturn) ? rawContinuousReturn : null,
+      goldContinuousWeight: 0,
+    };
+  }
+
+  const blendedWeightRaw = Number(SILVER_CONTINUOUS_FACTOR_WEIGHT_BY_CODE[runtime.code]);
+  const blendedWeight = Number.isFinite(blendedWeightRaw) ? clampRange(blendedWeightRaw, 0, 0.9) : 0;
+  if (!(blendedWeight > 0)) {
+    return {
+      leadReturn: baseLeadReturn,
+      goldContinuousApplied: false,
+      goldContinuousReturn: rawContinuousReturn,
+      goldContinuousWeight: 0,
+    };
+  }
+
+  const continuousReturn = clamp(rawContinuousReturn, GOLD_CONTINUOUS_FACTOR_MAX_MOVE);
+  const leadReturn = baseLeadReturn * (1 - blendedWeight) + continuousReturn * blendedWeight;
+
+  return {
+    leadReturn,
+    goldContinuousApplied: true,
+    goldContinuousReturn: continuousReturn,
+    goldContinuousWeight: blendedWeight,
+  };
+}
+
 function applyGoldCloseForceImpliedReturn(runtime, impliedReturn) {
   if (!GOLD_REALTIME_PROXY_CODES.has(runtime.code)) {
+    return {
+      impliedReturn,
+      forced: false,
+      forcedBy: null,
+    };
+  }
+
+  const marketTime = String(runtime.marketTime || '');
+  if (!marketTime || marketTime < GOLD_CLOSE_FORCE_TIME) {
+    return {
+      impliedReturn,
+      forced: false,
+      forcedBy: null,
+    };
+  }
+
+  const marketPrice = Number(runtime.marketPrice);
+  const previousClose = Number(runtime.previousClose);
+  if (!(marketPrice > 0) || !(previousClose > 0)) {
+    return {
+      impliedReturn,
+      forced: false,
+      forcedBy: null,
+    };
+  }
+
+  const marketReturn = marketPrice / previousClose - 1;
+  if (!Number.isFinite(marketReturn) || marketReturn >= 0) {
+    return {
+      impliedReturn,
+      forced: false,
+      forcedBy: null,
+    };
+  }
+
+  const floorByMarket = Math.min(-0.0001, marketReturn * GOLD_CLOSE_FORCE_MARKET_WEIGHT);
+  const forcedFloor = Math.min(floorByMarket, GOLD_CLOSE_FORCE_MIN_DROP);
+  const forcedImplied = Math.min(impliedReturn, forcedFloor);
+
+  if (forcedImplied === impliedReturn) {
+    return {
+      impliedReturn,
+      forced: false,
+      forcedBy: null,
+    };
+  }
+
+  return {
+    impliedReturn: forcedImplied,
+    forced: true,
+    forcedBy: {
+      marketReturn,
+      forcedFloor,
+    },
+  };
+}
+
+function applySilverCloseForceImpliedReturn(runtime, impliedReturn) {
+  if (!SILVER_REALTIME_PROXY_CODES.has(runtime.code)) {
     return {
       impliedReturn,
       forced: false,
@@ -4485,7 +4634,9 @@ async function syncFund(entry, holdingsHistoryByCode = {}) {
     : [];
   let proxyQuotes = GOLD_REALTIME_PROXY_CODES.has(entry.code)
     ? applyGoldRealtimeCarryToProxyQuotes(rawProxyQuotes, quote.marketDate, quote.marketTime)
-    : rawProxyQuotes;
+    : SILVER_REALTIME_PROXY_CODES.has(entry.code)
+      ? applySilverRealtimeCarryToProxyQuotes(rawProxyQuotes, quote.marketDate, quote.marketTime, getFundIntradayReturn(quote))
+      : rawProxyQuotes;
 
   let carryReturnRaw = null;
   const carryQuote = futuresQuote && futuresQuote.previousClose > 0
@@ -4538,9 +4689,9 @@ async function syncFund(entry, holdingsHistoryByCode = {}) {
     disclosedHoldings: dailyData.disclosedHoldings,
     holdingQuotes: holdingQuotePayload.holdingQuotes,
   };
-  const isGoldRealtimeProxyReady = GOLD_REALTIME_PROXY_CODES.has(entry.code) && proxyQuotes.length > 0;
-  const fallbackEstimateMode = isGoldRealtimeProxyReady ? 'proxy' : entry.estimateMode;
-  const effectiveEstimateMode = isGoldRealtimeProxyReady
+  const isRealtimeProxyReady = (GOLD_REALTIME_PROXY_CODES.has(entry.code) || SILVER_REALTIME_PROXY_CODES.has(entry.code)) && proxyQuotes.length > 0;
+  const fallbackEstimateMode = isRealtimeProxyReady ? 'proxy' : entry.estimateMode;
+  const effectiveEstimateMode = isRealtimeProxyReady
     ? 'proxy'
     : hasHoldingsSignal(runtimeDraft)
       ? 'holdings'

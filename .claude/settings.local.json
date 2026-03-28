@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(powershell -Command \"$content = Get-Content -Path ''d:\\\\桌面\\\\溢价率网站\\\\scripts\\\\manual-premium-entry.ps1'' -Raw -Encoding Unicode; $m = [regex]::Match\\($content, ''\\(?s\\)\\\\`$platforms\\\\s*=\\\\s*@\\\\\\(.*?\\\\n\\\\\\)''\\); $m.Value\")",
+      "Bash(powershell -File:*)",
+      "Bash(powershell -Command \"Get-Content -Path ''D:/桌面/溢价率网站/scripts/manual-premium-entry.ps1'' -Encoding Unicode | Select-String -Pattern ''platforms|Label|Provider'' | Select-Object -First 20\")",
+      "Bash(powershell -Command \":*)",
+      "Bash(powershell -Command \"Get-Content -Path ''D:/桌面/溢价率网站/scripts/manual-premium-entry.ps1'' -Encoding Unicode | Select-String -Pattern ''Label.*Provider''\")"
+    ]
+  }
+}
