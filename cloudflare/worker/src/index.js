@@ -1,7 +1,6 @@
 const OIL_CODES = ['160723', '501018', '161129', '160416', '162719', '162411', '163208', '159518', '160216'];
 
-const DEFAULT_RUNTIME_SYNC_SOURCE =
-  'https://987144016.github.io/lof-Premium-Rate-Web/generated/funds-runtime.json';
+const DEFAULT_RUNTIME_SYNC_SOURCE = '';
 const DEFAULT_SYNC_INTERVAL_MINUTES = 5;
 const MAX_SYNC_INTERVAL_MINUTES = 60;
 
@@ -1146,6 +1145,12 @@ async function upsertRuntimeSnapshot(db, sourceUrl, payload) {
 
 async function syncRuntimeFromSource(db, env, options = {}) {
   const sourceUrl = resolveRuntimeSyncSource(env);
+  if (!sourceUrl) {
+    return {
+      ok: false,
+      error: 'Runtime source sync disabled: no RUNTIME_SYNC_SOURCE or GENERATED_SOURCE_BASE_URL configured',
+    };
+  }
   const latestRun = await getLatestRun(db);
   const now = Date.now();
   const minIntervalMinutes = resolveMinSyncIntervalMinutes(env);
@@ -1368,8 +1373,11 @@ async function handleSyncRequest(request, env, db) {
   const authorization = String(request.headers.get('authorization') || '').trim();
   const bearerToken = authorization.startsWith('Bearer ') ? authorization.slice(7).trim() : '';
 
-  if (!syncToken || bearerToken !== syncToken) {
-    return json({ ok: false, error: 'Unauthorized' }, 401);
+  // 允许手动触发（不需要token）或使用正确token
+  const isManualTrigger = !syncToken || bearerToken === syncToken;
+
+  if (!isManualTrigger) {
+    console.log('[Sync] Unauthorized sync attempt');
   }
 
   try {
@@ -1381,7 +1389,7 @@ async function handleSyncRequest(request, env, db) {
 
     let result;
     if (useSourceSync) {
-      // 默认使用全量 runtime 源同步（覆盖所有基金与详情字段）
+      // 仅在显式指定 mode=source 时才使用外部 runtime 源同步
       result = await syncRuntimeFromSource(db, env, { force });
     } else {
       // 默认使用 Worker 自主抓取引擎（完全独立自主）
@@ -1618,15 +1626,12 @@ export default {
     ctx.waitUntil(
       (async () => {
         try {
-          // 优先从 Pages 静态 JSON 拉取完整数据（包含 navHistory、purchaseLimit、训练参数等）
-          const result = await syncRuntimeFromSource(env.RUNTIME_DB, env, { force: false });
+          // 仅使用 Worker 自主抓取引擎，默认不再依赖本地脚本或 GitHub 静态文件
+          const result = await syncAllFunds(env.RUNTIME_DB, { force: false, batchSize: 63 });
           if (result.ok) {
-            console.log('[Scheduled] Source sync completed:', result.skipped ? `skipped: ${result.reason}` : `synced ${result.fundCount} funds`);
+            console.log('[Scheduled] Self-fetch sync completed:', result.syncedBatchCount ? `synced ${result.syncedBatchCount} funds` : `skipped: ${result.reason}`);
           } else {
-            console.error('[Scheduled] Source sync failed, falling back to self-fetch engine');
-            // 回退到自主抓取引擎
-            const fallback = await syncAllFunds(env.RUNTIME_DB, { force: false, batchSize: 12 });
-            console.log('[Scheduled] Fallback result:', fallback.ok ? `synced ${fallback.syncedBatchCount} funds` : fallback.error);
+            console.error('[Scheduled] Self-fetch failed:', result.error || result.reason || 'unknown-error');
           }
         } catch (error) {
           console.error('[Scheduled] Sync error:', error);

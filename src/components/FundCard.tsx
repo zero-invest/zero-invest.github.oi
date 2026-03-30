@@ -24,7 +24,7 @@ export function FundCard({ fund, formatCurrency, formatPercent }: FundCardProps)
         </div>
         <div>
           <span>估值</span>
-          <strong>{formatCurrency(fund.estimate.estimatedNav)}</strong>
+          <strong>{fund.estimate.estimatedNav > 0 ? formatCurrency(fund.estimate.estimatedNav) : '--'}</strong>
         </div>
         <div>
           <span>现价</span>

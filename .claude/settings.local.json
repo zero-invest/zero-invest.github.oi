@@ -5,7 +5,9 @@
       "Bash(powershell -File:*)",
       "Bash(powershell -Command \"Get-Content -Path ''D:/桌面/溢价率网站/scripts/manual-premium-entry.ps1'' -Encoding Unicode | Select-String -Pattern ''platforms|Label|Provider'' | Select-Object -First 20\")",
       "Bash(powershell -Command \":*)",
-      "Bash(powershell -Command \"Get-Content -Path ''D:/桌面/溢价率网站/scripts/manual-premium-entry.ps1'' -Encoding Unicode | Select-String -Pattern ''Label.*Provider''\")"
+      "Bash(powershell -Command \"Get-Content -Path ''D:/桌面/溢价率网站/scripts/manual-premium-entry.ps1'' -Encoding Unicode | Select-String -Pattern ''Label.*Provider''\")",
+      "Bash(npx tsc:*)",
+      "Bash(node -e \":*)"
     ]
   }
 }

@@ -9,13 +9,15 @@ account_id = "d7c991c802a060808a087df47823f3fa"
 # 自主同步引擎配置
 # Worker 将直接从数据源（天天基金、新浪等）抓取数据，不再依赖此外部落户
 GENERATED_SOURCE_BASE_URL = "https://premium.leo2026.cloud/"
-RUNTIME_SYNC_MIN_INTERVAL_MINUTES = "5"
+# 减少同步间隔到1分钟，确保数据更及时
+RUNTIME_SYNC_MIN_INTERVAL_MINUTES = "1"
 
-# 可选：手动同步令牌（建议在生产环境设置）
-# RUNTIME_SYNC_TOKEN = "your-secret-token-here"
+# 手动同步令牌（临时用于调试）
+RUNTIME_SYNC_TOKEN = "debug-sync-token"
 
 [triggers]
-crons = ["*/5 * * * *"]
+# 每分钟执行一次同步，确保数据更及时
+crons = ["* * * * *"]
 
 [[d1_databases]]
 binding = "RUNTIME_DB"

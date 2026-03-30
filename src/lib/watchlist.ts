@@ -432,7 +432,7 @@ export function estimateWatchlistFund(
   const goldCloseForcedReturn = applyGoldCloseForceImpliedReturn(runtime, rawImpliedReturn);
   const impliedReturn = applySilverCloseForceImpliedReturn(runtime, goldCloseForcedReturn);
   const estimatedNav = anchorNav * (1 + impliedReturn);
-  const premiumRate = estimatedNav > 0 ? runtime.marketPrice / estimatedNav - 1 : 0;
+  const premiumRate = estimatedNav > 0 && runtime.marketPrice > 0 ? runtime.marketPrice / estimatedNav - 1 : 0;
 
   return {
     anchorNav,

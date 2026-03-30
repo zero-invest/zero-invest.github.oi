@@ -1,0 +1,14 @@
+import { readFileSync } from 'fs';
+const d = JSON.parse(readFileSync('public/generated/funds-runtime.json', 'utf-8'));
+const funds = d.funds;
+const zero = funds.filter(f => !f.officialNavT1 || f.officialNavT1 <= 0);
+const sus = funds.filter(f => f.purchaseLimit === '暂停申购');
+const limited = funds.filter(f => f.purchaseLimit && f.purchaseLimit !== '不限购' && f.purchaseLimit !== '暂停申购');
+console.log('总基金:', funds.length);
+console.log('净值0/空:', zero.length);
+console.log('暂停申购:', sus.length);
+console.log('有限购金额:', limited.length);
+console.log('\n前3个基金:');
+funds.slice(0, 3).forEach(f => console.log(' ', f.code, f.name?.slice(0, 8), 'nav:', f.officialNavT1, 'date:', f.navDate, 'limit:', f.purchaseLimit));
+console.log('\n暂停申购基金:');
+sus.slice(0, 5).forEach(f => console.log(' ', f.code, f.name?.slice(0, 8), 'purchaseStatus:', f.purchaseStatus, 'limit:', f.purchaseLimit));

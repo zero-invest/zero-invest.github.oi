@@ -24,13 +24,18 @@
     "sync:research:remaining": "node scripts/generate-160723-research.mjs 161226 && node scripts/generate-160723-research.mjs 161128",
     "sync:data:full": "npm run sync:data && npm run sync:research",
     "dev": "npm run sync:data && vite",
+    "dev:admin": "vite --config vite.admin.config.ts",
     "manual:premium-entry": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/manual-premium-entry.ps1",
     "member:codes": "node scripts/generate-redeem-codes.mjs",
     "app:start": "node scripts/dev-auto-refresh.mjs",
-    "build": "npm run sync:data && tsc && vite build",
+    "build": "npm run sync:data && npm run build:site && npm run build:admin",
+    "build:site": "tsc && vite build",
+    "build:admin": "tsc && vite build --config vite.admin.config.ts",
     "build:static": "tsc && vite build",
+    "build:all": "npm run build:site && npm run build:admin",
     "deploy:pages": "node scripts/deploy-pages.mjs",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "preview:admin": "vite preview --config vite.admin.config.ts"
   },
   "dependencies": {
     "cheerio": "^1.2.0",

@@ -42,31 +42,15 @@ function isAbortLikeError(error: unknown): boolean {
   return normalized.includes('aborted') || normalized.includes('aborterror') || normalized.includes('signal is aborted');
 }
 
-// 本地开发与 GitHub Pages 优先静态，其他线上环境可优先 Worker API，最后兜底静态
-function isGithubPagesHost(hostname: string): boolean {
-  return hostname === 'github.io' || hostname.endsWith('.github.io');
-}
-
+// 静态文件始终优先；Worker API 作为实时数据补充（需通过质量检测）
+// 注意：Worker API 的净值数据可能不完整，静态文件由本地脚本维护质量更可靠
 async function fetchGeneratedJson<T>(fileName: string): Promise<T> {
   const ts = Date.now();
-  const hostname = window.location.hostname;
-  const isLocal = hostname === 'localhost' || hostname === '127.0.0.1';
-  const preferStaticFirst = isLocal || isGithubPagesHost(hostname);
-  const allowRuntimeApi = fileName === 'funds-runtime.json';
-  // 本地开发和 GitHub Pages 优先本地/静态 generated；其余线上环境 funds-runtime 优先 Worker API
-  const candidates: string[] = [];
-  if (preferStaticFirst) {
-    candidates.push(`generated/${fileName}?ts=${ts}`);
-  }
-  // API 路径 — 仅 funds-runtime 走 Worker API；
-  // premium-compare 的历史数据由本地脚本维护，Worker D1 中没有完整历史，
-  // 因此始终走部署时打包的静态文件以保证数据完整性。
-  if (!preferStaticFirst && allowRuntimeApi) {
+  // 静态文件路径始终作为首选（本地开发和所有线上环境）
+  const candidates: string[] = [`generated/${fileName}?ts=${ts}`];
+  // Worker API 仅在非静态文件加载失败时作为兜底（且仅对 funds-runtime 生效）
+  if (fileName === 'funds-runtime.json') {
     candidates.push(`${REMOTE_API_BASE}/all`);
-  }
-  // 非静态优先的线上环境保留静态兜底
-  if (!preferStaticFirst) {
-    candidates.push(`generated/${fileName}?ts=${ts}`);
   }
 
   let lastError: Error | null = null;
@@ -78,6 +62,14 @@ async function fetchGeneratedJson<T>(fileName: string): Promise<T> {
       if (!response.ok) throw new Error(`http-${response.status}`);
       const data = await response.json();
       if (fileName === 'funds-runtime.json') {
+        // 质量检测：若超过 60% 的基金净值为 0，视为数据不完整，跳过此源
+        const funds = Array.isArray(data?.funds) ? data.funds : [];
+        if (funds.length > 0) {
+          const zeroNavCount = funds.filter((f: { officialNavT1?: number }) => !f.officialNavT1 || f.officialNavT1 <= 0).length;
+          if (zeroNavCount / funds.length > 0.6) {
+            throw new Error(`nav-quality-check-failed: ${zeroNavCount}/${funds.length} funds have zero nav`);
+          }
+        }
         return data as T;
       } else if (/^(\d+)-offline-research\.json$/.test(fileName)) {
         const resolved = data.fund || data;
@@ -143,14 +135,13 @@ const PAGE_OPTIONS: Array<{ key: ViewCategory; path: string; label: string; lead
 ];
 
 const DESKTOP_SHELL_NAV = [
-  { label: '跨境 LOF', to: '/qdii-lof' },
-  { label: '国内 LOF', to: '/domestic-lof' },
-  { label: '跨境 ETF', to: '/qdii-etf' },
-  { label: '国内 ETF', to: '/domestic-etf' },
-  { label: '我的收藏', to: '/favorites' },
-  { label: '会员中心', to: '/member' },
-  { label: '说明文档', to: '/docs' },
-  { label: '访客趋势', to: '/traffic' },
+  { icon: '🌐', label: '跨境 LOF', to: '/qdii-lof' },
+  { icon: '🏠', label: '国内 LOF', to: '/domestic-lof' },
+  { icon: '🌐', label: '跨境 ETF', to: '/qdii-etf' },
+  { icon: '🏠', label: '国内 ETF', to: '/domestic-etf' },
+  { icon: '⭐', label: '我的收藏', to: '/favorites' },
+  { icon: '👤', label: '会员中心', to: '/member' },
+  { icon: '📄', label: '说明文档', to: '/docs' },
 ];
 
 function DesktopShell({
@@ -159,6 +150,7 @@ function DesktopShell({
   title,
   subtitle,
   actions,
+  syncedAt,
   children,
 }: {
   currentPath: string;
@@ -166,6 +158,7 @@ function DesktopShell({
   title: string;
   subtitle: string;
   actions?: React.ReactNode;
+  syncedAt?: string;
   children: React.ReactNode;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -178,6 +171,7 @@ function DesktopShell({
     const saved = Number(window.localStorage.getItem('premium-sidebar-width') || '220');
     return Number.isFinite(saved) ? Math.min(320, Math.max(180, saved)) : 220;
   });
+  const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
     document.documentElement.dataset.theme = isDark ? 'dark' : 'light';
@@ -188,6 +182,15 @@ function DesktopShell({
     document.documentElement.style.setProperty('--sidebar-width', `${sidebarWidth}px`);
     window.localStorage.setItem('premium-sidebar-width', String(sidebarWidth));
   }, [sidebarWidth]);
+
+  useEffect(() => {
+    // 实时更新时间
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+    
+    return () => clearInterval(timer);
+  }, []);
 
   const startSidebarResize = (event: React.MouseEvent<HTMLDivElement>) => {
     event.preventDefault();
@@ -208,6 +211,25 @@ function DesktopShell({
     window.addEventListener('mouseup', handleUp);
   };
 
+  // 格式化同步时间显示
+  const formatSyncTime = (syncedAtStr?: string) => {
+    if (!syncedAtStr) return '暂无数据';
+    try {
+      const date = new Date(syncedAtStr);
+      const now = new Date();
+      const diffMs = now.getTime() - date.getTime();
+      const diffMins = Math.floor(diffMs / 60000);
+      
+      if (diffMins < 1) return '刚刚同步';
+      if (diffMins < 60) return `${diffMins}分钟前`;
+      const diffHours = Math.floor(diffMins / 60);
+      if (diffHours < 24) return `${diffHours}小时前`;
+      return date.toLocaleString('zh-CN', { hour12: false });
+    } catch {
+      return '暂无数据';
+    }
+  };
+
   return (
     <main className="dashboard-shell">
       <button className="mobile-shell-toggle" type="button" onClick={() => setMenuOpen((value) => !value)}>
@@ -215,14 +237,16 @@ function DesktopShell({
       </button>
       <aside className="dashboard-sidebar">
         <div className="dashboard-brand">
-          <span className="dashboard-brand__mark">◆</span>
+          <span className="dashboard-brand__mark">📊</span>
           <div>
-            <strong>Premium</strong>
+            <strong>溢价估值</strong>
+            <small>PREMIUM</small>
           </div>
         </div>
         <nav className="dashboard-nav">
           {DESKTOP_SHELL_NAV.map((item) => (
             <Link key={item.to} className={`dashboard-nav__item${currentPath === item.to ? ' dashboard-nav__item--active' : ''}`} to={item.to}>
+              <span className="dashboard-nav__icon">{item.icon}</span>
               {item.label}
             </Link>
           ))}
@@ -239,14 +263,16 @@ function DesktopShell({
       {menuOpen ? (
         <div className="mobile-shell-drawer">
           <div className="dashboard-brand">
-            <span className="dashboard-brand__mark">◆</span>
+            <span className="dashboard-brand__mark">📊</span>
             <div>
-              <strong>Premium</strong>
+              <strong>溢价估值</strong>
+              <small>PREMIUM</small>
             </div>
           </div>
           <nav className="dashboard-nav">
             {DESKTOP_SHELL_NAV.map((item) => (
               <Link key={item.to} className={`dashboard-nav__item${currentPath === item.to ? ' dashboard-nav__item--active' : ''}`} to={item.to} onClick={() => setMenuOpen(false)}>
+                <span className="dashboard-nav__icon">{item.icon}</span>
                 {item.label}
               </Link>
             ))}
@@ -256,18 +282,28 @@ function DesktopShell({
       <section className="dashboard-main">
         <header className="dashboard-topbar">
           <h1>{title}</h1>
-          <div className="dashboard-topbar__icons">
-            <button className="dashboard-icon-button" type="button" onClick={() => setIsDark((value) => !value)} aria-label="切换明暗模式">
-              {isDark ? '☀' : '◐'}
-            </button>
-            <Link className="dashboard-text-button dashboard-text-button--member" to="/member">
-              会员中心
-            </Link>
-            {currentUser ? (
-              <button className="dashboard-icon-button dashboard-icon-button--logout" type="button" onClick={() => { void fetchApi('/api/auth/logout', { method: 'POST' }).then(() => window.location.reload()).catch(() => window.location.reload()); }} aria-label="退出登录" title="退出登录">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>
+          <div className="dashboard-topbar__right">
+            <span className="dashboard-topbar__sync-time" title="当前时间">
+              🕐 {currentTime.toLocaleString('zh-CN', { hour12: false })}
+            </span>
+            {syncedAt && (
+              <span className="dashboard-topbar__sync-time" title={`最后同步：${syncedAt}`}>
+                📊 数据同步：{formatSyncTime(syncedAt)}
+              </span>
+            )}
+            <div className="dashboard-topbar__icons">
+              <button className="dashboard-icon-button" type="button" onClick={() => setIsDark((value) => !value)} aria-label="切换明暗模式">
+                {isDark ? '☀' : '◐'}
               </button>
-            ) : null}
+              <Link className="dashboard-text-button dashboard-text-button--member" to="/member">
+                会员中心
+              </Link>
+              {currentUser ? (
+                <button className="dashboard-icon-button dashboard-icon-button--logout" type="button" onClick={() => { void fetchApi('/api/auth/logout', { method: 'POST' }).then(() => window.location.reload()).catch(() => window.location.reload()); }} aria-label="退出登录" title="退出登录">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>
+                </button>
+              ) : null}
+            </div>
           </div>
         </header>
         {children}
@@ -1761,6 +1797,26 @@ function HomePage({
 
     async function loadGithubTraffic() {
       try {
+        const apiBase = getRuntimeApiBase();
+        const response = await fetch(`${apiBase}/api/traffic/github`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.ok) {
+            if (active) {
+              setGithubTraffic({
+                ...getDefaultGithubTrafficPayload(),
+                ...data,
+              });
+            }
+            return;
+          }
+        }
+      } catch (error) {
+        console.warn('[GithubTraffic] Failed to load from Worker API, falling back to local files:', error);
+      }
+
+      // 回退到本地 JSON 文件
+      try {
         const payload = await fetchGeneratedJson<GithubTrafficPayload>('github-traffic.json');
         if (active) {
           setGithubTraffic({
@@ -1889,11 +1945,20 @@ function HomePage({
     : (trafficSnapshots.length ? '快照可用' : (publicTraffic.available ? '访客计数可用' : '未配置'));
   const eastmoneyPremiumByCode = useMemo(() => {
     const next: Record<string, number | null> = {};
+    // 优先取 fundgz 估值，若失效（null）则回退到 eastmoney-quote 行情溢价
+    const FALLBACK_PROVIDERS = ['eastmoney-fundgz', 'eastmoney-quote'];
     for (const item of visibleFunds) {
       const compare = premiumCompareCodes[item.runtime.code];
-      const eastmoney = compare?.providers?.find((provider) => provider.provider === 'eastmoney-fundgz');
-      const rate = eastmoney?.premiumRateCurrent;
-      next[item.runtime.code] = typeof rate === 'number' && Number.isFinite(rate) ? rate : null;
+      let rate: number | null = null;
+      for (const providerKey of FALLBACK_PROVIDERS) {
+        const provider = compare?.providers?.find((p) => p.provider === providerKey);
+        const r = provider?.premiumRateCurrent;
+        if (typeof r === 'number' && Number.isFinite(r)) {
+          rate = r;
+          break;
+        }
+      }
+      next[item.runtime.code] = rate;
     }
     return next;
   }, [premiumCompareCodes, visibleFunds]);
@@ -1929,6 +1994,7 @@ function HomePage({
       currentUser={currentUser}
       title={pageOption.label}
       subtitle={pageOption.lead}
+      syncedAt={syncedAt}
       actions={<Link className="member-primary-btn" to="/member">{currentUser ? '进入会员中心' : '登录 / 注册'}</Link>}
     >
       {error ? <section className="panel notice-panel">{error}</section> : null}
@@ -1957,78 +2023,141 @@ function HomePage({
 function DocsPage() {
   return (
     <DesktopShell currentPath="/docs" currentUser={null} title="说明文档" subtitle="口径定义、误差说明、估值流程与页面规则统一在这里查看。">
-      <section className="panel dashboard-hero-card">
-        <div className="hero__copy">
-          <span className="eyebrow">新手说明 + 口径定义 + 持续更新</span>
-          <h1>估值说明文档</h1>
-          <p className="hero__lead">
-            这个页面专门解释看板里每个指标是什么意思、估值大概怎么做、为什么会和盘中感受有偏差。后续新增规则、口径调整、异常处理都会优先补到这里。
-          </p>
-        </div>
-        <div className="dashboard-overview-grid">
-          <div className="hero__fact hero__fact--accent">
-            <span>阅读建议</span>
-            <strong>先看误差定义，再看估值流程</strong>
-            <small className="hero__fact-subtle">这样最容易把“数字”和“结果”对应起来。</small>
+      {/* ── 顶部 Hero 区域 ── */}
+      <section className="panel docs-hero">
+        <span className="eyebrow">新手说明 · 口径定义 · 持续更新</span>
+        <h2 className="docs-hero__title">估值说明文档</h2>
+        <p className="docs-hero__lead">
+          这个页面专门解释看板里每个指标是什么意思、估值大概怎么做、为什么会和盘中感受有偏差。后续新增规则、口径调整、异常处理都会优先补到这里。
+        </p>
+        <div className="docs-hero__cards">
+          <div className="docs-hero__card">
+            <span className="docs-hero__card-icon">📖</span>
+            <div>
+              <strong>阅读建议</strong>
+              <p>先看误差定义，再看估值流程</p>
+            </div>
           </div>
-          <div className="hero__fact">
-            <span>更新方式</span>
-            <strong>文档随版本持续补充</strong>
-            <small className="hero__fact-subtle">每次口径变化会同步到此页。</small>
+          <div className="docs-hero__card">
+            <span className="docs-hero__card-icon">🔄</span>
+            <div>
+              <strong>更新方式</strong>
+              <p>文档随版本持续补充</p>
+            </div>
           </div>
         </div>
       </section>
 
+      {/* ── 三个误差指标 ── */}
       <section className="panel docs-section">
         <h2>三个误差指标是什么意思</h2>
+        <p className="docs-section__desc">理解误差，看懂估值背后的逻辑</p>
         <div className="docs-grid">
           <article className="docs-card">
+            <span className="docs-card__icon docs-card__icon--red">🎯</span>
             <h3>训练误差</h3>
-            <p>看模型在离线验证数据上的平均误差，主要用来判断“模型本身的底子”是否靠谱。</p>
-            <p>一般来说越小越好，适合看长期能力，不代表今天一定最准。</p>
+            <p>看模型在离线验证数据上的平均误差，主要用来判断"模型本身的底子"是否靠谱。</p>
+            <span className="docs-card__tag docs-card__tag--green">越小越好</span>
           </article>
           <article className="docs-card">
+            <span className="docs-card__icon docs-card__icon--blue">📊</span>
             <h3>最近误差</h3>
             <p>最近一个已结算交易日的实际偏差，反映模型刚刚那次估值的命中情况。</p>
-            <p>这个值会受单日突发影响比较大，波动通常最大。</p>
+            <span className="docs-card__tag docs-card__tag--blue">波动较大</span>
           </article>
           <article className="docs-card">
+            <span className="docs-card__icon docs-card__icon--purple">📈</span>
             <h3>30d误差</h3>
             <p>最近 30 个交易日平均绝对误差，用于看近期稳定性。</p>
-            <p>可以把它理解为“最近一个月平均偏离多少”。</p>
+            <span className="docs-card__tag docs-card__tag--purple">多长期性</span>
           </article>
         </div>
       </section>
 
+      {/* ── 估值流程（编号步骤卡片） ── */}
       <section className="panel docs-section">
-        <h2>估值是怎么做出来的（小白版）</h2>
-        <ol className="docs-list">
-          <li>先用最近一次官方净值作为起点（通常是 T-1 或 T-2）。</li>
-          <li>优先看前十大持仓的盘中涨跌，估算基金今天大概涨跌多少。</li>
-          <li>如果持仓行情拿不全，就用代理篮子补足缺失信号。</li>
-          <li>QDII 基金会叠加汇率变化影响。</li>
-          <li>把历史误差学习得到的修正项加进去，减少系统性偏差。</li>
-          <li>得到当日估值后，再和场内价格比较，算出溢价率。</li>
-        </ol>
+        <h2>估值是怎么做出来的</h2>
+        <p className="docs-section__desc">简单几步，理解估值核心逻辑</p>
+        <div className="docs-steps">
+          <div className="docs-step">
+            <span className="docs-step__num">1</span>
+            <div>
+              <strong>起点确认</strong>
+              <p>先用最近一次官方净值作为起点（通常是 T-1 或 T-2）</p>
+            </div>
+          </div>
+          <div className="docs-step">
+            <span className="docs-step__num">2</span>
+            <div>
+              <strong>持仓估算</strong>
+              <p>优先看前十大持仓的盘中涨跌，估算基金今天大概涨跌多少</p>
+            </div>
+          </div>
+          <div className="docs-step">
+            <span className="docs-step__num">3</span>
+            <div>
+              <strong>信号补足</strong>
+              <p>如果持仓行情拿不全，就用代理篮子补足缺失信号</p>
+            </div>
+          </div>
+          <div className="docs-step">
+            <span className="docs-step__num">4</span>
+            <div>
+              <strong>汇率修正</strong>
+              <p>QDII 基金会叠加汇率变化影响</p>
+            </div>
+          </div>
+          <div className="docs-step">
+            <span className="docs-step__num">5</span>
+            <div>
+              <strong>误差学习</strong>
+              <p>把历史误差学习得到的修正项加进去，减少系统性偏差</p>
+            </div>
+          </div>
+          <div className="docs-step">
+            <span className="docs-step__num">6</span>
+            <div>
+              <strong>溢价计算</strong>
+              <p>得到当日估值后，再和场内价格比较，算出溢价率。</p>
+            </div>
+          </div>
+        </div>
       </section>
 
+      {/* ── 常见问题（双列卡片+图标） ── */}
       <section className="panel docs-section">
-        <h2>为什么有时你觉得在跌，表里却显示涨</h2>
-        <ul className="docs-list">
-          <li>行情有刷新间隔，短时间内可能看到的是上一轮快照。</li>
-          <li>不同数据源更新时间不完全一致，分钟级会有错位。</li>
-          <li>基金估值是组合信号，不是单一股票涨跌的直接映射。</li>
-          <li>若遇到节假日、跨市场休市、临停等情况，误差会放大。</li>
-        </ul>
-      </section>
-
-      <section className="panel docs-section">
-        <h2>刷新与缓存口径</h2>
-        <ul className="docs-list">
-          <li>公告和持仓结构按日更新，不需要每分钟重抓。</li>
-          <li>盘中行情按短周期刷新，当前策略是最多约 5 分钟一轮。</li>
-          <li>即使分组同步，也会对全基金统一叠加实时行情覆盖。</li>
-        </ul>
+        <h2>常见问题</h2>
+        <p className="docs-section__desc">为什么有时你觉得在跌，表里却显示涨</p>
+        <div className="docs-faq-grid">
+          <div className="docs-faq-card">
+            <span className="docs-faq-icon">⏱</span>
+            <div>
+              <strong>行情刷新间隔</strong>
+              <p>短时间内可能看到的是上一轮快照</p>
+            </div>
+          </div>
+          <div className="docs-faq-card">
+            <span className="docs-faq-icon">🔗</span>
+            <div>
+              <strong>数据源时间差</strong>
+              <p>不同数据源更新时间不完全一致，分钟级会有错位</p>
+            </div>
+          </div>
+          <div className="docs-faq-card">
+            <span className="docs-faq-icon">🧩</span>
+            <div>
+              <strong>组合信号差异</strong>
+              <p>基金估值是组合信号，不是单一股票涨跌的直接映射</p>
+            </div>
+          </div>
+          <div className="docs-faq-card">
+            <span className="docs-faq-icon">🌍</span>
+            <div>
+              <strong>特殊情况</strong>
+              <p>节假日、跨市场休市、临停等情况，误差会放大</p>
+            </div>
+          </div>
+        </div>
       </section>
 
       <section className="panel notice-panel">
@@ -2046,6 +2175,26 @@ function TrafficPage() {
     let active = true;
 
     async function loadGithubTraffic() {
+      try {
+        const apiBase = getRuntimeApiBase();
+        const response = await fetch(`${apiBase}/api/traffic/github`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.ok) {
+            if (active) {
+              setGithubTraffic({
+                ...getDefaultGithubTrafficPayload(),
+                ...data,
+              });
+            }
+            return;
+          }
+        }
+      } catch (error) {
+        console.warn('[GithubTraffic] Failed to load from Worker API, falling back to local files:', error);
+      }
+
+      // 回退到本地 JSON 文件
       try {
         const payload = await fetchGeneratedJson<GithubTrafficPayload>('github-traffic.json');
         if (active) {
@@ -2202,6 +2351,23 @@ function DetailPage({ funds, syncedAt, loading }: { funds: FundViewModel[]; sync
 
     async function loadOfflineResearch() {
       try {
+        const apiBase = getRuntimeApiBase();
+        const response = await fetch(`${apiBase}/api/research/offline/${fundCode}`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.ok) {
+            if (active) {
+              setOfflineResearch(data);
+            }
+            return;
+          }
+        }
+      } catch (error) {
+        console.warn('[OfflineResearch] Failed to load from Worker API, falling back to local files:', error);
+      }
+
+      // 回退到本地 JSON 文件
+      try {
         const payload = await fetchGeneratedJson<OfflineResearchSummary>(`${fundCode}-offline-research.json`);
         if (active) {
           setOfflineResearch(payload);
@@ -2224,6 +2390,22 @@ function DetailPage({ funds, syncedAt, loading }: { funds: FundViewModel[]; sync
     let active = true;
 
     async function loadPremiumCompare() {
+      try {
+        const apiBase = getRuntimeApiBase();
+        const response = await fetch(`${apiBase}/api/premium/compare/${fundCode}`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.ok) {
+            if (!active) return;
+            setPremiumCompare(data);
+            return;
+          }
+        }
+      } catch (error) {
+        console.warn('[PremiumCompare] Failed to load from Worker API, falling back to local files:', error);
+      }
+
+      // 回退到本地 JSON 文件
       try {
         const payload = await fetchGeneratedJson<PremiumComparePayload>('premium-compare.json');
         if (!active) {
@@ -2277,7 +2459,9 @@ function DetailPage({ funds, syncedAt, loading }: { funds: FundViewModel[]; sync
   const estimatedSeries = historyPoints.map((item) => ({ label: item.date, value: item.estimatedNav }));
   const actualSeries = historyPoints.map((item) => ({ label: item.date, value: item.actualNav }));
   const errorSeries = historyPoints.map((item) => ({ label: item.date, value: item.error }));
+  const hasPremiumData = fund.runtime.marketPrice > 0 && fund.estimate.estimatedNav > 0;
   const premiumTone = fund.estimate.premiumRate > 0 ? 'positive' : 'negative';
+  const hasValidChangeRate = fund.runtime.marketPrice > 0 && fund.runtime.previousClose > 0;
   const actualNavByDate = new Map(fund.runtime.navHistory.map((item) => [item.date, item.nav]));
   const errorByDate = new Map(fund.journal.errors.map((item) => [item.date, item]));
   const recentSnapshots = [...fund.journal.snapshots].slice(-20).reverse();
@@ -2400,10 +2584,10 @@ function DetailPage({ funds, syncedAt, loading }: { funds: FundViewModel[]; sync
       </section>
 
       <section className="metrics-grid">
-        <MetricCard label="当日预估净值" value={formatCurrency(fund.estimate.estimatedNav)} hint={`以 ${fund.runtime.navDate || '--'} 最近官方净值为锚`} tone="neutral" />
-        <MetricCard label="场内价格" value={formatCurrency(fund.runtime.marketPrice)} hint={formatRuntimeTime(fund.runtime.marketDate, fund.runtime.marketTime)} tone="neutral" />
-        <MetricCard label="场内涨跌幅" value={formatPercent(getMarketChangeRate(fund.runtime))} hint={`昨收 ${formatCurrency(fund.runtime.previousClose)}`} tone={getMarketChangeRate(fund.runtime) >= 0 ? 'positive' : 'negative'} />
-        <MetricCard label="自动溢价率" value={formatPercent(fund.estimate.premiumRate)} hint={fund.estimate.premiumRate >= 0 ? '价格高于当日预估净值' : '价格低于当日预估净值'} tone={premiumTone} />
+        <MetricCard label="当日预估净值" value={fund.estimate.estimatedNav > 0 ? formatCurrency(fund.estimate.estimatedNav) : '--'} hint={`以 ${fund.runtime.navDate || '--'} 最近官方净值为锚`} tone="neutral" />
+        <MetricCard label="场内价格" value={fund.runtime.marketPrice > 0 ? formatCurrency(fund.runtime.marketPrice) : '--'} hint={formatRuntimeTime(fund.runtime.marketDate, fund.runtime.marketTime)} tone="neutral" />
+        <MetricCard label="场内涨跌幅" value={hasValidChangeRate ? formatPercent(getMarketChangeRate(fund.runtime)) : '--'} hint={`昨收 ${fund.runtime.previousClose > 0 ? formatCurrency(fund.runtime.previousClose) : '--'}`} tone={hasValidChangeRate ? (getMarketChangeRate(fund.runtime) >= 0 ? 'positive' : 'negative') : 'neutral'} />
+        <MetricCard label="自动溢价率" value={hasPremiumData ? formatPercent(fund.estimate.premiumRate) : '--'} hint={hasPremiumData ? (fund.estimate.premiumRate >= 0 ? '价格高于当日预估净值' : '价格低于当日预估净值') : '价格或估值数据缺失'} tone={hasPremiumData ? premiumTone : 'neutral'} />
       </section>
 
       <section className="panel summary-strip summary-strip--stacked">
@@ -2523,12 +2707,12 @@ function DetailPage({ funds, syncedAt, loading }: { funds: FundViewModel[]; sync
                       <tr key={item.estimateDate}>
                         <td>{item.estimateDate}</td>
                         <td className={hasActual ? 'tone-positive' : 'muted-text'}>{hasActual ? '已结算' : '待净值'}</td>
-                        <td>{formatCurrency(item.estimatedNav)}</td>
-                        <td>{formatCurrency(item.marketPrice)}</td>
+                        <td>{item.estimatedNav > 0 ? formatCurrency(item.estimatedNav) : '--'}</td>
+                        <td>{item.marketPrice > 0 ? formatCurrency(item.marketPrice) : '--'}</td>
                         <td>{item.marketPriceType === 'close' ? '收盘' : '快照'}</td>
                         <td>{formatOptionalCurrency(actualNav)}</td>
                         <td className={typeof estimateError === 'number' ? (estimateError >= 0 ? 'tone-positive' : 'tone-negative') : 'muted-text'}>{typeof estimateError === 'number' ? formatPercent(estimateError) : '--'}</td>
-                        <td className={item.premiumRate >= 0 ? 'tone-positive' : 'tone-negative'}>{formatPercent(item.premiumRate)}</td>
+                        <td className={item.marketPrice > 0 && item.estimatedNav > 0 ? (item.premiumRate >= 0 ? 'tone-positive' : 'tone-negative') : 'muted-text'}>{item.marketPrice > 0 && item.estimatedNav > 0 ? formatPercent(item.premiumRate) : '--'}</td>
                         <td className={typeof settled?.actualPremiumRate === 'number' ? ((settled.actualPremiumRate ?? 0) >= 0 ? 'tone-positive' : 'tone-negative') : 'muted-text'}>{typeof settled?.actualPremiumRate === 'number' ? formatPercent(settled.actualPremiumRate) : '--'}</td>
                         <td className={typeof premiumError === 'number' ? (premiumError >= 0 ? 'tone-positive' : 'tone-negative') : 'muted-text'}>{typeof premiumError === 'number' ? formatPercent(premiumError) : '--'}</td>
                       </tr>
@@ -2805,53 +2989,46 @@ function AuthCallbackPage() {
 
 function MemberCenter({
   currentUser,
+  onLogin,
+  onRegister,
   onAuthingLogin,
   onLogout,
   onRedeem,
   onCreateOrder,
   onLoadOrders,
   onLoadEvents,
-  onLoadAdminOrders,
-  onUpdateOrderOcr,
-  onGrantMembership,
-  onBlockUser,
   pending,
 }: {
   currentUser: AuthUser | null;
+  onLogin: (accountId: string, password: string) => Promise<void>;
+  onRegister: (accountId: string, password: string, nickname: string, inviteCode: string) => Promise<void>;
   onAuthingLogin: (accessToken: string) => Promise<void>;
   onLogout: () => Promise<void>;
   onRedeem: (code: string) => Promise<void>;
   onCreateOrder: (channel: 'wechat' | 'alipay', amountFen: number, screenshotUrl: string) => Promise<void>;
   onLoadOrders: () => Promise<Array<Record<string, unknown>>>;
   onLoadEvents: () => Promise<Array<Record<string, unknown>>>;
-  onLoadAdminOrders: () => Promise<Array<Record<string, unknown>>>;
-  onUpdateOrderOcr: (orderNo: string, ocrSummary: string) => Promise<void>;
-  onGrantMembership: (accountId: string, days: number, description: string) => Promise<void>;
-  onBlockUser: (accountId: string, status: 'blocked' | 'active') => Promise<void>;
   pending: boolean;
 }) {
+  const [authTab, setAuthTab] = useState<'login' | 'register' | 'code'>('login');
+  const [loginForm, setLoginForm] = useState({ accountId: '', password: '' });
+  const [registerForm, setRegisterForm] = useState({ accountId: '', password: '', nickname: '', inviteCode: '' });
   const [codeLoginForm, setCodeLoginForm] = useState({ email: '', code: '' });
   const [codeSending, setCodeSending] = useState(false);
   const [codeCountdown, setCodeCountdown] = useState(0);
   const [codeNotice, setCodeNotice] = useState('');
+  const [authNotice, setAuthNotice] = useState('');
   const [redeemCode, setRedeemCode] = useState('');
   const [orderForm, setOrderForm] = useState({ channel: 'wechat' as 'wechat' | 'alipay', amountFen: 500, screenshotUrl: '' });
   const [uploadingScreenshot, setUploadingScreenshot] = useState(false);
   const [orders, setOrders] = useState<Array<Record<string, unknown>>>([]);
   const [events, setEvents] = useState<Array<Record<string, unknown>>>([]);
-  const [adminOrders, setAdminOrders] = useState<Array<Record<string, unknown>>>([]);
-  const [ocrInput, setOcrInput] = useState<Record<string, string>>({});
-  const [grantForm, setGrantForm] = useState({ accountId: '', days: 30, description: '管理员手工赠送会员' });
-  const [blockForm, setBlockForm] = useState({ accountId: '', status: 'blocked' as 'blocked' | 'active' });
 
   useEffect(() => {
     if (!currentUser) return;
     void onLoadOrders().then(setOrders).catch(() => setOrders([]));
     void onLoadEvents().then(setEvents).catch(() => setEvents([]));
-    if (currentUser.accountId === 'admin') {
-      void onLoadAdminOrders().then(setAdminOrders).catch(() => setAdminOrders([]));
-    }
-  }, [currentUser, onLoadAdminOrders, onLoadEvents, onLoadOrders]);
+  }, [currentUser, onLoadEvents, onLoadOrders]);
 
   // 验证码倒计时
   useEffect(() => {
@@ -2873,6 +3050,32 @@ function MemberCenter({
       throw error;
     } finally {
       setCodeSending(false);
+    }
+  };
+
+  const handleLogin = async () => {
+    const accountId = loginForm.accountId.trim();
+    const password = loginForm.password;
+    if (!accountId || !password) return;
+    setAuthNotice('');
+    try {
+      await onLogin(accountId, password);
+    } catch (error) {
+      setAuthNotice(error instanceof Error ? error.message : '登录失败');
+    }
+  };
+
+  const handleRegister = async () => {
+    const accountId = registerForm.accountId.trim();
+    const password = registerForm.password;
+    const nickname = registerForm.nickname.trim();
+    const inviteCode = registerForm.inviteCode.trim();
+    if (!accountId || !password) return;
+    setAuthNotice('');
+    try {
+      await onRegister(accountId, password, nickname || accountId, inviteCode);
+    } catch (error) {
+      setAuthNotice(error instanceof Error ? error.message : '注册失败');
     }
   };
 
@@ -2912,51 +3115,198 @@ function MemberCenter({
           <div className="member-login-card">
             <div className="member-login-card__header">
               <h2 className="member-login-card__title">欢迎使用</h2>
-              <p className="member-login-card__desc">输入邮箱，接收验证码后即可登录或自动注册。</p>
+              <p className="member-login-card__desc">选择方式登录或创建账号。</p>
             </div>
-            <div className="member-login-card__body">
-              <label className="member-login-field">
-                <span className="member-login-field__label">邮箱地址</span>
-                <input
-                  className="member-login-field__input"
-                  value={codeLoginForm.email}
-                  onChange={(e) => setCodeLoginForm((s) => ({ ...s, email: e.target.value }))}
-                  placeholder="请输入邮箱"
-                  type="email"
-                  autoComplete="email"
-                />
-              </label>
-              <label className="member-login-field">
-                <span className="member-login-field__label">验证码</span>
-                <div className="member-login-code-row">
+            {/* 标签页切换 */}
+            <div className="member-auth-tabs">
+              <button
+                className={`member-auth-tab${authTab === 'login' ? ' member-auth-tab--active' : ''}`}
+                type="button"
+                onClick={() => { setAuthTab('login'); setAuthNotice(''); setCodeNotice(''); }}
+              >账号密码登录</button>
+              <button
+                className={`member-auth-tab${authTab === 'register' ? ' member-auth-tab--active' : ''}`}
+                type="button"
+                onClick={() => { setAuthTab('register'); setAuthNotice(''); setCodeNotice(''); }}
+              >注册账号</button>
+              <button
+                className={`member-auth-tab${authTab === 'code' ? ' member-auth-tab--active' : ''}`}
+                type="button"
+                onClick={() => { setAuthTab('code'); setAuthNotice(''); setCodeNotice(''); }}
+              >邮箱验证码</button>
+            </div>
+
+            {/* 账号密码登录 */}
+            {authTab === 'login' ? (
+              <div className="member-login-card__body">
+                <label className="member-login-field">
+                  <span className="member-login-field__label">账号 ID</span>
+                  <input
+                    className="member-login-field__input"
+                    value={loginForm.accountId}
+                    onChange={(e) => setLoginForm((s) => ({ ...s, accountId: e.target.value }))}
+                    placeholder="请输入账号 ID"
+                    type="text"
+                    autoComplete="username"
+                  />
+                </label>
+                <label className="member-login-field">
+                  <span className="member-login-field__label">密码</span>
+                  <input
+                    className="member-login-field__input"
+                    value={loginForm.password}
+                    onChange={(e) => setLoginForm((s) => ({ ...s, password: e.target.value }))}
+                    placeholder="请输入密码"
+                    type="password"
+                    autoComplete="current-password"
+                    onKeyDown={(e) => { if (e.key === 'Enter') void handleLogin(); }}
+                  />
+                </label>
+                {authNotice ? <small className="member-login-field__hint member-login-field__hint--error">{authNotice}</small> : null}
+                <button
+                  className="member-login-submit"
+                  type="button"
+                  disabled={pending || !loginForm.accountId.trim() || !loginForm.password}
+                  onClick={() => void handleLogin()}
+                >
+                  {pending ? '登录中...' : '登录'}
+                </button>
+                <p className="member-login-forgot">
+                  忘记密码？
+                  <button
+                    className="member-login-link"
+                    type="button"
+                    onClick={() => { setAuthTab('code'); setAuthNotice(''); setCodeNotice(''); }}
+                  >用邮箱验证码重置</button>
+                  &nbsp;·&nbsp;
+                  <button
+                    className="member-login-link"
+                    type="button"
+                    onClick={() => { setAuthTab('register'); setAuthNotice(''); }}
+                  >注册新账号</button>
+                </p>
+              </div>
+
+            /* 注册账号 */
+            ) : authTab === 'register' ? (
+              <div className="member-login-card__body">
+                <label className="member-login-field">
+                  <span className="member-login-field__label">账号 ID</span>
+                  <input
+                    className="member-login-field__input"
+                    value={registerForm.accountId}
+                    onChange={(e) => setRegisterForm((s) => ({ ...s, accountId: e.target.value }))}
+                    placeholder="字母/数字/下划线，4-20位"
+                    type="text"
+                    autoComplete="username"
+                  />
+                </label>
+                <label className="member-login-field">
+                  <span className="member-login-field__label">密码</span>
+                  <input
+                    className="member-login-field__input"
+                    value={registerForm.password}
+                    onChange={(e) => setRegisterForm((s) => ({ ...s, password: e.target.value }))}
+                    placeholder="至少 8 位"
+                    type="password"
+                    autoComplete="new-password"
+                  />
+                </label>
+                <label className="member-login-field">
+                  <span className="member-login-field__label">昵称（选填）</span>
+                  <input
+                    className="member-login-field__input"
+                    value={registerForm.nickname}
+                    onChange={(e) => setRegisterForm((s) => ({ ...s, nickname: e.target.value }))}
+                    placeholder="不填则使用账号 ID"
+                    type="text"
+                  />
+                </label>
+                <label className="member-login-field">
+                  <span className="member-login-field__label">邀请码（选填）</span>
+                  <input
+                    className="member-login-field__input"
+                    value={registerForm.inviteCode}
+                    onChange={(e) => setRegisterForm((s) => ({ ...s, inviteCode: e.target.value }))}
+                    placeholder="如有邀请码请填写"
+                    type="text"
+                  />
+                </label>
+                {authNotice ? <small className="member-login-field__hint member-login-field__hint--error">{authNotice}</small> : null}
+                <button
+                  className="member-login-submit"
+                  type="button"
+                  disabled={pending || !registerForm.accountId.trim() || !registerForm.password}
+                  onClick={() => void handleRegister()}
+                >
+                  {pending ? '注册中...' : '注册并登录'}
+                </button>
+                <p className="member-login-forgot">
+                  已有账号？
+                  <button
+                    className="member-login-link"
+                    type="button"
+                    onClick={() => { setAuthTab('login'); setAuthNotice(''); }}
+                  >返回登录</button>
+                </p>
+              </div>
+
+            /* 邮箱验证码登录 */
+            ) : (
+              <div className="member-login-card__body">
+                <label className="member-login-field">
+                  <span className="member-login-field__label">邮箱地址</span>
+                  <div className="member-login-code-row">
+                    <input
+                      className="member-login-field__input"
+                      value={codeLoginForm.email}
+                      onChange={(e) => setCodeLoginForm((s) => ({ ...s, email: e.target.value }))}
+                      placeholder="请输入邮箱"
+                      type="email"
+                      autoComplete="email"
+                    />
+                    <button
+                      className="member-login-code-btn"
+                      type="button"
+                      disabled={codeSending || codeCountdown > 0 || !codeLoginForm.email.trim()}
+                      onClick={() => void handleSendCode()}
+                    >
+                      {codeCountdown > 0 ? `${codeCountdown}s` : codeSending ? '发送中...' : '发送验证码'}
+                    </button>
+                  </div>
+                  {codeNotice ? <small className="member-login-field__hint">{codeNotice}</small> : null}
+                </label>
+                <label className="member-login-field">
+                  <span className="member-login-field__label">验证码</span>
                   <input
                     className="member-login-field__input"
                     value={codeLoginForm.code}
                     onChange={(e) => setCodeLoginForm((s) => ({ ...s, code: e.target.value }))}
-                    placeholder="请输入验证码"
+                    placeholder="请输入 6 位验证码"
                     maxLength={6}
                     autoComplete="one-time-code"
+                    onKeyDown={(e) => { if (e.key === 'Enter') void handleCodeLogin(); }}
                   />
+                </label>
+                {authNotice ? <small className="member-login-field__hint member-login-field__hint--error">{authNotice}</small> : null}
+                <button
+                  className="member-login-submit"
+                  type="button"
+                  disabled={pending || !codeLoginForm.email.trim() || !codeLoginForm.code.trim()}
+                  onClick={() => void handleCodeLogin()}
+                >
+                  {pending ? '验证中...' : '验证码登录'}
+                </button>
+                <p className="member-login-forgot">
+                  已有账号？
                   <button
-                    className="member-login-code-btn"
+                    className="member-login-link"
                     type="button"
-                    disabled={codeSending || codeCountdown > 0 || !codeLoginForm.email.trim()}
-                    onClick={() => void handleSendCode()}
-                  >
-                    {codeCountdown > 0 ? `${codeCountdown}s` : codeSending ? '发送中...' : '发送验证码'}
-                  </button>
-                </div>
-                {codeNotice ? <small className="member-login-field__hint">{codeNotice}</small> : null}
-              </label>
-              <button
-                className="member-login-submit"
-                type="button"
-                disabled={pending || !codeLoginForm.email.trim() || !codeLoginForm.code.trim()}
-                onClick={() => void handleCodeLogin()}
-              >
-                登录 / 注册
-              </button>
-            </div>
+                    onClick={() => { setAuthTab('login'); setAuthNotice(''); }}
+                  >账号密码登录</button>
+                </p>
+              </div>
+            )}
           </div>
         </section>
       ) : (
@@ -3010,43 +3360,6 @@ function MemberCenter({
               {events.length ? events.map((item, index) => <p key={`${String(item.created_at)}-${index}`}>{String(item.created_at)}｜{String(item.event_type)}｜+{String(item.days)}天｜{String(item.description)}</p>) : <p>暂无流水</p>}
             </div>
           </section>
-          {currentUser.accountId === 'admin' ? (
-            <section className="member-dashboard-grid member-dashboard-grid--wide">
-              <div className="member-panel member-panel--admin member-panel--full">
-                <h3>审核后台</h3>
-                {adminOrders.length ? adminOrders.map((item) => {
-                  const orderNo = String(item.order_no || '');
-                  return (
-                    <div key={orderNo} className="admin-order-row">
-                      <p>{orderNo}｜{String(item.status)}｜OCR：{String(item.ocr_status)}｜{Number(item.amount_fen || 0) / 100}元</p>
-                      <input value={ocrInput[orderNo] || ''} onChange={(e) => setOcrInput((s) => ({ ...s, [orderNo]: e.target.value }))} placeholder="回填 OCR 摘要" />
-                      <button className="member-secondary-btn" type="button" disabled={pending} onClick={() => void onUpdateOrderOcr(orderNo, ocrInput[orderNo] || '')}>写入 OCR 摘要</button>
-                    </div>
-                  );
-                }) : <p>暂无待审核订单</p>}
-              </div>
-            </section>
-          ) : null}
-          {currentUser.accountId === 'admin' ? (
-            <section className="member-dashboard-grid member-dashboard-grid--wide">
-              <div className="member-panel member-panel--grant">
-                <h3>会员补单 / 手工赠送</h3>
-                <input value={grantForm.accountId} onChange={(e) => setGrantForm((s) => ({ ...s, accountId: e.target.value }))} placeholder="账号" />
-                <input type="number" value={grantForm.days} onChange={(e) => setGrantForm((s) => ({ ...s, days: Number(e.target.value) || 30 }))} placeholder="天数" />
-                <input value={grantForm.description} onChange={(e) => setGrantForm((s) => ({ ...s, description: e.target.value }))} placeholder="说明" />
-                <button className="member-primary-btn" type="button" disabled={pending} onClick={() => void onGrantMembership(grantForm.accountId, grantForm.days, grantForm.description)}>发放会员</button>
-              </div>
-              <div className="member-panel member-panel--block">
-                <h3>封禁 / 解封账户</h3>
-                <input value={blockForm.accountId} onChange={(e) => setBlockForm((s) => ({ ...s, accountId: e.target.value }))} placeholder="账号" />
-                <select value={blockForm.status} onChange={(e) => setBlockForm((s) => ({ ...s, status: e.target.value as 'blocked' | 'active' }))}>
-                  <option value="blocked">封禁</option>
-                  <option value="active">解封</option>
-                </select>
-                <button className="member-primary-btn member-primary-btn--danger" type="button" disabled={pending} onClick={() => void onBlockUser(blockForm.accountId, blockForm.status)}>{blockForm.status === 'blocked' ? '封禁账户' : '恢复账户'}</button>
-              </div>
-            </section>
-          ) : null}
         </>
       )}
       </div>
@@ -3112,17 +3425,30 @@ export default function App() {
 
       try {
         let payload: RuntimePayload;
+        // 静态 generated 数据优先；仅当其失败时再回退到 Cloudflare API
         try {
-          payload = await fetchApi<RuntimePayload>('/api/runtime/all', { method: 'GET' });
-        } catch {
-          const staticPayload = await fetchGeneratedJson<{ syncedAt: string; funds: FundRuntimeData[] }>('funds-runtime.json');
+          const generatedPayload = await fetchGeneratedJson<RuntimePayload>('funds-runtime.json');
           payload = {
             ok: true,
-            syncedAt: staticPayload.syncedAt,
-            funds: staticPayload.funds,
             sourceUrl: '',
             stateByCode: {},
+            ...generatedPayload,
+            funds: Array.isArray(generatedPayload?.funds) ? generatedPayload.funds : [],
           } as RuntimePayload;
+          console.log('[loadRuntime] 使用静态优先运行时数据:', payload.syncedAt);
+        } catch (generatedError) {
+          console.warn('静态 generated 数据获取失败，尝试主API:', generatedError);
+          try {
+            payload = await fetchApi<RuntimePayload>('/api/runtime/all', { method: 'GET' });
+            console.log('[loadRuntime] 从Cloudflare API获取数据成功:', payload.syncedAt);
+          } catch (apiError) {
+            console.warn('主API获取失败，尝试备用API:', apiError);
+            const response = await fetch(`${REMOTE_API_BASE}/all`, { cache: 'no-store' });
+            if (!response.ok) throw new Error(`http-${response.status}`);
+            const data = await response.json();
+            payload = data as RuntimePayload;
+            console.log('[loadRuntime] 从备用API获取数据成功:', payload.syncedAt);
+          }
         }
         const nextFunds = payload.funds.map((runtime: FundRuntimeData) => {
           const persistedState = payload.stateByCode?.[runtime.code];
@@ -3406,6 +3732,22 @@ export default function App() {
 
     async function loadPremiumCompareCodes() {
       try {
+        const apiBase = getRuntimeApiBase();
+        const response = await fetch(`${apiBase}/api/premium/compare`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.ok && data.codes) {
+            if (!active) return;
+            setPremiumCompareCodes(data.codes);
+            return;
+          }
+        }
+      } catch (error) {
+        console.warn('[PremiumCompare] Failed to load from Worker API, falling back to local files:', error);
+      }
+
+      // 回退到本地 JSON 文件
+      try {
         const payload = await fetchGeneratedJson<PremiumComparePayload>('premium-compare.json');
         if (!active) {
           return;
@@ -3456,7 +3798,7 @@ export default function App() {
           <Route path="/qdii-etf" element={<HomePage funds={funds} syncedAt={syncedAt} loading={loading} error={error} pageCategory="qdii-etf" trainingMetricsByCode={trainingMetricsByCode} premiumCompareCodes={premiumCompareCodes} isMember={isMember} currentUser={currentUser} onRequireMember={handleRequireMember} />} />
           <Route path="/domestic-etf" element={<HomePage funds={funds} syncedAt={syncedAt} loading={loading} error={error} pageCategory="domestic-etf" trainingMetricsByCode={trainingMetricsByCode} premiumCompareCodes={premiumCompareCodes} isMember={isMember} currentUser={currentUser} onRequireMember={handleRequireMember} />} />
           <Route path="/favorites" element={<HomePage funds={funds} syncedAt={syncedAt} loading={loading} error={error} pageCategory="favorites" trainingMetricsByCode={trainingMetricsByCode} premiumCompareCodes={premiumCompareCodes} isMember={isMember} currentUser={currentUser} onRequireMember={handleRequireMember} />} />
-          <Route path="/member" element={<MemberCenter currentUser={currentUser} onAuthingLogin={handleAuthingLogin} onLogout={handleLogout} onRedeem={handleRedeem} onCreateOrder={handleCreateOrder} onLoadOrders={handleLoadOrders} onLoadEvents={handleLoadEvents} onLoadAdminOrders={handleLoadAdminOrders} onUpdateOrderOcr={handleUpdateOrderOcr} onGrantMembership={handleGrantMembership} onBlockUser={handleBlockUser} pending={authPending} />} />
+          <Route path="/member" element={<MemberCenter currentUser={currentUser} onLogin={handleLogin} onRegister={handleRegister} onAuthingLogin={handleAuthingLogin} onLogout={handleLogout} onRedeem={handleRedeem} onCreateOrder={handleCreateOrder} onLoadOrders={handleLoadOrders} onLoadEvents={handleLoadEvents} pending={authPending} />} />
           <Route path="/docs" element={<DocsPage />} />
           <Route path="/traffic" element={<TrafficPage />} />
           <Route path="/etf" element={<Navigate to="/qdii-etf" replace />} />

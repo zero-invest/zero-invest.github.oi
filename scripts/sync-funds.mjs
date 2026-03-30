@@ -2615,6 +2615,31 @@ function mapIsSalesToStatus(value) {
   return code === '1' ? '开放赎回' : '暂停赎回';
 }
 
+/**
+ * 将东财 API 返回的 MINDT（万元数值）格式化成可读限额字符串。
+ * MINDT=10 → "10万元"；MINDT=0.05 → "500元"（小于1万自动换算）。
+ */
+function formatMindtLimit(mindt) {
+  const val = Number(mindt);
+  if (!Number.isFinite(val) || val <= 0) {
+    return '';
+  }
+
+  // 小于 1 万的，换算为元
+  if (val < 1) {
+    const yuan = Math.round(val * 10000);
+    return `${yuan}元`;
+  }
+
+  // 整数万：直接展示
+  if (Number.isInteger(val)) {
+    return `${val}万元`;
+  }
+
+  // 带小数万：保留最多2位小数
+  return `${val.toFixed(2).replace(/\.?0+$/, '')}万元`;
+}
+
 async function fetchPurchaseStatusFromApi(code) {
   try {
     const response = await fetchText(
@@ -2628,11 +2653,13 @@ async function fetchPurchaseStatusFromApi(code) {
     return {
       buyStatus: mapIsBuyToStatus(data?.ISBUY),
       redeemStatus: mapIsSalesToStatus(data?.ISSALES),
+      purchaseLimit: formatMindtLimit(data?.MINDT),
     };
   } catch {
     return {
       buyStatus: '',
       redeemStatus: '',
+      purchaseLimit: '',
     };
   }
 }
@@ -2940,28 +2967,34 @@ function extractLimitAmount(limitText) {
   return amount ? `${amount}${match[2]}` : '';
 }
 
-function formatPurchaseLimit(buyStatus, limitText) {
+function formatPurchaseLimit(buyStatus, limitText, apiLimitText) {
   const normalizedBuyStatus = String(buyStatus ?? '').trim();
 
   // 暂停申购优先：HTML里的残留限额是历史数据，不应覆盖当前暂停状态
   if (normalizedBuyStatus === '暂停申购') {
-    return '0元';
+    return '暂停申购';
   }
 
+  // HTML 解析到的金额（"上限X万元" 格式）优先
   const amount = extractLimitAmount(limitText);
 
   if (amount) {
     return amount;
   }
 
+  // API MINDT 字段格式化的金额作为备用（直接使用已格式化的字符串）
+  const apiAmount = String(apiLimitText ?? '').trim();
+
   if (normalizedBuyStatus === '开放申购') {
     return '不限购';
   }
 
   if (normalizedBuyStatus === '限大额') {
-    return '限购';
+    // 优先展示具体金额，若两个来源都没有则回退到"限购"
+    return apiAmount || '限购';
   }
 
+  // 所有来源均无法确定状态，返回空字符串，前端显示"待校验"
   return '';
 }
 
@@ -2985,9 +3018,14 @@ function mergePurchaseStatus(htmlStatus, apiStatus, portalStatus, noticeStatus) 
     || pickRedeemStatus([portalStatus?.redeemStatus ?? ''].filter(Boolean))
     || pickRedeemStatus([apiStatus?.redeemStatus ?? ''].filter(Boolean));
 
+  // 限购金额优先级：HTML 页面解析 > API MINDT 字段
+  // HTML 的 limitText 优先（含 "上限X万元" 字样），其次使用东财 API 返回的 MINDT
+  const limitText = htmlStatus?.purchaseLimit ?? '';
+  const apiLimitText = apiStatus?.purchaseLimit ?? '';
+
   return {
     purchaseStatus: [buyStatus, redeemStatus].filter(Boolean).join(' / '),
-    purchaseLimit: formatPurchaseLimit(buyStatus, htmlStatus?.purchaseLimit ?? ''),
+    purchaseLimit: formatPurchaseLimit(buyStatus, limitText, apiLimitText),
   };
 }
 

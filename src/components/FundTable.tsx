@@ -277,7 +277,46 @@ export function FundTable({
         style={{ left: `${floatingHeaderState.left}px`, width: `${floatingHeaderState.width}px` }}
       >
         <div className="fund-table-floating-header__inner" style={{ transform: `translateX(-${floatingHeaderState.scrollLeft}px)` }}>
-          {renderHeaderCells(true)}
+          <table className="fund-table fund-table--floating">
+            <colgroup>
+              <col className="fund-table__col fund-table__col--favorite" />
+              <col className="fund-table__col fund-table__col--code" />
+              <col className="fund-table__col fund-table__col--name" />
+              <col className="fund-table__col fund-table__col--provider-premium" />
+              <col className="fund-table__col fund-table__col--premium" />
+              <col className="fund-table__col fund-table__col--limit" />
+              <col className="fund-table__col fund-table__col--change" />
+              {isMember ? <col className="fund-table__col fund-table__col--recent-error" /> : null}
+              {isMember ? <col className="fund-table__col fund-table__col--error-30d" /> : null}
+              <col className="fund-table__col fund-table__col--error" />
+              <col className="fund-table__col fund-table__col--market" />
+              <col className="fund-table__col fund-table__col--estimate" />
+              <col className="fund-table__col fund-table__col--nav" />
+              <col className="fund-table__col fund-table__col--nav-date" />
+              <col className="fund-table__col fund-table__col--market-time" />
+              <col className="fund-table__col fund-table__col--adjust" />
+            </colgroup>
+            <thead>
+              <tr>
+                <th>收藏</th>
+                <th>{renderSortLabel('代码', 'code')}</th>
+                <th>名称</th>
+                <th title="东财 fundgz 估值计算的溢价率（第三方口径）。">东财估值溢价</th>
+                <th>{renderSortLabel('溢价率', 'premiumRate')}</th>
+                <th title="当前是否存在购买限额限制。点击基金详情页可查看最新限购政策。">限购</th>
+                <th title="这个交易日场内价相对前一交易日的涨跌幅。">{renderSortLabel('涨跌幅', 'changeRate')}</th>
+                {isMember ? <th>{renderSortLabel('最近误差', 'latestError')}</th> : null}
+                {isMember ? <th>{renderSortLabel('30d误差', 'error30d')}</th> : null}
+                <th>{renderSortLabel('训练误差', 'meanAbsError')}</th>
+                <th title="场内实时价格。">{renderSortLabel('现价', 'marketPrice')}</th>
+                <th title="当日净值的估值。">{renderSortLabel('估值', 'estimatedNav')}</th>
+                <th title="T-N 的官方净值（按交易日口径，不含周末/节假日）。N 根据基金类别与披露节奏确定：国内 LOF 常见 T-1/T-2，QDII/黄金常见 T-2/T-3。">{renderSortLabel('净值', 'officialNavT1')}</th>
+                <th title="官方净值对应日期。">净值日期</th>
+                <th title="场内行情数据的采集时间。用于判断现价和涨跌幅是当日还是前一日。">现价时间</th>
+                <th title="鼠标按住该按钮可拖拽调整本页基金顺序（手动排序）。">调整</th>
+              </tr>
+            </thead>
+          </table>
         </div>
       </div>
 
@@ -324,12 +363,14 @@ export function FundTable({
           <tbody>
             {sortedFunds.map((fund) => {
               const isFavorite = favoriteSet.has(fund.runtime.code);
+              const hasPremiumData = fund.runtime.marketPrice > 0 && fund.estimate.estimatedNav > 0;
               const premiumTone = fund.estimate.premiumRate > 0 ? 'positive' : 'negative';
               const eastmoneyPremiumRate = eastmoneyPremiumByCode[fund.runtime.code];
               const eastmoneyTone = typeof eastmoneyPremiumRate === 'number' && Number.isFinite(eastmoneyPremiumRate)
                 ? (eastmoneyPremiumRate >= 0 ? 'positive' : 'negative')
                 : null;
               const changeRate = getChangeRate(fund.runtime.marketPrice, fund.runtime.previousClose);
+              const hasValidChangeRate = fund.runtime.marketPrice > 0 && fund.runtime.previousClose > 0;
               const latestError = getLatestError(fund);
               const avg30dError = getRecent30DayAvgAbsError(fund);
               const training30Error = getTrainingValidation30Error(fund, trainingMetricsByCode);
@@ -374,11 +415,15 @@ export function FundTable({
                   <td className={eastmoneyTone ? `tone-${eastmoneyTone}` : 'muted-text'}>
                     {typeof eastmoneyPremiumRate === 'number' && Number.isFinite(eastmoneyPremiumRate) ? formatPercent(eastmoneyPremiumRate) : '--'}
                   </td>
-                  <td className={`tone-${premiumTone}`}>{formatPercent(fund.estimate.premiumRate)}</td>
-                  <td className={getLimitClass(fund.runtime.purchaseLimit)}>
-                    {fund.runtime.purchaseLimit || '待校验'}
+                  <td className={hasPremiumData ? `tone-${premiumTone}` : 'muted-text'}>
+                    {hasPremiumData && typeof fund.estimate.premiumRate === 'number' && Number.isFinite(fund.estimate.premiumRate) ? formatPercent(fund.estimate.premiumRate) : '--'}
                   </td>
-                  <td className={changeRate >= 0 ? 'tone-positive' : 'tone-negative'}>{formatPercent(changeRate)}</td>
+                  <td className={getLimitClass(fund.runtime.purchaseLimit)}>
+                    {fund.runtime.purchaseLimit || '--'}
+                  </td>
+                  <td className={hasValidChangeRate ? (changeRate >= 0 ? 'tone-positive' : 'tone-negative') : 'muted-text'}>
+                    {hasValidChangeRate ? formatPercent(changeRate) : '--'}
+                  </td>
                    {isMember ? (
                      <td className={typeof latestError === 'number' ? (latestError >= 0 ? 'tone-positive' : 'tone-negative') : 'muted-text'}>
                        {typeof latestError === 'number' ? formatPercent(latestError) : '--'}
@@ -388,9 +433,15 @@ export function FundTable({
                   <td className={typeof training30Error === 'number' ? (training30Error > 0.02 ? 'tone-positive' : 'tone-negative') : 'muted-text'}>
                     {typeof training30Error === 'number' ? formatPercent(training30Error) : '未训练'}
                   </td>
-                  <td>{formatCurrency(fund.runtime.marketPrice)}</td>
-                  <td>{formatCurrency(fund.estimate.estimatedNav)}</td>
-                  <td>{formatCurrency(fund.runtime.officialNavT1)}</td>
+                  <td>
+                    {typeof fund.runtime.marketPrice === 'number' && fund.runtime.marketPrice > 0 ? formatCurrency(fund.runtime.marketPrice) : '--'}
+                  </td>
+                  <td>
+                    {typeof fund.estimate.estimatedNav === 'number' && fund.estimate.estimatedNav > 0 ? formatCurrency(fund.estimate.estimatedNav) : '--'}
+                  </td>
+                  <td>
+                    {typeof fund.runtime.officialNavT1 === 'number' && fund.runtime.officialNavT1 > 0 ? formatCurrency(fund.runtime.officialNavT1) : '--'}
+                  </td>
                   <td>{fund.runtime.navDate || '--'}</td>
                   <td>{`${fund.runtime.marketDate || '--'} ${fund.runtime.marketTime || ''}`.trim()}</td>
                   <td>
@@ -500,6 +551,7 @@ function getRecent30DayAvgAbsError(fund: FundViewModel): number | undefined {
 
 function getLimitClass(limit: string | undefined): string {
   if (!limit) return '';
+  if (limit === '暂停申购') return 'muted-text';
   if (limit === '0元') return 'muted-text';
   // 匹配纯元单位的数值，如 10元、1000元；万元不在绿色范围内
   const m = limit.match(/^([0-9]+(?:\.[0-9]+)?)元$/);
