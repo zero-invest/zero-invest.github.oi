@@ -255,7 +255,7 @@ function DesktopShell({
           <span>{currentUser ? `当前状态：${currentUser.nickname}` : '当前状态：游客'}</span>
           <small>{currentUser ? `会员状态：${currentUser.membership.isActive ? `有效，至 ${formatMemberExpiry(currentUser.membership.expiresAt)}` : '未开通'}` : '会员状态：未登录'}</small>
           <span className="dashboard-sidebar__promo">
-            公众号：利奥的笔记
+            公众号：邓老师学投资
           </span>
         </div>
         <div className="dashboard-sidebar__resizer" onMouseDown={startSidebarResize} />
