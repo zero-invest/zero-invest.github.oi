@@ -1,5 +1,5 @@
 {
-  "syncedAt": "2026-04-04T18:50:08.433Z",
+  "syncedAt": "2026-04-04T20:37:27.930Z",
   "funds": [
     {
       "code": "160221",
@@ -46475,9 +46475,13 @@
       "name": "国投瑞银中证资源指数(LOF)A(161217)",
       "fundType": "指数型-股票",
       "benchmark": "中证上游资源产业指数收益率*95%+银行活期存款利率(税后)*5%",
-      "officialNavT1": 2.3378,
-      "navDate": "2026-04-01",
+      "officialNavT1": 2.3187,
+      "navDate": "2026-04-02",
       "navHistory": [
+        {
+          "date": "2026-04-02",
+          "nav": 2.3187
+        },
         {
           "date": "2026-04-01",
           "nav": 2.3378
@@ -48153,10 +48157,6 @@
         {
           "date": "2024-07-09",
           "nav": 1.395
-        },
-        {
-          "date": "2024-07-08",
-          "nav": 1.428
         }
       ],
       "marketPrice": 2.305,
@@ -115724,7 +115724,7 @@
             "impliedReturn": 0.003570423802124992,
             "adaptiveUsed": true,
             "adaptiveShockTriggered": false,
-            "createdAt": "2026-04-03T20:18:55.314Z"
+            "createdAt": "2026-04-04T20:36:56.239Z"
           }
         ],
         "errors": [
@@ -116570,7 +116570,7 @@
             "impliedReturn": 0.0036372605644409625,
             "adaptiveUsed": false,
             "adaptiveShockTriggered": false,
-            "createdAt": "2026-04-03T20:55:42.838Z"
+            "createdAt": "2026-04-04T20:37:21.109Z"
           }
         ],
         "errors": [
@@ -119644,7 +119644,7 @@
             "impliedReturn": -0.009879638031248248,
             "adaptiveUsed": false,
             "adaptiveShockTriggered": false,
-            "createdAt": "2026-04-03T20:18:55.527Z"
+            "createdAt": "2026-04-04T20:37:08.768Z"
           }
         ],
         "errors": [
@@ -125399,16 +125399,16 @@
     "161217": {
       "modelVersion": 17,
       "model": {
-        "alpha": -0.0005633402060688311,
-        "betaLead": 0.379974217454298,
+        "alpha": -0.0011177740021398425,
+        "betaLead": 0.3799796134269157,
         "betaGap": 0,
         "adaptiveK": 1,
         "adaptiveBias": 0,
-        "lastTargetReturn": -0.008860813159791259,
+        "lastTargetReturn": -0.01695849408572503,
         "learningRate": 0.24,
-        "sampleCount": 33,
-        "meanAbsError": 0.012341204798183805,
-        "lastUpdatedAt": "2026-04-03T13:55:06.469Z"
+        "sampleCount": 34,
+        "meanAbsError": 0.012381248688867849,
+        "lastUpdatedAt": "2026-04-04T20:37:15.156Z"
       },
       "journal": {
         "snapshots": [
@@ -125626,7 +125626,7 @@
             "marketPrice": 2.322,
             "premiumRate": -0.012113498202788064,
             "marketPriceDate": "2026-04-02",
-            "marketPriceTime": "16:14:39",
+            "marketPriceTime": "15:00:00",
             "marketPriceType": "close",
             "anchorNav": 2.3587,
             "leadReturn": -0.009732402057669166,
@@ -125638,19 +125638,19 @@
           },
           {
             "estimateDate": "2026-04-03",
-            "estimatedNav": 2.3277278119214073,
+            "estimatedNav": 2.307424413488716,
             "marketPrice": 2.305,
-            "premiumRate": -0.00976394740184272,
+            "premiumRate": -0.0010507011517010278,
             "marketPriceDate": "2026-04-03",
             "marketPriceTime": "16:14:51",
             "marketPriceType": "close",
-            "anchorNav": 2.3378,
+            "anchorNav": 2.3187,
             "leadReturn": -0.009856101120458372,
             "closeGapReturn": 0,
-            "impliedReturn": -0.00430840451646543,
+            "impliedReturn": -0.004862891495788205,
             "adaptiveUsed": false,
             "adaptiveShockTriggered": false,
-            "createdAt": "2026-04-03T20:18:55.738Z"
+            "createdAt": "2026-04-04T20:37:15.156Z"
           }
         ],
         "errors": [
@@ -125809,6 +125809,18 @@
             "absPremiumError": 0.0182113320323104,
             "error": 0.018677711172869982,
             "absError": 0.018677711172869982
+          },
+          {
+            "date": "2026-04-02",
+            "marketPrice": 2.322,
+            "estimatedNav": 2.3504724437227384,
+            "actualNav": 2.3187,
+            "premiumRate": -0.012113498202788064,
+            "actualPremiumRate": 0.0014232112821839227,
+            "premiumError": -0.013536709484971987,
+            "absPremiumError": 0.013536709484971987,
+            "error": 0.01370269708144134,
+            "absError": 0.01370269708144134
           }
         ]
       }
@@ -134814,7 +134826,7 @@
             "impliedReturn": 0.003115760811864095,
             "adaptiveUsed": false,
             "adaptiveShockTriggered": false,
-            "createdAt": "2026-04-03T20:55:43.040Z"
+            "createdAt": "2026-04-04T20:37:27.923Z"
           }
         ],
         "errors": [
@@ -136867,7 +136879,7 @@
             "impliedReturn": -0.001467523688892554,
             "adaptiveUsed": false,
             "adaptiveShockTriggered": false,
-            "createdAt": "2026-04-03T20:18:55.315Z"
+            "createdAt": "2026-04-04T20:37:03.087Z"
           }
         ],
         "errors": [
