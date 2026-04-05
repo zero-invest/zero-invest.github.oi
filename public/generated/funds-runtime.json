@@ -1,5 +1,5 @@
 {
-  "syncedAt": "2026-04-04T22:34:27.384Z",
+  "syncedAt": "2026-04-05T02:49:23.114Z",
   "funds": [
     {
       "code": "160221",
@@ -63842,9 +63842,13 @@
       "name": "易方达香港小型股指数A(161124)",
       "fundType": "指数型-海外股票",
       "benchmark": "恒生综合小型股指数收益率(使用估值汇率折算)×95%+活期存款利率(税后)×5%",
-      "officialNavT1": 1.1263,
-      "navDate": "2026-04-01",
+      "officialNavT1": 1.1267,
+      "navDate": "2026-04-02",
       "navHistory": [
+        {
+          "date": "2026-04-02",
+          "nav": 1.1267
+        },
         {
           "date": "2026-04-01",
           "nav": 1.1263
@@ -65520,10 +65524,6 @@
         {
           "date": "2024-07-09",
           "nav": 0.8052
-        },
-        {
-          "date": "2024-07-08",
-          "nav": 0.8155
         }
       ],
       "marketPrice": 1.128,
@@ -65538,10 +65538,10 @@
       "disclosedHoldings": [],
       "fx": {
         "pair": "USD/CNY",
-        "currentRate": 6.8821,
-        "previousCloseRate": 6.8831,
-        "quoteDate": "2026-04-03",
-        "quoteTime": "23:14:13",
+        "currentRate": 6.884,
+        "previousCloseRate": 6.8859,
+        "quoteDate": "2026-04-04",
+        "quoteTime": "02:57:01",
         "source": "新浪外汇"
       },
       "holdingQuotes": [],
@@ -117801,7 +117801,7 @@
             "impliedReturn": 0.00279230423176,
             "adaptiveUsed": false,
             "adaptiveShockTriggered": false,
-            "createdAt": "2026-04-04T05:22:57.882Z"
+            "createdAt": "2026-04-05T02:49:17.677Z"
           }
         ],
         "errors": [
@@ -120093,7 +120093,7 @@
             "impliedReturn": -0.001860378931742372,
             "adaptiveUsed": false,
             "adaptiveShockTriggered": false,
-            "createdAt": "2026-04-04T02:31:57.266Z"
+            "createdAt": "2026-04-05T02:48:56.274Z"
           }
         ],
         "errors": [
@@ -122268,16 +122268,16 @@
     "161124": {
       "modelVersion": 17,
       "model": {
-        "alpha": -0.00000985158260520194,
-        "betaLead": 0.379944567426116,
-        "betaGap": 0.000006553463888982567,
+        "alpha": -0.0012459026322479351,
+        "betaLead": 0.3798456833421446,
+        "betaGap": -0.000007384073472699551,
         "adaptiveK": 1,
         "adaptiveBias": 0,
-        "lastTargetReturn": 0.0014226015826444005,
+        "lastTargetReturn": 0.0003551451655863236,
         "learningRate": 0.24,
-        "sampleCount": 33,
-        "meanAbsError": 0.00930838827424536,
-        "lastUpdatedAt": "2026-04-02T14:14:38.476Z"
+        "sampleCount": 34,
+        "meanAbsError": 0.009917552768846295,
+        "lastUpdatedAt": "2026-04-05T02:49:01.747Z"
       },
       "journal": {
         "snapshots": [
@@ -122507,19 +122507,19 @@
           },
           {
             "estimateDate": "2026-04-03",
-            "estimatedNav": 1.0920552091830238,
+            "estimatedNav": 1.0910575383820391,
             "marketPrice": 1.128,
-            "premiumRate": 0.03291481100471727,
+            "premiumRate": 0.03385931568076961,
             "marketPriceDate": "2026-04-03",
             "marketPriceTime": "16:14:27",
             "marketPriceType": "intraday",
-            "anchorNav": 1.1263,
+            "anchorNav": 1.1267,
             "leadReturn": -0.08,
-            "closeGapReturn": 0.11249223119950269,
-            "impliedReturn": -0.030404679762919523,
+            "closeGapReturn": 0.1120972752285434,
+            "impliedReturn": -0.03163438503413588,
             "adaptiveUsed": false,
             "adaptiveShockTriggered": false,
-            "createdAt": "2026-04-03T15:23:42.126Z"
+            "createdAt": "2026-04-05T02:49:01.747Z"
           }
         ],
         "errors": [
@@ -122678,6 +122678,18 @@
             "absPremiumError": 0.00996623376547201,
             "error": 0.009953198805079388,
             "absError": 0.009953198805079388
+          },
+          {
+            "date": "2026-04-02",
+            "marketPrice": 1.253,
+            "estimatedNav": 1.160523512694866,
+            "actualNav": 1.1267,
+            "premiumRate": 0.07968514751622147,
+            "actualPremiumRate": 0.1120972752285434,
+            "premiumError": -0.032412127712321936,
+            "absPremiumError": 0.032412127712321936,
+            "error": 0.03001998109067716,
+            "absError": 0.03001998109067716
           }
         ]
       }
@@ -133960,7 +133972,7 @@
             "impliedReturn": 0.000014069820093314992,
             "adaptiveUsed": false,
             "adaptiveShockTriggered": false,
-            "createdAt": "2026-04-04T02:32:16.523Z"
+            "createdAt": "2026-04-05T02:49:07.847Z"
           }
         ],
         "errors": [
@@ -138162,7 +138174,7 @@
             "impliedReturn": -0.004327946235387423,
             "adaptiveUsed": false,
             "adaptiveShockTriggered": false,
-            "createdAt": "2026-04-04T02:31:49.357Z"
+            "createdAt": "2026-04-05T02:48:45.521Z"
           }
         ],
         "errors": [
@@ -140676,7 +140688,7 @@
             "impliedReturn": -0.0012130666556049495,
             "adaptiveUsed": false,
             "adaptiveShockTriggered": false,
-            "createdAt": "2026-04-04T05:22:59.376Z"
+            "createdAt": "2026-04-05T02:49:23.106Z"
           }
         ],
         "errors": [
