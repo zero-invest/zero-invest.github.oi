@@ -1,5 +1,5 @@
 {
-  "syncedAt": "2026-04-05T14:39:07.206Z",
+  "syncedAt": "2026-04-05T16:41:31.411Z",
   "funds": [
     {
       "code": "160221",
@@ -31516,9 +31516,13 @@
       "name": "华安标普全球石油指数(LOF)A(160416)",
       "fundType": "指数型-海外股票",
       "benchmark": "标普全球石油净总收益指数收益率 (S&P Global Oil Index Net Total Return)",
-      "officialNavT1": 2.1674,
-      "navDate": "2026-03-31",
+      "officialNavT1": 2.1871,
+      "navDate": "2026-04-01",
       "navHistory": [
+        {
+          "date": "2026-04-01",
+          "nav": 2.1871
+        },
         {
           "date": "2026-03-31",
           "nav": 2.1674
@@ -33194,10 +33198,6 @@
         {
           "date": "2024-07-08",
           "nav": 1.701
-        },
-        {
-          "date": "2024-07-07",
-          "nav": 1.717
         }
       ],
       "marketPrice": 2.726,
@@ -118944,16 +118944,16 @@
     "160416": {
       "modelVersion": 17,
       "model": {
-        "alpha": -0.0014695698675512216,
-        "betaLead": 0.37999906050333926,
-        "betaGap": 6.424722280475311e-7,
-        "adaptiveK": 0.9150672316366666,
-        "adaptiveBias": -0.001061284155338139,
-        "lastTargetReturn": -0.037652073528105845,
+        "alpha": -0.001376095469088804,
+        "betaLead": 0.3799961585834677,
+        "betaGap": 6.24791411204166e-7,
+        "adaptiveK": 0.8977661110592551,
+        "adaptiveBias": -0.000993153565233894,
+        "lastTargetReturn": -0.021694399713723334,
         "learningRate": 0.24,
-        "sampleCount": 33,
-        "meanAbsError": 0.0042628254474899475,
-        "lastUpdatedAt": "2026-04-03T11:33:44.054Z"
+        "sampleCount": 34,
+        "meanAbsError": 0.004205724129310934,
+        "lastUpdatedAt": "2026-04-05T16:41:31.403Z"
       },
       "journal": {
         "snapshots": [
@@ -119223,19 +119223,19 @@
           },
           {
             "estimateDate": "2026-04-03",
-            "estimatedNav": 2.1739489995594115,
+            "estimatedNav": 2.193779487163665,
             "marketPrice": 2.726,
-            "premiumRate": 0.25393926009877466,
+            "premiumRate": 0.24260438022621966,
             "marketPriceDate": "2026-04-03",
             "marketPriceTime": "16:14:57",
             "marketPriceType": "intraday",
-            "anchorNav": 2.1674,
+            "anchorNav": 2.1871,
             "leadReturn": 0.007342453085415741,
             "closeGapReturn": -0.00027592616796645597,
-            "impliedReturn": 0.0030215924884244875,
+            "impliedReturn": 0.003054038298964243,
             "adaptiveUsed": true,
             "adaptiveShockTriggered": false,
-            "createdAt": "2026-04-03T19:50:11.727Z"
+            "createdAt": "2026-04-05T16:41:31.403Z"
           }
         ],
         "errors": [
@@ -119406,6 +119406,18 @@
             "absPremiumError": 0.04926621159313038,
             "error": 0.04053555521788188,
             "absError": 0.04053555521788188
+          },
+          {
+            "date": "2026-04-01",
+            "marketPrice": 2.467,
+            "estimatedNav": 2.1820229084254317,
+            "actualNav": 2.1871,
+            "premiumRate": 0.13060224550080934,
+            "actualPremiumRate": 0.12797768734854365,
+            "premiumError": 0.002624558152265699,
+            "absPremiumError": 0.002624558152265699,
+            "error": -0.002321380629403458,
+            "absError": 0.002321380629403458
           }
         ]
       }
@@ -121019,7 +121031,7 @@
             "impliedReturn": 0.10760672929067489,
             "adaptiveUsed": true,
             "adaptiveShockTriggered": true,
-            "createdAt": "2026-04-04T16:41:22.021Z"
+            "createdAt": "2026-04-05T16:41:23.649Z"
           }
         ],
         "errors": [
@@ -124760,7 +124772,7 @@
             "impliedReturn": 0.07292248200545988,
             "adaptiveUsed": true,
             "adaptiveShockTriggered": true,
-            "createdAt": "2026-04-03T19:09:02.026Z"
+            "createdAt": "2026-04-05T16:41:14.525Z"
           }
         ],
         "errors": [
@@ -127431,7 +127443,7 @@
             "impliedReturn": 0.0064854182885116535,
             "adaptiveUsed": true,
             "adaptiveShockTriggered": false,
-            "createdAt": "2026-04-04T18:49:32.219Z"
+            "createdAt": "2026-04-05T16:41:26.350Z"
           }
         ],
         "errors": [
@@ -128317,7 +128329,7 @@
             "impliedReturn": 0.004942857045947543,
             "adaptiveUsed": true,
             "adaptiveShockTriggered": false,
-            "createdAt": "2026-04-04T16:41:13.026Z"
+            "createdAt": "2026-04-05T16:41:20.503Z"
           }
         ],
         "errors": [
@@ -131852,7 +131864,7 @@
             "impliedReturn": 0.10645886798801629,
             "adaptiveUsed": true,
             "adaptiveShockTriggered": true,
-            "createdAt": "2026-04-04T16:40:54.405Z"
+            "createdAt": "2026-04-05T16:41:09.609Z"
           }
         ],
         "errors": [
