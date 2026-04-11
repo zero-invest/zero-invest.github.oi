@@ -1,5 +1,5 @@
 {
-  "syncedAt": "2026-04-11T08:52:09.555Z",
+  "syncedAt": "2026-04-11T10:41:22.578Z",
   "funds": [
     {
       "code": "160221",
@@ -10,9 +10,13 @@
       "name": "国泰国证有色金属行业指数(LOF)A(160221)",
       "fundType": "指数型-股票",
       "benchmark": "国证有色金属行业指数收益率*95%+银行活期存款利率(税后)*5%",
-      "officialNavT1": 2.5043,
-      "navDate": "2026-04-08",
+      "officialNavT1": 2.491,
+      "navDate": "2026-04-09",
       "navHistory": [
+        {
+          "date": "2026-04-09",
+          "nav": 2.491
+        },
         {
           "date": "2026-04-08",
           "nav": 2.5043
@@ -1688,10 +1692,6 @@
         {
           "date": "2024-07-15",
           "nav": 1.2873
-        },
-        {
-          "date": "2024-07-14",
-          "nav": 1.2777
         }
       ],
       "marketPrice": 2.477,
@@ -1915,9 +1915,13 @@
       "name": "中信保诚中证800有色指数(LOF)A(165520)",
       "fundType": "指数型-股票",
       "benchmark": "中证800有色金属指数收益率*95%+金融同业存款利率*5%",
-      "officialNavT1": 3.1366,
-      "navDate": "2026-04-08",
+      "officialNavT1": 3.1218,
+      "navDate": "2026-04-09",
       "navHistory": [
+        {
+          "date": "2026-04-09",
+          "nav": 3.1218
+        },
         {
           "date": "2026-04-08",
           "nav": 3.1366
@@ -3593,10 +3597,6 @@
         {
           "date": "2024-07-15",
           "nav": 1.5704
-        },
-        {
-          "date": "2024-07-14",
-          "nav": 1.5588
         }
       ],
       "marketPrice": 3.108,
@@ -5725,9 +5725,13 @@
       "name": "方正富邦中证保险A(167301)",
       "fundType": "指数型-股票",
       "benchmark": "中证方正富邦保险主题指数收益率*95%+金融机构人民币活期存款基准利率(税后)*5%",
-      "officialNavT1": 1.097,
-      "navDate": "2026-04-08",
+      "officialNavT1": 1.104,
+      "navDate": "2026-04-09",
       "navHistory": [
+        {
+          "date": "2026-04-09",
+          "nav": 1.104
+        },
         {
           "date": "2026-04-08",
           "nav": 1.097
@@ -7403,10 +7407,6 @@
         {
           "date": "2024-07-15",
           "nav": 0.794
-        },
-        {
-          "date": "2024-07-14",
-          "nav": 0.803
         }
       ],
       "marketPrice": 1.105,
@@ -7630,9 +7630,13 @@
       "name": "华夏上证50AH优选指数A(501050)",
       "fundType": "指数型-股票",
       "benchmark": "上证50AH优选指数收益率*95%+银行活期存款利率(税后)*5%",
-      "officialNavT1": 1.714,
-      "navDate": "2026-04-08",
+      "officialNavT1": 1.726,
+      "navDate": "2026-04-09",
       "navHistory": [
+        {
+          "date": "2026-04-09",
+          "nav": 1.726
+        },
         {
           "date": "2026-04-08",
           "nav": 1.714
@@ -9308,10 +9312,6 @@
         {
           "date": "2024-07-15",
           "nav": 1.245
-        },
-        {
-          "date": "2024-07-14",
-          "nav": 1.248
         }
       ],
       "marketPrice": 1.712,
@@ -9535,9 +9535,13 @@
       "name": "汇添富中证中药ETF联接(LOF)A(501011)",
       "fundType": "指数型-股票",
       "benchmark": "中证中药指数收益率*95%+银行人民币活期存款利率(税后)*5%",
-      "officialNavT1": 1.0576,
-      "navDate": "2026-04-08",
+      "officialNavT1": 1.0592,
+      "navDate": "2026-04-09",
       "navHistory": [
+        {
+          "date": "2026-04-09",
+          "nav": 1.0592
+        },
         {
           "date": "2026-04-08",
           "nav": 1.0576
@@ -11213,10 +11217,6 @@
         {
           "date": "2024-07-15",
           "nav": 1.0691
-        },
-        {
-          "date": "2024-07-14",
-          "nav": 1.0725
         }
       ],
       "marketPrice": 1.058,
@@ -120277,7 +120277,7 @@
         "betaGap": 0,
         "adaptiveK": 1.074231173096403,
         "adaptiveBias": 0.0002832307267040665,
-        "lastTargetReturn": 0.052005881117412445,
+        "lastTargetReturn": -0.010840646467855208,
         "learningRate": 0.24,
         "sampleCount": 37,
         "meanAbsError": 0.010195683597360077,
@@ -120606,7 +120606,7 @@
             "marketPrice": 2.491,
             "premiumRate": -0.003035439363039516,
             "marketPriceDate": "2026-04-09",
-            "marketPriceTime": "16:14:18",
+            "marketPriceTime": "15:00:00",
             "marketPriceType": "close",
             "anchorNav": 2.5183,
             "leadReturn": -0.007569756511613713,
@@ -120618,19 +120618,19 @@
           },
           {
             "estimateDate": "2026-04-10",
-            "estimatedNav": 2.4936239281083337,
+            "estimatedNav": 2.480380627288208,
             "marketPrice": 2.477,
-            "premiumRate": -0.0066665738650273365,
+            "premiumRate": -0.0013629469812075357,
             "marketPriceDate": "2026-04-10",
             "marketPriceTime": "16:14:54",
             "marketPriceType": "close",
-            "anchorNav": 2.5043,
+            "anchorNav": 2.491,
             "leadReturn": -0.0021029330273737595,
             "closeGapReturn": 0,
             "impliedReturn": -0.004263096231148926,
             "adaptiveUsed": true,
             "adaptiveShockTriggered": false,
-            "createdAt": "2026-04-10T20:00:57.648Z"
+            "createdAt": "2026-04-11T10:38:44.046Z"
           }
         ],
         "errors": [
@@ -120877,14 +120877,14 @@
           {
             "date": "2026-04-09",
             "marketPrice": 2.491,
-            "estimatedNav": 2.4991549340946024,
-            "actualNav": 2.5043,
-            "premiumRate": -0.003263076643768237,
-            "actualPremiumRate": -0.005310865311664026,
-            "premiumError": 0.002047788667895789,
-            "absPremiumError": 0.002047788667895789,
-            "error": -0.002054492634827154,
-            "absError": 0.002054492634827154
+            "estimatedNav": 2.4985843011395517,
+            "actualNav": 2.491,
+            "premiumRate": -0.003035439363039516,
+            "actualPremiumRate": 0,
+            "premiumError": -0.003035439363039516,
+            "absPremiumError": 0.003035439363039516,
+            "error": 0.003044681308531416,
+            "absError": 0.003044681308531416
           }
         ]
       }
@@ -134971,7 +134971,7 @@
         "betaGap": 0,
         "adaptiveK": 1.0571065548562486,
         "adaptiveBias": 0.0007117584973588807,
-        "lastTargetReturn": 0.05025950108823052,
+        "lastTargetReturn": -0.012057343586822422,
         "learningRate": 0.24,
         "sampleCount": 37,
         "meanAbsError": 0.009908447700665257,
@@ -135300,7 +135300,7 @@
             "marketPrice": 3.122,
             "premiumRate": -0.005065081801671756,
             "marketPriceDate": "2026-04-09",
-            "marketPriceTime": "16:14:12",
+            "marketPriceTime": "15:00:00",
             "marketPriceType": "close",
             "anchorNav": 3.1599,
             "leadReturn": -0.0073595752413312295,
@@ -135312,19 +135312,19 @@
           },
           {
             "estimateDate": "2026-04-10",
-            "estimatedNav": 3.1247381647953816,
+            "estimatedNav": 3.109994134686674,
             "marketPrice": 3.108,
-            "premiumRate": -0.0053566615545458385,
+            "premiumRate": -0.0006412020731592083,
             "marketPriceDate": "2026-04-10",
             "marketPriceTime": "16:14:42",
             "marketPriceType": "close",
-            "anchorNav": 3.1366,
+            "anchorNav": 3.1218,
             "leadReturn": -0.002428916341070813,
             "closeGapReturn": 0,
             "impliedReturn": -0.0037817494116617434,
             "adaptiveUsed": true,
             "adaptiveShockTriggered": false,
-            "createdAt": "2026-04-10T20:00:57.858Z"
+            "createdAt": "2026-04-11T10:38:52.750Z"
           }
         ],
         "errors": [
@@ -135571,14 +135571,14 @@
           {
             "date": "2026-04-09",
             "marketPrice": 3.122,
-            "estimatedNav": 3.137836215161027,
-            "actualNav": 3.1366,
-            "premiumRate": -0.005046858432097734,
-            "actualPremiumRate": -0.004654721673149287,
-            "premiumError": -0.000392136758948447,
-            "absPremiumError": 0.000392136758948447,
-            "error": 0.0003941258563497918,
-            "absError": 0.0003941258563497918
+            "estimatedNav": 3.137893688215762,
+            "actualNav": 3.1218,
+            "premiumRate": -0.005065081801671756,
+            "actualPremiumRate": 0.000064065603177621,
+            "premiumError": -0.005129147404849377,
+            "absPremiumError": 0.005129147404849377,
+            "error": 0.005155259214479457,
+            "absError": 0.005155259214479457
           },
           {
             "date": "2026-04-10",
@@ -135603,7 +135603,7 @@
         "betaGap": 0,
         "adaptiveK": 0.9630614859447406,
         "adaptiveBias": 0.0016104902784907283,
-        "lastTargetReturn": -0.020535714285714435,
+        "lastTargetReturn": -0.014285714285714346,
         "learningRate": 0.24,
         "sampleCount": 35,
         "meanAbsError": 0.006988856126842863,
@@ -135919,7 +135919,7 @@
             "marketPrice": 1.098,
             "premiumRate": 0.011450193820254473,
             "marketPriceDate": "2026-04-09",
-            "marketPriceTime": "16:14:21",
+            "marketPriceTime": "15:00:00",
             "marketPriceType": "close",
             "anchorNav": 1.12,
             "leadReturn": -0.02184892677937208,
@@ -135931,19 +135931,19 @@
           },
           {
             "estimateDate": "2026-04-10",
-            "estimatedNav": 1.1049834370882725,
+            "estimatedNav": 1.1120343797132661,
             "marketPrice": 1.105,
-            "premiumRate": 0.000014989285062050328,
+            "premiumRate": -0.006325685465839559,
             "marketPriceDate": "2026-04-10",
             "marketPriceTime": "16:14:36",
             "marketPriceType": "close",
-            "anchorNav": 1.097,
+            "anchorNav": 1.104,
             "leadReturn": 0.007569395717930323,
             "closeGapReturn": 0,
             "impliedReturn": 0.00727751785621912,
             "adaptiveUsed": true,
             "adaptiveShockTriggered": false,
-            "createdAt": "2026-04-10T20:00:58.339Z"
+            "createdAt": "2026-04-11T10:39:11.348Z"
           }
         ],
         "errors": [
@@ -136178,14 +136178,14 @@
           {
             "date": "2026-04-09",
             "marketPrice": 1.098,
-            "estimatedNav": 1.0837946226922057,
-            "actualNav": 1.097,
-            "premiumRate": 0.013107074911026473,
-            "actualPremiumRate": 0.0009115770282590585,
-            "premiumError": 0.012195497882767414,
-            "absPremiumError": 0.012195497882767414,
-            "error": -0.012037718603276404,
-            "absError": 0.012037718603276404
+            "estimatedNav": 1.0855700129463086,
+            "actualNav": 1.104,
+            "premiumRate": 0.011450193820254473,
+            "actualPremiumRate": -0.005434782608695676,
+            "premiumError": 0.01688497642895015,
+            "absPremiumError": 0.01688497642895015,
+            "error": -0.01669382885298143,
+            "absError": 0.01669382885298143
           },
           {
             "date": "2026-04-10",
@@ -136623,7 +136623,7 @@
         "betaGap": 0,
         "adaptiveK": 0.7160618279249388,
         "adaptiveBias": 0.00017569355691908055,
-        "lastTargetReturn": -0.004611764705882315,
+        "lastTargetReturn": -0.01368842536549042,
         "learningRate": 0.24,
         "sampleCount": 35,
         "meanAbsError": 0.003739021741133827,
@@ -136939,7 +136939,7 @@
             "marketPrice": 1.057,
             "premiumRate": -0.005146428570226069,
             "marketPriceDate": "2026-04-09",
-            "marketPriceTime": "16:14:14",
+            "marketPriceTime": "15:00:00",
             "marketPriceType": "close",
             "anchorNav": 1.0739,
             "leadReturn": -0.013396683313143453,
@@ -136951,19 +136951,19 @@
           },
           {
             "estimateDate": "2026-04-10",
-            "estimatedNav": 1.0582873445322365,
+            "estimatedNav": 1.059888384387807,
             "marketPrice": 1.058,
-            "premiumRate": -0.0002715184431912876,
+            "premiumRate": -0.0017816823126123316,
             "marketPriceDate": "2026-04-10",
             "marketPriceTime": "16:14:15",
             "marketPriceType": "close",
-            "anchorNav": 1.0576,
+            "anchorNav": 1.0592,
             "leadReturn": 0.0007528375641490528,
             "closeGapReturn": 0,
             "impliedReturn": 0.0006499097316909072,
             "adaptiveUsed": true,
             "adaptiveShockTriggered": false,
-            "createdAt": "2026-04-10T20:00:58.758Z"
+            "createdAt": "2026-04-11T10:41:22.569Z"
           }
         ],
         "errors": [
@@ -137198,14 +137198,14 @@
           {
             "date": "2026-04-09",
             "marketPrice": 1.057,
-            "estimatedNav": 1.0622316365549793,
-            "actualNav": 1.0576,
-            "premiumRate": -0.004925137206369223,
-            "actualPremiumRate": -0.0005673222390318866,
-            "premiumError": -0.004357814967337337,
-            "absPremiumError": 0.004357814967337337,
-            "error": 0.004379384034586931,
-            "absError": 0.004379384034586931
+            "estimatedNav": 1.0624679152339083,
+            "actualNav": 1.0592,
+            "premiumRate": -0.005146428570226069,
+            "actualPremiumRate": -0.0020770392749244193,
+            "premiumError": -0.00306938929530165,
+            "absPremiumError": 0.00306938929530165,
+            "error": 0.003085267403614367,
+            "absError": 0.003085267403614367
           },
           {
             "date": "2026-04-10",
@@ -138661,7 +138661,7 @@
         "betaGap": 0,
         "adaptiveK": 0.9566247056085239,
         "adaptiveBias": 0.00018935488179507216,
-        "lastTargetReturn": 0.019631171921475232,
+        "lastTargetReturn": 0.0017411491584444772,
         "learningRate": 0.24,
         "sampleCount": 35,
         "meanAbsError": 0.007086658359247437,
@@ -138977,7 +138977,7 @@
             "marketPrice": 1.697,
             "premiumRate": -0.01253302531757039,
             "marketPriceDate": "2026-04-09",
-            "marketPriceTime": "16:14:15",
+            "marketPriceTime": "15:00:00",
             "marketPriceType": "close",
             "anchorNav": 1.723,
             "leadReturn": -0.004888368922477051,
@@ -138989,19 +138989,19 @@
           },
           {
             "estimateDate": "2026-04-10",
-            "estimatedNav": 1.7214568028788486,
+            "estimatedNav": 1.733509009200054,
             "marketPrice": 1.712,
-            "premiumRate": -0.005493488342567576,
+            "premiumRate": -0.012407786221993455,
             "marketPriceDate": "2026-04-10",
             "marketPriceTime": "16:14:16",
             "marketPriceType": "close",
-            "anchorNav": 1.714,
+            "anchorNav": 1.726,
             "leadReturn": 0.005719577414191475,
             "closeGapReturn": 0,
             "impliedReturn": 0.00435052676712297,
             "adaptiveUsed": true,
             "adaptiveShockTriggered": false,
-            "createdAt": "2026-04-10T20:00:58.550Z"
+            "createdAt": "2026-04-11T10:41:19.945Z"
           }
         ],
         "errors": [
@@ -139236,14 +139236,14 @@
           {
             "date": "2026-04-09",
             "marketPrice": 1.697,
-            "estimatedNav": 1.7193521368471112,
-            "actualNav": 1.714,
-            "premiumRate": -0.013000325162069282,
-            "actualPremiumRate": -0.009918319719953272,
-            "premiumError": -0.0030820054421160092,
-            "absPremiumError": 0.0030820054421160092,
-            "error": 0.0031226002608584214,
-            "absError": 0.0031226002608584214
+            "estimatedNav": 1.7185384863587534,
+            "actualNav": 1.726,
+            "premiumRate": -0.01253302531757039,
+            "actualPremiumRate": -0.016801853997682414,
+            "premiumError": 0.0042688286801120245,
+            "absPremiumError": 0.0042688286801120245,
+            "error": -0.004323009062135896,
+            "absError": 0.004323009062135896
           },
           {
             "date": "2026-04-10",
