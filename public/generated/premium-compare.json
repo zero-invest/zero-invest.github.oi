@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-08-14T20:49:17.778Z",
-  "syncedAt": "2026-08-14T20:30:04.125Z",
+  "generatedAt": "2026-08-16T16:52:00.625Z",
+  "syncedAt": "2026-08-16T16:30:04.408Z",
   "codes": {
     "159100": {
       "code": "159100",
@@ -134,7 +134,7 @@
         {
           "provider": "eastmoney-fundgz",
           "sourceUrl": "https://fundgz.1234567.com.cn/js/159100.js",
-          "status": "fetch failed",
+          "status": "gsz-unavailable",
           "premiumRateCurrent": null,
           "hitCount60": 0,
           "avgAbsProviderError30": null,
@@ -203,11 +203,11 @@
       "name": "沙特ETF南方(159329)",
       "snapshotAt": "2026-08-14 15:00:00",
       "snapshotAtLive": "2026-08-14 16:14:57",
-      "ourPremiumRate": -0.004185944040537626,
+      "ourPremiumRate": -0.002207505518763808,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.008908104113135659
+        "avgAbsOurError30": 0.008553877710539374
       },
       "eastmoneyDailyValuations": [],
       "providerDailyComparisons": {
@@ -990,7 +990,7 @@
         {
           "provider": "eastmoney-fundgz",
           "sourceUrl": "https://fundgz.1234567.com.cn/js/159502.js",
-          "status": "fetch failed",
+          "status": "gsz-unavailable",
           "premiumRateCurrent": -0.006211180124223614,
           "hitCount60": 18,
           "avgAbsProviderError30": 0.018065522698558066,
@@ -1059,11 +1059,11 @@
       "name": "纳指科技ETF景顺(159509)",
       "snapshotAt": "2026-08-14 15:00:00",
       "snapshotAtLive": "2026-08-14 16:14:06",
-      "ourPremiumRate": 0.2586645608493465,
+      "ourPremiumRate": 0.2411853774605235,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.019215010421015255
+        "avgAbsOurError30": 0.018720138369633568
       },
       "eastmoneyDailyValuations": [
         {
@@ -1638,7 +1638,7 @@
         {
           "provider": "eastmoney-fundgz",
           "sourceUrl": "https://fundgz.1234567.com.cn/js/159509.js",
-          "status": "fetch failed",
+          "status": "gsz-unavailable",
           "premiumRateCurrent": 0.16185207020089787,
           "hitCount60": 18,
           "avgAbsProviderError30": 0.026759416652983543,
@@ -2392,11 +2392,11 @@
       "name": "德国ETF嘉实(159561)",
       "snapshotAt": "2026-08-14 15:00:00",
       "snapshotAtLive": "2026-08-14 16:14:12",
-      "ourPremiumRate": 0.005167770580100539,
+      "ourPremiumRate": 0.007440910417274571,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.011018464442529574
+        "avgAbsOurError30": 0.010237952731747527
       },
       "eastmoneyDailyValuations": [],
       "providerDailyComparisons": {
@@ -2600,11 +2600,11 @@
       "name": "美国50ETF汇添富(159577)",
       "snapshotAt": "2026-08-14 15:00:00",
       "snapshotAtLive": "2026-08-14 16:14:24",
-      "ourPremiumRate": 0.06475913148066081,
+      "ourPremiumRate": 0.058061269421903594,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.01052392833609419
+        "avgAbsOurError30": 0.010138100915279055
       },
       "eastmoneyDailyValuations": [
         {
@@ -4117,11 +4117,11 @@
       "name": "国泰大宗商品(QDII-LOF)A(160216)",
       "snapshotAt": "2026-08-14 15:00:00",
       "snapshotAtLive": "2026-08-14 16:14:45",
-      "ourPremiumRate": -0.02003081664098616,
+      "ourPremiumRate": -0.009345794392523366,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.015957877056069426
+        "avgAbsOurError30": 0.015144703179055063
       },
       "eastmoneyDailyValuations": [],
       "providerDailyComparisons": {
@@ -5133,8 +5133,8 @@
         },
         {
           "provider": "eastmoney-quote",
-          "sourceUrl": "https://fund.eastmoney.com/160221.html",
-          "status": "premium-unavailable",
+          "sourceUrl": "https://push2.eastmoney.com/api/qt/stock/get?invt=2&fltt=2&secid=0.160221&fields=f57,f58,f193,f194",
+          "status": "ok",
           "premiumRateCurrent": 0,
           "hitCount60": 20,
           "avgAbsProviderError30": 0.05423894775442253,
@@ -5190,11 +5190,11 @@
       "name": "华安标普全球石油指数(LOF)A(160416)",
       "snapshotAt": "2026-08-14 15:00:00",
       "snapshotAtLive": "2026-08-14 16:14:57",
-      "ourPremiumRate": -0.010159381116599753,
+      "ourPremiumRate": -0.008449652210447689,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.01502123907968964
+        "avgAbsOurError30": 0.014667032380088322
       },
       "eastmoneyDailyValuations": [
         {
@@ -6450,11 +6450,11 @@
       "name": "鹏华中证A股资源产业指数(LOF)A(160620)",
       "snapshotAt": "2026-08-14 15:00:00",
       "snapshotAtLive": "2026-08-14 16:14:24",
-      "ourPremiumRate": 0.011283647554030551,
+      "ourPremiumRate": -0.005253818586687942,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.01816887288600843
+        "avgAbsOurError30": 0.01794882752243209
       },
       "eastmoneyDailyValuations": [
         {
@@ -7066,7 +7066,7 @@
         {
           "provider": "eastmoney-fundgz",
           "sourceUrl": "https://fundgz.1234567.com.cn/js/160620.js",
-          "status": "fetch failed",
+          "status": "gsz-unavailable",
           "premiumRateCurrent": 0.001651073197578512,
           "hitCount60": 19,
           "avgAbsProviderError30": 0.011148474119736407,
@@ -7135,11 +7135,11 @@
       "name": "鹏华港美互联股票人民币(160644)",
       "snapshotAt": "2026-08-14 15:00:00",
       "snapshotAtLive": "2026-08-14 16:14:06",
-      "ourPremiumRate": 0.041149650833958606,
+      "ourPremiumRate": 0.008046490835941,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.03809122591302852
+        "avgAbsOurError30": 0.039997174836029256
       },
       "eastmoneyDailyValuations": [
         {
@@ -7820,11 +7820,11 @@
       "name": "嘉实黄金(160719)",
       "snapshotAt": "2026-08-14 15:00:00",
       "snapshotAtLive": "2026-08-14 16:14:39",
-      "ourPremiumRate": -0.025940996948118022,
+      "ourPremiumRate": -0.012886597938144284,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.0667765270530535
+        "avgAbsOurError30": 0.06800593526940849
       },
       "eastmoneyDailyValuations": [],
       "providerDailyComparisons": {
@@ -8592,11 +8592,11 @@
       "name": "嘉实原油(QDII-LOF)(160723)",
       "snapshotAt": "2026-08-14 15:00:00",
       "snapshotAtLive": "2026-08-14 16:14:15",
-      "ourPremiumRate": 0.0050477285221650625,
+      "ourPremiumRate": 0.01540015147689977,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.02849572774192561
+        "avgAbsOurError30": 0.028898715998501783
       },
       "eastmoneyDailyValuations": [],
       "providerDailyComparisons": {
@@ -9943,7 +9943,7 @@
         {
           "provider": "eastmoney-fundgz",
           "sourceUrl": "https://fundgz.1234567.com.cn/js/160807.js",
-          "status": "fetch failed",
+          "status": "gsz-unavailable",
           "premiumRateCurrent": 0.0446951616402691,
           "hitCount60": 18,
           "avgAbsProviderError30": 0.011008960318961711,
@@ -10685,11 +10685,11 @@
       "name": "易方达黄金主题人民币A(161116)",
       "snapshotAt": "2026-08-14 15:00:00",
       "snapshotAtLive": "2026-08-14 16:14:39",
-      "ourPremiumRate": -0.020255798298757788,
+      "ourPremiumRate": -0.006823821339950409,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.06881590648406614
+        "avgAbsOurError30": 0.06753269229632781
       },
       "eastmoneyDailyValuations": [
         {
@@ -12682,11 +12682,11 @@
       "name": "易方达标普500指数人民币A(161125)",
       "snapshotAt": "2026-08-14 15:00:00",
       "snapshotAtLive": "2026-08-14 16:14:12",
-      "ourPremiumRate": 0.03401702421710584,
+      "ourPremiumRate": 0.02759395679860166,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.009464006523047016
+        "avgAbsOurError30": 0.008925714167974693
       },
       "eastmoneyDailyValuations": [
         {
@@ -15867,11 +15867,11 @@
       "name": "易方达标普信息科技指数(QDII-LOF)A(人民币)(161128)",
       "snapshotAt": "2026-08-14 15:00:00",
       "snapshotAtLive": "2026-08-14 16:14:06",
-      "ourPremiumRate": 0.052477236404158356,
+      "ourPremiumRate": 0.042874369815048885,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.01795600519440316
+        "avgAbsOurError30": 0.018021400639438044
       },
       "eastmoneyDailyValuations": [
         {
@@ -17215,11 +17215,11 @@
       "name": "易方达原油A类人民币(161129)",
       "snapshotAt": "2026-08-14 15:00:00",
       "snapshotAtLive": "2026-08-14 16:14:09",
-      "ourPremiumRate": 0.018136110612318124,
+      "ourPremiumRate": 0.028851388132825395,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.03453655847368107
+        "avgAbsOurError30": 0.03098547723679691
       },
       "eastmoneyDailyValuations": [],
       "providerDailyComparisons": {
@@ -17999,11 +17999,11 @@
       "name": "易方达纳斯达克100ETF联接(QDII-LOF)A(人民币)(161130)",
       "snapshotAt": "2026-08-14 15:00:00",
       "snapshotAtLive": "2026-08-14 16:14:45",
-      "ourPremiumRate": 0.044909244971680806,
+      "ourPremiumRate": 0.03354727717858785,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.0176651996031957
+        "avgAbsOurError30": 0.01793979817121793
       },
       "eastmoneyDailyValuations": [
         {
@@ -19263,11 +19263,11 @@
       "name": "国投瑞银中证资源指数(LOF)A(161217)",
       "snapshotAt": "2026-08-14 15:00:00",
       "snapshotAtLive": "2026-08-14 16:14:15",
-      "ourPremiumRate": 0.010223298358891686,
+      "ourPremiumRate": -0.004594857294335841,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.017917879216771557
+        "avgAbsOurError30": 0.017866469647408924
       },
       "eastmoneyDailyValuations": [
         {
@@ -19936,11 +19936,11 @@
       "name": "国投瑞银白银期货(LOF)A(161226)",
       "snapshotAt": "2026-08-14 15:00:00",
       "snapshotAtLive": "2026-08-14 16:14:54",
-      "ourPremiumRate": 0.020621967357741466,
+      "ourPremiumRate": 0.0400629319548238,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.02253982482656719
+        "avgAbsOurError30": 0.020595934080209335
       },
       "eastmoneyDailyValuations": [],
       "providerDailyComparisons": {
@@ -21384,7 +21384,7 @@
         {
           "provider": "eastmoney-fundgz",
           "sourceUrl": "https://fundgz.1234567.com.cn/js/161607.js",
-          "status": "fetch failed",
+          "status": "gsz-unavailable",
           "premiumRateCurrent": 0.003640145605824152,
           "hitCount60": 19,
           "avgAbsProviderError30": 0.009617192428555878,
@@ -22104,7 +22104,7 @@
         {
           "provider": "eastmoney-fundgz",
           "sourceUrl": "https://fundgz.1234567.com.cn/js/161725.js",
-          "status": "fetch failed",
+          "status": "gsz-unavailable",
           "premiumRateCurrent": 0.00018871485185889547,
           "hitCount60": 18,
           "avgAbsProviderError30": 0.007395354635103486,
@@ -22173,11 +22173,11 @@
       "name": "华宝标普油气上游股票人民币A(162411)",
       "snapshotAt": "2026-08-14 15:00:00",
       "snapshotAtLive": "2026-08-14 16:14:06",
-      "ourPremiumRate": 0.0003189114489210443,
+      "ourPremiumRate": -0.00264970853206159,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.016396672640090895
+        "avgAbsOurError30": 0.015505621966934342
       },
       "eastmoneyDailyValuations": [
         {
@@ -24671,11 +24671,11 @@
       "name": "广发道琼斯石油指数人民币A(162719)",
       "snapshotAt": "2026-08-14 15:00:00",
       "snapshotAtLive": "2026-08-14 16:14:36",
-      "ourPremiumRate": -0.00003419855682096351,
+      "ourPremiumRate": -0.0023882633913340223,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.015498112213658247
+        "avgAbsOurError30": 0.016496640037268907
       },
       "eastmoneyDailyValuations": [
         {
@@ -26605,11 +26605,11 @@
       "name": "汇添富黄金及贵金属(QDII-LOF-FOF)A(164701)",
       "snapshotAt": "2026-08-14 15:00:00",
       "snapshotAtLive": "2026-08-14 16:14:21",
-      "ourPremiumRate": -0.025611175785797413,
+      "ourPremiumRate": -0.011222681630242204,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.054968774405177265
+        "avgAbsOurError30": 0.056579650794770495
       },
       "eastmoneyDailyValuations": [],
       "providerDailyComparisons": {
@@ -29678,7 +29678,7 @@
         {
           "provider": "eastmoney-fundgz",
           "sourceUrl": "https://fundgz.1234567.com.cn/js/168204.js",
-          "status": "fetch failed",
+          "status": "gsz-unavailable",
           "premiumRateCurrent": -0.007736642608650479,
           "hitCount60": 19,
           "avgAbsProviderError30": 0.012639602816631552,
@@ -29747,11 +29747,11 @@
       "name": "汇添富中证中药ETF联接(LOF)A(501011)",
       "snapshotAt": "2026-08-14 15:00:00",
       "snapshotAtLive": "2026-08-14 16:14:23",
-      "ourPremiumRate": -0.013070657321462398,
+      "ourPremiumRate": -0.0025844740116779397,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.013485261859086354
+        "avgAbsOurError30": 0.013242905945777764
       },
       "eastmoneyDailyValuations": [
         {
@@ -30480,11 +30480,11 @@
       "name": "南方原油A(501018)",
       "snapshotAt": "2026-08-14 15:00:00",
       "snapshotAtLive": "2026-08-14 16:14:19",
-      "ourPremiumRate": 0.017325886241878585,
+      "ourPremiumRate": 0.02639296187683282,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.030273847476349078
+        "avgAbsOurError30": 0.02853433526236073
       },
       "eastmoneyDailyValuations": [],
       "providerDailyComparisons": {
@@ -32461,11 +32461,11 @@
       "name": "华夏上证50AH优选指数A(501050)",
       "snapshotAt": "2026-08-14 15:00:00",
       "snapshotAtLive": "2026-08-14 16:14:25",
-      "ourPremiumRate": -0.012600229095074522,
+      "ourPremiumRate": -0.008625646923519303,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.017523409393569542
+        "avgAbsOurError30": 0.0174507638334131
       },
       "eastmoneyDailyValuations": [
         {
@@ -33181,11 +33181,11 @@
       "name": "景顺长城全球半导体芯片股票A(QDII-LOF)(人民币)(501225)",
       "snapshotAt": "2026-08-14 15:00:00",
       "snapshotAtLive": "2026-08-14 16:14:08",
-      "ourPremiumRate": 0.21446700507614214,
+      "ourPremiumRate": 0.21292775665399222,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.03341986524065288
+        "avgAbsOurError30": 0.03367252945963773
       },
       "eastmoneyDailyValuations": [],
       "providerDailyComparisons": {
@@ -33906,7 +33906,7 @@
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.0063615552357225635
+        "avgAbsOurError30": 0.006357107507949389
       },
       "eastmoneyDailyValuations": [
         {
@@ -34563,11 +34563,11 @@
       "name": "海富通全球收益债券人民币(501300)",
       "snapshotAt": "2026-08-14 15:00:00",
       "snapshotAtLive": "2026-08-14 16:14:22",
-      "ourPremiumRate": -0.008749466495945324,
+      "ourPremiumRate": -0.011176157530601305,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.0022555946603174614
+        "avgAbsOurError30": 0.0023370876010619305
       },
       "eastmoneyDailyValuations": [],
       "providerDailyComparisons": {
@@ -34759,11 +34759,11 @@
       "name": "华宝海外科技股票(QDII-LOF)A(501312)",
       "snapshotAt": "2026-08-14 15:00:00",
       "snapshotAtLive": "2026-08-14 16:14:08",
-      "ourPremiumRate": 0.0007502500833609371,
+      "ourPremiumRate": -0.005508843142939979,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.025254872621340067
+        "avgAbsOurError30": 0.025646093228128518
       },
       "eastmoneyDailyValuations": [
         {
@@ -36031,11 +36031,11 @@
       "name": "德国ETF华安(513030)",
       "snapshotAt": "2026-08-14 15:00:00",
       "snapshotAtLive": "2026-08-14 16:14:38",
-      "ourPremiumRate": 0.033509136433860665,
+      "ourPremiumRate": 0.035882101665954735,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.011166707900164904
+        "avgAbsOurError30": 0.010404569239075416
       },
       "eastmoneyDailyValuations": [],
       "providerDailyComparisons": {
@@ -36239,7 +36239,7 @@
       "name": "法国ETF华安(513080)",
       "snapshotAt": "2026-08-14 15:00:00",
       "snapshotAtLive": "2026-08-14 16:14:51",
-      "ourPremiumRate": 0.0009910802775023875,
+      "ourPremiumRate": 0.004864028299801149,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
@@ -36435,11 +36435,11 @@
       "name": "纳指ETF国泰(513100)",
       "snapshotAt": "2026-08-14 15:00:00",
       "snapshotAtLive": "2026-08-14 16:14:34",
-      "ourPremiumRate": 0.12485715705271505,
+      "ourPremiumRate": 0.11203890171422959,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.018611003154618767
+        "avgAbsOurError30": 0.018857561178894002
       },
       "eastmoneyDailyValuations": [
         {
@@ -38391,11 +38391,11 @@
       "name": "中韩半导体ETF华泰柏瑞(513310)",
       "snapshotAt": "2026-08-14 15:00:00",
       "snapshotAtLive": "2026-08-14 16:14:31",
-      "ourPremiumRate": 0.13148245154531168,
+      "ourPremiumRate": 0.1179621045051531,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.05437342632427981
+        "avgAbsOurError30": 0.05301832267400648
       },
       "eastmoneyDailyValuations": [],
       "providerDailyComparisons": {
@@ -39981,11 +39981,11 @@
       "name": "华夏日经225ETF",
       "snapshotAt": "2026-08-14 15:00:00",
       "snapshotAtLive": "2026-08-14 16:14:38",
-      "ourPremiumRate": 0.04881499823134061,
+      "ourPremiumRate": 0.04341705890115688,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.01925729498063328
+        "avgAbsOurError30": 0.019366436641835787
       },
       "eastmoneyDailyValuations": [],
       "providerDailyComparisons": {
@@ -40328,7 +40328,7 @@
         {
           "provider": "eastmoney-fundgz",
           "sourceUrl": "https://fundgz.1234567.com.cn/js/513730.js",
-          "status": "gsz-unavailable",
+          "status": "fetch failed",
           "premiumRateCurrent": null,
           "hitCount60": 0,
           "avgAbsProviderError30": null,
@@ -40397,11 +40397,11 @@
       "name": "日本东证指数ETF南方(513800)",
       "snapshotAt": "2026-08-14 15:00:00",
       "snapshotAtLive": "2026-08-14 16:14:31",
-      "ourPremiumRate": 0.0032766422218755142,
+      "ourPremiumRate": 0.00015554518587657107,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.012966460366309081
+        "avgAbsOurError30": 0.01262183763651754
       },
       "eastmoneyDailyValuations": [],
       "providerDailyComparisons": {
@@ -40605,11 +40605,11 @@
       "name": "美国50ETF易方达(513850)",
       "snapshotAt": "2026-08-14 15:00:00",
       "snapshotAtLive": "2026-08-14 16:14:46",
-      "ourPremiumRate": 0.06628733997155045,
+      "ourPremiumRate": 0.05965507492225064,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.009113189140173132
+        "avgAbsOurError30": 0.008842498563778337
       },
       "eastmoneyDailyValuations": [
         {
@@ -41290,11 +41290,11 @@
       "name": "华安日经225ETF",
       "snapshotAt": "2026-08-14 15:00:00",
       "snapshotAtLive": "2026-08-14 16:14:53",
-      "ourPremiumRate": 0.05031476309935168,
+      "ourPremiumRate": 0.04669811320754702,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.017685805192887604
+        "avgAbsOurError30": 0.017959339391960292
       },
       "eastmoneyDailyValuations": [],
       "providerDailyComparisons": {
@@ -41694,11 +41694,11 @@
       "name": "沙特ETF华泰柏瑞(520830)",
       "snapshotAt": "2026-08-14 15:00:00",
       "snapshotAtLive": "2026-08-14 16:14:45",
-      "ourPremiumRate": -0.0036818029677563313,
+      "ourPremiumRate": -0.001676914477361624,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.006624785139683868
+        "avgAbsOurError30": 0.006343499560149313
       },
       "eastmoneyDailyValuations": [],
       "providerDailyComparisons": {
@@ -41902,11 +41902,11 @@
       "name": "巴西ETF易方达(520870)",
       "snapshotAt": "2026-08-14 15:00:00",
       "snapshotAtLive": "2026-08-14 16:14:46",
-      "ourPremiumRate": 0.01203659123736145,
+      "ourPremiumRate": 0.015360834701961146,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.012028323225861386
+        "avgAbsOurError30": 0.012007136935735897
       },
       "eastmoneyDailyValuations": [],
       "providerDailyComparisons": {
@@ -42041,7 +42041,7 @@
         {
           "provider": "eastmoney-fundgz",
           "sourceUrl": "https://fundgz.1234567.com.cn/js/520870.js",
-          "status": "gsz-unavailable",
+          "status": "fetch failed",
           "premiumRateCurrent": null,
           "hitCount60": 0,
           "avgAbsProviderError30": null,
