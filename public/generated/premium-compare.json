@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-08-24T11:57:26.572Z",
-  "syncedAt": "2026-08-24T11:30:53.172Z",
+  "generatedAt": "2026-08-24T19:24:01.029Z",
+  "syncedAt": "2026-08-24T19:00:25.271Z",
   "codes": {
     "159100": {
       "code": "159100",
@@ -5147,6 +5147,18 @@
             "providerPremiumError": 0.00701978302488826,
             "ourPremiumError": 0.013247973315978823,
             "premiumErrorDelta": -0.006228190291090563
+          },
+          {
+            "date": "2026-08-24",
+            "time": "15:00:00",
+            "marketPrice": 2.342,
+            "providerPremiumRate": 0,
+            "ourReportedPremiumRate": -0.0036162518613059857,
+            "status": "pending",
+            "actualPremiumRate": null,
+            "providerPremiumError": null,
+            "ourPremiumError": null,
+            "premiumErrorDelta": null
           }
         ],
         "etfpro": [],
@@ -5169,10 +5181,10 @@
         },
         {
           "provider": "eastmoney-quote",
-          "sourceUrl": "https://fund.eastmoney.com/160221.html",
-          "status": "premium-unavailable",
+          "sourceUrl": "https://push2.eastmoney.com/api/qt/stock/get?invt=2&fltt=2&secid=0.160221&fields=f57,f58,f193,f194",
+          "status": "ok",
           "premiumRateCurrent": 0,
-          "hitCount60": 23,
+          "hitCount60": 24,
           "avgAbsProviderError30": 0.060691719078824785,
           "avgAbsOurError30": 0.02522469753044151,
           "avgAbsDelta30": 0.03546702154838327,
@@ -10652,7 +10664,7 @@
         {
           "provider": "eastmoney-fundgz",
           "sourceUrl": "https://fundgz.1234567.com.cn/js/161039.js",
-          "status": "fetch failed",
+          "status": "gsz-unavailable",
           "premiumRateCurrent": 0.05124569576665983,
           "hitCount60": 19,
           "avgAbsProviderError30": 0.014670115804291553,
@@ -12649,7 +12661,7 @@
         {
           "provider": "eastmoney-fundgz",
           "sourceUrl": "https://fundgz.1234567.com.cn/js/161124.js",
-          "status": "gsz-unavailable",
+          "status": "fetch failed",
           "premiumRateCurrent": -0.002081406105457928,
           "hitCount60": 19,
           "avgAbsProviderError30": 0.01093094996608108,
@@ -36230,7 +36242,7 @@
         {
           "provider": "eastmoney-fundgz",
           "sourceUrl": "https://fundgz.1234567.com.cn/js/513030.js",
-          "status": "gsz-unavailable",
+          "status": "fetch failed",
           "premiumRateCurrent": null,
           "hitCount60": 0,
           "avgAbsProviderError30": null,
@@ -40596,7 +40608,7 @@
         {
           "provider": "eastmoney-fundgz",
           "sourceUrl": "https://fundgz.1234567.com.cn/js/513800.js",
-          "status": "gsz-unavailable",
+          "status": "fetch failed",
           "premiumRateCurrent": null,
           "hitCount60": 0,
           "avgAbsProviderError30": null,
@@ -41281,7 +41293,7 @@
         {
           "provider": "eastmoney-fundgz",
           "sourceUrl": "https://fundgz.1234567.com.cn/js/513850.js",
-          "status": "gsz-unavailable",
+          "status": "fetch failed",
           "premiumRateCurrent": 0.01916427357440087,
           "hitCount60": 19,
           "avgAbsProviderError30": 0.015857985120762752,
