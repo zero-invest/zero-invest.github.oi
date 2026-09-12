@@ -1,17 +1,17 @@
 {
-  "generatedAt": "2026-09-03T05:40:37.204Z",
-  "syncedAt": "2026-09-03T05:30:02.056Z",
+  "generatedAt": "2026-09-12T08:52:39.748Z",
+  "syncedAt": "2026-09-12T08:30:13.581Z",
   "codes": {
     "159100": {
       "code": "159100",
       "name": "巴西ETF华夏(159100)",
-      "snapshotAt": "2026-09-03 15:00:00",
-      "snapshotAtLive": "2026-09-03 13:28:51",
-      "ourPremiumRate": 0.03537609433625155,
+      "snapshotAt": "2026-09-11 15:00:00",
+      "snapshotAtLive": "2026-09-11 16:14:24",
+      "ourPremiumRate": 0.011351028420244269,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.011697037988656385
+        "avgAbsOurError30": 0.01235192908261968
       },
       "eastmoneyDailyValuations": [],
       "providerDailyComparisons": {
@@ -201,13 +201,13 @@
     "159329": {
       "code": "159329",
       "name": "沙特ETF南方(159329)",
-      "snapshotAt": "2026-09-03 15:00:00",
-      "snapshotAtLive": "2026-09-03 13:28:36",
-      "ourPremiumRate": -0.010467249379518595,
+      "snapshotAt": "2026-09-11 15:00:00",
+      "snapshotAtLive": "2026-09-11 16:14:06",
+      "ourPremiumRate": -0.008399694556561532,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.00877794645015442
+        "avgAbsOurError30": 0.00895334706758193
       },
       "eastmoneyDailyValuations": [],
       "providerDailyComparisons": {
@@ -409,13 +409,13 @@
     "159502": {
       "code": "159502",
       "name": "标普生物科技ETF嘉实(159502)",
-      "snapshotAt": "2026-09-03 15:00:00",
-      "snapshotAtLive": "2026-09-03 13:28:51",
-      "ourPremiumRate": 0.014439324116743535,
+      "snapshotAt": "2026-09-11 15:00:00",
+      "snapshotAtLive": "2026-09-11 16:14:27",
+      "ourPremiumRate": 0.0026132959398303957,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.020674961515636022
+        "avgAbsOurError30": 0.021252993154975083
       },
       "eastmoneyDailyValuations": [
         {
@@ -619,12 +619,12 @@
           "marketPrice": 1.729,
           "providerPremiumRate": 0.05872267466780978,
           "providerEstimatedNav": 1.6331,
-          "status": "pending",
-          "actualNav": null,
-          "providerNavError": null,
+          "status": "settled",
+          "actualNav": 1.6138,
+          "providerNavError": 0.011959350601065788,
           "ourReportedPremiumRate": 0.07072083230121384,
           "ourEstimatedNav": 1.6148,
-          "ourNavError": null
+          "ourNavError": 0.0006196554715578451
         },
         {
           "date": "2026-07-16",
@@ -841,11 +841,11 @@
             "marketPrice": 1.729,
             "providerPremiumRate": 0.05872267466780978,
             "ourReportedPremiumRate": 0.07072083230121384,
-            "status": "pending",
-            "actualPremiumRate": null,
-            "providerPremiumError": null,
-            "ourPremiumError": null,
-            "premiumErrorDelta": null
+            "status": "settled",
+            "actualPremiumRate": 0.07138431032346038,
+            "providerPremiumError": -0.012661635655650594,
+            "ourPremiumError": -0.0006634780222465331,
+            "premiumErrorDelta": -0.01199815763340406
           },
           {
             "date": "2026-07-16",
@@ -993,11 +993,11 @@
           "status": "gsz-unavailable",
           "premiumRateCurrent": -0.006211180124223614,
           "hitCount60": 18,
-          "avgAbsProviderError30": 0.018233819978874008,
-          "avgAbsOurError30": 0.03177471512303377,
-          "avgAbsDelta30": -0.013540895144159765,
-          "settledCount30": 13,
-          "sampleCount30": 13,
+          "avgAbsProviderError30": 0.01783580681292948,
+          "avgAbsOurError30": 0.029552483901548972,
+          "avgAbsDelta30": -0.011716677088619492,
+          "settledCount30": 14,
+          "sampleCount30": 14,
           "settledWindowSize": 30
         },
         {
@@ -1057,13 +1057,13 @@
     "159509": {
       "code": "159509",
       "name": "纳指科技ETF景顺(159509)",
-      "snapshotAt": "2026-09-03 15:00:00",
-      "snapshotAtLive": "2026-09-03 13:28:51",
-      "ourPremiumRate": 0.23245827615210923,
+      "snapshotAt": "2026-09-11 15:00:00",
+      "snapshotAtLive": "2026-09-11 16:14:36",
+      "ourPremiumRate": 0.25531914893617036,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.018020929306726243
+        "avgAbsOurError30": 0.013395270361258042
       },
       "eastmoneyDailyValuations": [
         {
@@ -1267,12 +1267,12 @@
           "marketPrice": 2.616,
           "providerPremiumRate": 0.1686919228020014,
           "providerEstimatedNav": 2.2384,
-          "status": "pending",
-          "actualNav": null,
-          "providerNavError": null,
+          "status": "settled",
+          "actualNav": 2.213,
+          "providerNavError": 0.011477632173520158,
           "ourReportedPremiumRate": 0.1813583815028903,
           "ourEstimatedNav": 2.2144,
-          "ourNavError": null
+          "ourNavError": 0.0006326253953907734
         },
         {
           "date": "2026-07-16",
@@ -1489,11 +1489,11 @@
             "marketPrice": 2.616,
             "providerPremiumRate": 0.1686919228020014,
             "ourReportedPremiumRate": 0.1813583815028903,
-            "status": "pending",
-            "actualPremiumRate": null,
-            "providerPremiumError": null,
-            "ourPremiumError": null,
-            "premiumErrorDelta": null
+            "status": "settled",
+            "actualPremiumRate": 0.18210573881608672,
+            "providerPremiumError": -0.013413816014085311,
+            "ourPremiumError": -0.0007473573131964173,
+            "premiumErrorDelta": -0.012666458700888894
           },
           {
             "date": "2026-07-16",
@@ -1635,11 +1635,11 @@
             "marketPrice": 2.784,
             "providerPremiumRate": -0.065,
             "ourReportedPremiumRate": 0.23245827615210923,
-            "status": "pending",
-            "actualPremiumRate": null,
-            "providerPremiumError": null,
-            "ourPremiumError": null,
-            "premiumErrorDelta": null
+            "status": "settled",
+            "actualPremiumRate": 0.21893387195925174,
+            "providerPremiumError": -0.28393387195925174,
+            "ourPremiumError": 0.013524404192857498,
+            "premiumErrorDelta": -0.29745827615210924
           }
         ],
         "etfpro": [],
@@ -1653,24 +1653,24 @@
           "status": "gsz-unavailable",
           "premiumRateCurrent": 0.16185207020089787,
           "hitCount60": 18,
-          "avgAbsProviderError30": 0.026759416652983543,
-          "avgAbsOurError30": 0.027255191497972755,
-          "avgAbsDelta30": -0.0004957748449892115,
-          "settledCount30": 13,
-          "sampleCount30": 13,
+          "avgAbsProviderError30": 0.025806159464490813,
+          "avgAbsOurError30": 0.025361774770488732,
+          "avgAbsDelta30": 0.00044438469400208055,
+          "settledCount30": 14,
+          "sampleCount30": 14,
           "settledWindowSize": 30
         },
         {
           "provider": "eastmoney-quote",
-          "sourceUrl": "https://push2.eastmoney.com/api/qt/stock/get?invt=2&fltt=2&secid=0.159509&fields=f57,f58,f193,f194",
-          "status": "ok",
+          "sourceUrl": "https://fund.eastmoney.com/159509.html",
+          "status": "premium-unavailable",
           "premiumRateCurrent": -0.065,
           "hitCount60": 10,
-          "avgAbsProviderError30": 0.07825512633585797,
-          "avgAbsOurError30": 0.026951148878612097,
-          "avgAbsDelta30": 0.05130397745724588,
-          "settledCount30": 5,
-          "sampleCount30": 5,
+          "avgAbsProviderError30": 0.11253491727309027,
+          "avgAbsOurError30": 0.024713358097652998,
+          "avgAbsDelta30": 0.08782155917543727,
+          "settledCount30": 6,
+          "sampleCount30": 6,
           "settledWindowSize": 30
         },
         {
@@ -1717,13 +1717,13 @@
     "159518": {
       "code": "159518",
       "name": "标普油气ETF嘉实(159518)",
-      "snapshotAt": "2026-09-03 15:00:00",
-      "snapshotAtLive": "2026-09-03 13:28:51",
-      "ourPremiumRate": -0.0027679532523451345,
+      "snapshotAt": "2026-09-11 15:00:00",
+      "snapshotAtLive": "2026-09-11 16:14:36",
+      "ourPremiumRate": 0.0018214936247722413,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.022199141875680676
+        "avgAbsOurError30": 0.01939888255548975
       },
       "eastmoneyDailyValuations": [
         {
@@ -1940,12 +1940,12 @@
           "marketPrice": 1.041,
           "providerPremiumRate": -0.019774011299435124,
           "providerEstimatedNav": 1.062,
-          "status": "pending",
-          "actualNav": null,
-          "providerNavError": null,
+          "status": "settled",
+          "actualNav": 1.0495,
+          "providerNavError": 0.01191043353978083,
           "ourReportedPremiumRate": -0.00866584134844306,
           "ourEstimatedNav": 1.0501,
-          "ourNavError": null
+          "ourNavError": 0.0005717008099093146
         },
         {
           "date": "2026-07-16",
@@ -2174,11 +2174,11 @@
             "marketPrice": 1.041,
             "providerPremiumRate": -0.019774011299435124,
             "ourReportedPremiumRate": -0.00866584134844306,
-            "status": "pending",
-            "actualPremiumRate": null,
-            "providerPremiumError": null,
-            "ourPremiumError": null,
-            "premiumErrorDelta": null
+            "status": "settled",
+            "actualPremiumRate": -0.008099094807051177,
+            "providerPremiumError": -0.011674916492383947,
+            "ourPremiumError": -0.0005667465413918826,
+            "premiumErrorDelta": -0.011108169950992064
           },
           {
             "date": "2026-07-16",
@@ -2338,11 +2338,11 @@
           "status": "gsz-unavailable",
           "premiumRateCurrent": 0.007071882553039144,
           "hitCount60": 19,
-          "avgAbsProviderError30": 0.029239180067436903,
-          "avgAbsOurError30": 0.02783779948621435,
-          "avgAbsDelta30": 0.0014013805812225534,
-          "settledCount30": 14,
-          "sampleCount30": 14,
+          "avgAbsProviderError30": 0.028068229162433376,
+          "avgAbsOurError30": 0.026019729289892855,
+          "avgAbsDelta30": 0.0020484998725405212,
+          "settledCount30": 15,
+          "sampleCount30": 15,
           "settledWindowSize": 30
         },
         {
@@ -2402,13 +2402,13 @@
     "159561": {
       "code": "159561",
       "name": "德国ETF嘉实(159561)",
-      "snapshotAt": "2026-09-03 15:00:00",
-      "snapshotAtLive": "2026-09-03 13:28:51",
-      "ourPremiumRate": -0.010148551257537775,
+      "snapshotAt": "2026-09-11 15:00:00",
+      "snapshotAtLive": "2026-09-11 16:14:57",
+      "ourPremiumRate": -0.0011290929619872658,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.009481754663586146
+        "avgAbsOurError30": 0.008307886281483863
       },
       "eastmoneyDailyValuations": [],
       "providerDailyComparisons": {
@@ -2610,13 +2610,13 @@
     "159577": {
       "code": "159577",
       "name": "美国50ETF汇添富(159577)",
-      "snapshotAt": "2026-09-03 15:00:00",
-      "snapshotAtLive": "2026-09-03 13:28:51",
-      "ourPremiumRate": 0.044987146529562816,
+      "snapshotAt": "2026-09-11 15:00:00",
+      "snapshotAtLive": "2026-09-11 16:14:15",
+      "ourPremiumRate": 0.05253018237862839,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.009825001909032164
+        "avgAbsOurError30": 0.009027108004440702
       },
       "eastmoneyDailyValuations": [
         {
@@ -2820,12 +2820,12 @@
           "marketPrice": 1.579,
           "providerPremiumRate": 0.019894070533522656,
           "providerEstimatedNav": 1.5482000000000002,
-          "status": "pending",
-          "actualNav": null,
-          "providerNavError": null,
+          "status": "settled",
+          "actualNav": 1.5312,
+          "providerNavError": 0.011102403343782985,
           "ourReportedPremiumRate": 0.03061157887866317,
           "ourEstimatedNav": 1.5321,
-          "ourNavError": null
+          "ourNavError": 0.0005877742946709397
         },
         {
           "date": "2026-07-16",
@@ -3042,11 +3042,11 @@
             "marketPrice": 1.579,
             "providerPremiumRate": 0.019894070533522656,
             "ourReportedPremiumRate": 0.03061157887866317,
-            "status": "pending",
-            "actualPremiumRate": null,
-            "providerPremiumError": null,
-            "ourPremiumError": null,
-            "premiumErrorDelta": null
+            "status": "settled",
+            "actualPremiumRate": 0.031217345872518232,
+            "providerPremiumError": -0.011323275338995575,
+            "ourPremiumError": -0.0006057669938550614,
+            "premiumErrorDelta": -0.010717508345140514
           },
           {
             "date": "2026-07-16",
@@ -3206,11 +3206,11 @@
           "status": "gsz-unavailable",
           "premiumRateCurrent": 0.015125831268744117,
           "hitCount60": 18,
-          "avgAbsProviderError30": 0.013364113569841497,
-          "avgAbsOurError30": 0.014226273277776412,
-          "avgAbsDelta30": -0.000862159707934915,
-          "settledCount30": 13,
-          "sampleCount30": 13,
+          "avgAbsProviderError30": 0.013218339410495359,
+          "avgAbsOurError30": 0.013253379971782029,
+          "avgAbsDelta30": -0.00003504056128666999,
+          "settledCount30": 14,
+          "sampleCount30": 14,
           "settledWindowSize": 30
         },
         {
@@ -3270,13 +3270,13 @@
     "159985": {
       "code": "159985",
       "name": "豆粕ETF",
-      "snapshotAt": "2026-09-03 15:00:00",
-      "snapshotAtLive": "2026-09-03 13:28:51",
-      "ourPremiumRate": 0.08549950185671573,
+      "snapshotAt": "2026-09-11 15:00:00",
+      "snapshotAtLive": "2026-09-11 16:14:18",
+      "ourPremiumRate": 0.03273664105183682,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.008511701365073827
+        "avgAbsOurError30": 0.00826157338090836
       },
       "eastmoneyDailyValuations": [],
       "providerDailyComparisons": {
@@ -3454,13 +3454,13 @@
     "160140": {
       "code": "160140",
       "name": "南方道琼斯美国精选A(160140)",
-      "snapshotAt": "2026-09-03 15:00:00",
-      "snapshotAtLive": "2026-09-03 13:28:36",
-      "ourPremiumRate": -0.006631762652705153,
+      "snapshotAt": "2026-09-11 15:00:00",
+      "snapshotAtLive": "2026-09-11 16:14:45",
+      "ourPremiumRate": 0.0007846494043799446,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.009244600482922657
+        "avgAbsOurError30": 0.0085850921682144
       },
       "eastmoneyDailyValuations": [
         {
@@ -3677,12 +3677,12 @@
           "marketPrice": 1.473,
           "providerPremiumRate": -0.007345508457443195,
           "providerEstimatedNav": 1.4839,
-          "status": "pending",
-          "actualNav": null,
-          "providerNavError": null,
+          "status": "settled",
+          "actualNav": 1.468,
+          "providerNavError": 0.010831062670299652,
           "ourReportedPremiumRate": 0.0027912043025393185,
           "ourEstimatedNav": 1.4689,
-          "ourNavError": null
+          "ourNavError": 0.0006130790190737034
         },
         {
           "date": "2026-07-16",
@@ -3911,11 +3911,11 @@
             "marketPrice": 1.473,
             "providerPremiumRate": -0.007345508457443195,
             "ourReportedPremiumRate": 0.0027912043025393185,
-            "status": "pending",
-            "actualPremiumRate": null,
-            "providerPremiumError": null,
-            "ourPremiumError": null,
-            "premiumErrorDelta": null
+            "status": "settled",
+            "actualPremiumRate": 0.0034059945504087974,
+            "providerPremiumError": -0.010751503007851992,
+            "ourPremiumError": -0.0006147902478694789,
+            "premiumErrorDelta": -0.010136712759982514
           },
           {
             "date": "2026-07-16",
@@ -4063,11 +4063,11 @@
           "status": "gsz-unavailable",
           "premiumRateCurrent": 0.007276647352108867,
           "hitCount60": 19,
-          "avgAbsProviderError30": 0.012676885226634618,
-          "avgAbsOurError30": 0.01170436845729079,
-          "avgAbsDelta30": 0.0009725167693438279,
-          "settledCount30": 14,
-          "sampleCount30": 14,
+          "avgAbsProviderError30": 0.012548526412049111,
+          "avgAbsOurError30": 0.01096506324332937,
+          "avgAbsDelta30": 0.0015834631687197415,
+          "settledCount30": 15,
+          "sampleCount30": 15,
           "settledWindowSize": 30
         },
         {
@@ -4127,13 +4127,13 @@
     "160216": {
       "code": "160216",
       "name": "国泰大宗商品(QDII-LOF)A(160216)",
-      "snapshotAt": "2026-09-03 15:00:00",
-      "snapshotAtLive": "2026-09-03 13:28:48",
-      "ourPremiumRate": -0.009077155824508298,
+      "snapshotAt": "2026-09-11 15:00:00",
+      "snapshotAtLive": "2026-09-11 16:14:36",
+      "ourPremiumRate": -0.01963746223564955,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.01569683820516847
+        "avgAbsOurError30": 0.016022878681441016
       },
       "eastmoneyDailyValuations": [],
       "providerDailyComparisons": {
@@ -4325,11 +4325,11 @@
             "marketPrice": 0.655,
             "providerPremiumRate": 0.1222,
             "ourReportedPremiumRate": -0.009077155824508298,
-            "status": "pending",
-            "actualPremiumRate": null,
-            "providerPremiumError": null,
-            "ourPremiumError": null,
-            "premiumErrorDelta": null
+            "status": "settled",
+            "actualPremiumRate": -0.007587253414264028,
+            "providerPremiumError": 0.12978725341426403,
+            "ourPremiumError": -0.0014899024102442704,
+            "premiumErrorDelta": 0.1312771558245083
           }
         ],
         "etfpro": [],
@@ -4352,15 +4352,15 @@
         },
         {
           "provider": "eastmoney-quote",
-          "sourceUrl": "https://push2.eastmoney.com/api/qt/stock/get?invt=2&fltt=2&secid=0.160216&fields=f57,f58,f193,f194",
-          "status": "ok",
+          "sourceUrl": "https://fund.eastmoney.com/160216.html",
+          "status": "premium-unavailable",
           "premiumRateCurrent": 0.1222,
           "hitCount60": 16,
-          "avgAbsProviderError30": 0.11617870717635008,
-          "avgAbsOurError30": 0.01819426442900628,
-          "avgAbsDelta30": 0.0979844427473438,
-          "settledCount30": 11,
-          "sampleCount30": 11,
+          "avgAbsProviderError30": 0.11731275269617625,
+          "avgAbsOurError30": 0.016802234260776112,
+          "avgAbsDelta30": 0.10051051843540014,
+          "settledCount30": 12,
+          "sampleCount30": 12,
           "settledWindowSize": 30
         },
         {
@@ -4407,13 +4407,13 @@
     "160221": {
       "code": "160221",
       "name": "国泰国证有色金属行业指数(LOF)A(160221)",
-      "snapshotAt": "2026-09-03 15:00:00",
-      "snapshotAtLive": "2026-09-03 13:27:54",
-      "ourPremiumRate": -0.01641457545548286,
+      "snapshotAt": "2026-09-11 15:00:00",
+      "snapshotAtLive": "2026-09-11 16:14:54",
+      "ourPremiumRate": -0.04163222691086277,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.027835261460808065
+        "avgAbsOurError30": 0.026544123978057242
       },
       "eastmoneyDailyValuations": [
         {
@@ -4630,12 +4630,12 @@
           "marketPrice": 2.271,
           "providerPremiumRate": -0.003510311540149247,
           "providerEstimatedNav": 2.279,
-          "status": "pending",
-          "actualNav": null,
-          "providerNavError": null,
+          "status": "settled",
+          "actualNav": 2.2776,
+          "providerNavError": 0.0006146821215313736,
           "ourReportedPremiumRate": -0.002897787144362507,
           "ourEstimatedNav": 2.2776,
-          "ourNavError": null
+          "ourNavError": 0
         },
         {
           "date": "2026-07-16",
@@ -4864,11 +4864,11 @@
             "marketPrice": 2.271,
             "providerPremiumRate": -0.003510311540149247,
             "ourReportedPremiumRate": -0.002897787144362507,
-            "status": "pending",
-            "actualPremiumRate": null,
-            "providerPremiumError": null,
-            "ourPremiumError": null,
-            "premiumErrorDelta": null
+            "status": "settled",
+            "actualPremiumRate": -0.002897787144362507,
+            "providerPremiumError": -0.0006125243957867399,
+            "ourPremiumError": 0,
+            "premiumErrorDelta": -0.0006125243957867399
           },
           {
             "date": "2026-07-16",
@@ -5082,11 +5082,11 @@
             "marketPrice": 2.271,
             "providerPremiumRate": 0,
             "ourReportedPremiumRate": -0.002897787144362507,
-            "status": "pending",
-            "actualPremiumRate": null,
-            "providerPremiumError": null,
-            "ourPremiumError": null,
-            "premiumErrorDelta": null
+            "status": "settled",
+            "actualPremiumRate": -0.002897787144362507,
+            "providerPremiumError": 0.002897787144362507,
+            "ourPremiumError": 0,
+            "premiumErrorDelta": 0.002897787144362507
           },
           {
             "date": "2026-07-16",
@@ -5214,6 +5214,18 @@
             "marketPrice": 2.289,
             "providerPremiumRate": 0,
             "ourReportedPremiumRate": -0.01641457545548286,
+            "status": "settled",
+            "actualPremiumRate": 0.011231006386258402,
+            "providerPremiumError": -0.011231006386258402,
+            "ourPremiumError": -0.027645581841741262,
+            "premiumErrorDelta": 0.01641457545548286
+          },
+          {
+            "date": "2026-09-11",
+            "time": "15:00:00",
+            "marketPrice": 2.203,
+            "providerPremiumRate": 0,
+            "ourReportedPremiumRate": -0.04163222691086277,
             "status": "pending",
             "actualPremiumRate": null,
             "providerPremiumError": null,
@@ -5232,11 +5244,11 @@
           "status": "gsz-unavailable",
           "premiumRateCurrent": 0.003514056224899642,
           "hitCount60": 19,
-          "avgAbsProviderError30": 0.015659521026326007,
-          "avgAbsOurError30": 0.02849479250762257,
-          "avgAbsDelta30": -0.012835271481296564,
-          "settledCount30": 14,
-          "sampleCount30": 14,
+          "avgAbsProviderError30": 0.014656387917623389,
+          "avgAbsOurError30": 0.026595139673781066,
+          "avgAbsDelta30": -0.011938751756157677,
+          "settledCount30": 15,
+          "sampleCount30": 15,
           "settledWindowSize": 30
         },
         {
@@ -5244,12 +5256,12 @@
           "sourceUrl": "https://push2.eastmoney.com/api/qt/stock/get?invt=2&fltt=2&secid=0.160221&fields=f57,f58,f193,f194",
           "status": "ok",
           "premiumRateCurrent": 0,
-          "hitCount60": 27,
-          "avgAbsProviderError30": 0.05333311097822637,
-          "avgAbsOurError30": 0.025037932231029302,
-          "avgAbsDelta30": 0.02829517874719707,
-          "settledCount30": 20,
-          "sampleCount30": 20,
+          "hitCount60": 28,
+          "avgAbsProviderError30": 0.04912686423159765,
+          "avgAbsOurError30": 0.024018373930105787,
+          "avgAbsDelta30": 0.025108490301491863,
+          "settledCount30": 22,
+          "sampleCount30": 22,
           "settledWindowSize": 30
         },
         {
@@ -5296,13 +5308,13 @@
     "160416": {
       "code": "160416",
       "name": "华安标普全球石油指数(LOF)A(160416)",
-      "snapshotAt": "2026-09-03 15:00:00",
-      "snapshotAtLive": "2026-09-03 13:28:48",
-      "ourPremiumRate": 0.010751712561811066,
+      "snapshotAt": "2026-09-11 15:00:00",
+      "snapshotAtLive": "2026-09-11 16:14:57",
+      "ourPremiumRate": -0.016139730267521468,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.013167641285837492
+        "avgAbsOurError30": 0.011681057666167016
       },
       "eastmoneyDailyValuations": [
         {
@@ -5506,12 +5518,12 @@
           "marketPrice": 1.907,
           "providerPremiumRate": -0.011763486552313851,
           "providerEstimatedNav": 1.9297,
-          "status": "pending",
-          "actualNav": null,
-          "providerNavError": null,
+          "status": "settled",
+          "actualNav": 1.9217,
+          "providerNavError": 0.0041629806941769765,
           "ourReportedPremiumRate": -0.005890632330709411,
           "ourEstimatedNav": 1.9183,
-          "ourNavError": null
+          "ourNavError": -0.001769266795025315
         },
         {
           "date": "2026-07-16",
@@ -5728,11 +5740,11 @@
             "marketPrice": 1.907,
             "providerPremiumRate": -0.011763486552313851,
             "ourReportedPremiumRate": -0.005890632330709411,
-            "status": "pending",
-            "actualPremiumRate": null,
-            "providerPremiumError": null,
-            "ourPremiumError": null,
-            "premiumErrorDelta": null
+            "status": "settled",
+            "actualPremiumRate": -0.0076494770255503,
+            "providerPremiumError": -0.004114009526763551,
+            "ourPremiumError": 0.0017588446948408887,
+            "premiumErrorDelta": -0.00587285422160444
           },
           {
             "date": "2026-07-16",
@@ -5910,11 +5922,11 @@
             "marketPrice": 2.228,
             "providerPremiumRate": -0.0992,
             "ourReportedPremiumRate": 0.010751712561811066,
-            "status": "pending",
-            "actualPremiumRate": null,
-            "providerPremiumError": null,
-            "ourPremiumError": null,
-            "premiumErrorDelta": null
+            "status": "settled",
+            "actualPremiumRate": 0.002070766183487782,
+            "providerPremiumError": -0.10127076618348778,
+            "ourPremiumError": 0.008680946378323284,
+            "premiumErrorDelta": -0.10995171256181106
           }
         ],
         "etfpro": [],
@@ -6400,24 +6412,24 @@
           "status": "gsz-unavailable",
           "premiumRateCurrent": 0.0012836970474969789,
           "hitCount60": 18,
-          "avgAbsProviderError30": 0.022537703844530396,
-          "avgAbsOurError30": 0.02069664062141082,
-          "avgAbsDelta30": 0.0018410632231195753,
-          "settledCount30": 13,
-          "sampleCount30": 13,
+          "avgAbsProviderError30": 0.021221725678975623,
+          "avgAbsOurError30": 0.01934394091237011,
+          "avgAbsDelta30": 0.001877784766605512,
+          "settledCount30": 14,
+          "sampleCount30": 14,
           "settledWindowSize": 30
         },
         {
           "provider": "eastmoney-quote",
-          "sourceUrl": "https://push2.eastmoney.com/api/qt/stock/get?invt=2&fltt=2&secid=0.160416&fields=f57,f58,f193,f194",
-          "status": "ok",
+          "sourceUrl": "https://fund.eastmoney.com/160416.html",
+          "status": "premium-unavailable",
           "premiumRateCurrent": -0.0992,
           "hitCount60": 13,
-          "avgAbsProviderError30": 0.09016789048588847,
-          "avgAbsOurError30": 0.02426392593765056,
-          "avgAbsDelta30": 0.06590396454823791,
-          "settledCount30": 8,
-          "sampleCount30": 8,
+          "avgAbsProviderError30": 0.09140154334117728,
+          "avgAbsOurError30": 0.022532483764391972,
+          "avgAbsDelta30": 0.06886905957678531,
+          "settledCount30": 9,
+          "sampleCount30": 9,
           "settledWindowSize": 30
         },
         {
@@ -6568,13 +6580,13 @@
     "160620": {
       "code": "160620",
       "name": "鹏华中证A股资源产业指数(LOF)A(160620)",
-      "snapshotAt": "2026-09-03 15:00:00",
-      "snapshotAtLive": "2026-09-03 13:28:06",
-      "ourPremiumRate": 0.0033618687831420413,
+      "snapshotAt": "2026-09-11 15:00:00",
+      "snapshotAtLive": "2026-09-11 16:14:09",
+      "ourPremiumRate": -0.0005668532558633643,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.01760691708141696
+        "avgAbsOurError30": 0.01795850140242483
       },
       "eastmoneyDailyValuations": [
         {
@@ -6791,12 +6803,12 @@
           "marketPrice": 2.857,
           "providerPremiumRate": -0.002060847392504006,
           "providerEstimatedNav": 2.8629,
-          "status": "pending",
-          "actualNav": null,
-          "providerNavError": null,
+          "status": "settled",
+          "actualNav": 2.8603,
+          "providerNavError": 0.0009089955599062005,
           "ourReportedPremiumRate": -0.0011537251337271348,
           "ourEstimatedNav": 2.8603,
-          "ourNavError": null
+          "ourNavError": 0
         },
         {
           "date": "2026-07-16",
@@ -7025,11 +7037,11 @@
             "marketPrice": 2.857,
             "providerPremiumRate": -0.002060847392504006,
             "ourReportedPremiumRate": -0.0011537251337271348,
-            "status": "pending",
-            "actualPremiumRate": null,
-            "providerPremiumError": null,
-            "ourPremiumError": null,
-            "premiumErrorDelta": null
+            "status": "settled",
+            "actualPremiumRate": -0.0011537251337271348,
+            "providerPremiumError": -0.0009071222587768712,
+            "ourPremiumError": 0,
+            "premiumErrorDelta": -0.0009071222587768712
           },
           {
             "date": "2026-07-16",
@@ -7183,11 +7195,11 @@
             "marketPrice": 2.895,
             "providerPremiumRate": 0,
             "ourReportedPremiumRate": 0.0033618687831420413,
-            "status": "pending",
-            "actualPremiumRate": null,
-            "providerPremiumError": null,
-            "ourPremiumError": null,
-            "premiumErrorDelta": null
+            "status": "settled",
+            "actualPremiumRate": 0.006802721088435382,
+            "providerPremiumError": -0.006802721088435382,
+            "ourPremiumError": -0.0034408523052933404,
+            "premiumErrorDelta": -0.0033618687831420413
           }
         ],
         "etfpro": [],
@@ -7201,24 +7213,24 @@
           "status": "gsz-unavailable",
           "premiumRateCurrent": 0.001651073197578512,
           "hitCount60": 19,
-          "avgAbsProviderError30": 0.012576658244138514,
-          "avgAbsOurError30": 0.019404556723942885,
-          "avgAbsDelta30": -0.0068278984798043705,
-          "settledCount30": 14,
-          "sampleCount30": 14,
+          "avgAbsProviderError30": 0.011798689178447737,
+          "avgAbsOurError30": 0.018110919609013357,
+          "avgAbsDelta30": -0.00631223043056562,
+          "settledCount30": 15,
+          "sampleCount30": 15,
           "settledWindowSize": 30
         },
         {
           "provider": "eastmoney-quote",
-          "sourceUrl": "https://push2.eastmoney.com/api/qt/stock/get?invt=2&fltt=2&secid=0.160620&fields=f57,f58,f193,f194",
-          "status": "ok",
+          "sourceUrl": "https://fund.eastmoney.com/160620.html",
+          "status": "premium-unavailable",
           "premiumRateCurrent": 0,
           "hitCount60": 11,
-          "avgAbsProviderError30": 0.01848171121142338,
-          "avgAbsOurError30": 0.013970200916580537,
-          "avgAbsDelta30": 0.004511510294842843,
-          "settledCount30": 7,
-          "sampleCount30": 7,
+          "avgAbsProviderError30": 0.01702183744604988,
+          "avgAbsOurError30": 0.012654032340169638,
+          "avgAbsDelta30": 0.004367805105880241,
+          "settledCount30": 8,
+          "sampleCount30": 8,
           "settledWindowSize": 30
         },
         {
@@ -7265,13 +7277,13 @@
     "160644": {
       "code": "160644",
       "name": "鹏华港美互联股票人民币(160644)",
-      "snapshotAt": "2026-09-03 15:00:00",
-      "snapshotAtLive": "2026-09-03 13:28:51",
-      "ourPremiumRate": -0.003060530491951985,
+      "snapshotAt": "2026-09-11 15:00:00",
+      "snapshotAtLive": "2026-09-11 16:14:21",
+      "ourPremiumRate": -0.007337073802330507,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.04063678204239079
+        "avgAbsOurError30": 0.030284915204146536
       },
       "eastmoneyDailyValuations": [
         {
@@ -7488,12 +7500,12 @@
           "marketPrice": 1.972,
           "providerPremiumRate": 0.010867336477342615,
           "providerEstimatedNav": 1.9508,
-          "status": "pending",
-          "actualNav": null,
-          "providerNavError": null,
+          "status": "settled",
+          "actualNav": 1.9315,
+          "providerNavError": 0.009992234015014256,
           "ourReportedPremiumRate": 0.017019082001031416,
           "ourEstimatedNav": 1.939,
-          "ourNavError": null
+          "ourNavError": 0.0038829924928811543
         },
         {
           "date": "2026-07-16",
@@ -7722,11 +7734,11 @@
             "marketPrice": 1.972,
             "providerPremiumRate": 0.010867336477342615,
             "ourReportedPremiumRate": 0.017019082001031416,
-            "status": "pending",
-            "actualPremiumRate": null,
-            "providerPremiumError": null,
-            "ourPremiumError": null,
-            "premiumErrorDelta": null
+            "status": "settled",
+            "actualPremiumRate": 0.020968159461558278,
+            "providerPremiumError": -0.010100822984215663,
+            "ourPremiumError": -0.003949077460526862,
+            "premiumErrorDelta": -0.006151745523688801
           },
           {
             "date": "2026-07-16",
@@ -7886,11 +7898,11 @@
           "status": "gsz-unavailable",
           "premiumRateCurrent": -0.03650997317158522,
           "hitCount60": 19,
-          "avgAbsProviderError30": 0.028475666745594024,
-          "avgAbsOurError30": 0.03402306411733789,
-          "avgAbsDelta30": -0.005547397371743864,
-          "settledCount30": 14,
-          "sampleCount30": 14,
+          "avgAbsProviderError30": 0.027250677161502136,
+          "avgAbsOurError30": 0.032018131673550485,
+          "avgAbsDelta30": -0.004767454512048349,
+          "settledCount30": 15,
+          "sampleCount30": 15,
           "settledWindowSize": 30
         },
         {
@@ -7950,13 +7962,13 @@
     "160719": {
       "code": "160719",
       "name": "嘉实黄金(160719)",
-      "snapshotAt": "2026-09-03 15:00:00",
-      "snapshotAtLive": "2026-09-03 13:28:36",
-      "ourPremiumRate": -0.010141987829614618,
+      "snapshotAt": "2026-09-11 15:00:00",
+      "snapshotAtLive": "2026-09-11 16:14:12",
+      "ourPremiumRate": -0.01741803278688525,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.06572604718817536
+        "avgAbsOurError30": 0.058387917146564175
       },
       "eastmoneyDailyValuations": [],
       "providerDailyComparisons": {
@@ -8136,11 +8148,11 @@
             "marketPrice": 1.952,
             "providerPremiumRate": 0.0866,
             "ourReportedPremiumRate": -0.010141987829614618,
-            "status": "pending",
-            "actualPremiumRate": null,
-            "providerPremiumError": null,
-            "ourPremiumError": null,
-            "premiumErrorDelta": null
+            "status": "settled",
+            "actualPremiumRate": -0.007113821138211351,
+            "providerPremiumError": 0.09371382113821135,
+            "ourPremiumError": -0.0030281666914032668,
+            "premiumErrorDelta": 0.09674198782961461
           }
         ],
         "etfpro": [],
@@ -8575,15 +8587,15 @@
         },
         {
           "provider": "eastmoney-quote",
-          "sourceUrl": "https://push2.eastmoney.com/api/qt/stock/get?invt=2&fltt=2&secid=0.160719&fields=f57,f58,f193,f194",
-          "status": "ok",
+          "sourceUrl": "https://fund.eastmoney.com/160719.html",
+          "status": "premium-unavailable",
           "premiumRateCurrent": 0.0866,
           "hitCount60": 15,
-          "avgAbsProviderError30": 0.0641802724371938,
-          "avgAbsOurError30": 0.009518874333387373,
-          "avgAbsDelta30": 0.054661398103806436,
-          "settledCount30": 10,
-          "sampleCount30": 10,
+          "avgAbsProviderError30": 0.06686514050092268,
+          "avgAbsOurError30": 0.008928810002297909,
+          "avgAbsDelta30": 0.057936330498624775,
+          "settledCount30": 11,
+          "sampleCount30": 11,
           "settledWindowSize": 30
         },
         {
@@ -8734,13 +8746,13 @@
     "160723": {
       "code": "160723",
       "name": "嘉实原油(QDII-LOF)(160723)",
-      "snapshotAt": "2026-09-03 15:00:00",
-      "snapshotAtLive": "2026-09-03 13:28:51",
-      "ourPremiumRate": 0.036993882901252606,
+      "snapshotAt": "2026-09-11 15:00:00",
+      "snapshotAtLive": "2026-09-11 16:14:24",
+      "ourPremiumRate": 0.019234147198313734,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.027608071203934634
+        "avgAbsOurError30": 0.026381222305246952
       },
       "eastmoneyDailyValuations": [],
       "providerDailyComparisons": {
@@ -9506,13 +9518,13 @@
     "160807": {
       "code": "160807",
       "name": "长盛沪深300指数(LOF)A(160807)",
-      "snapshotAt": "2026-09-03 15:00:00",
-      "snapshotAtLive": "2026-09-03 13:28:33",
-      "ourPremiumRate": -0.007366779588105499,
+      "snapshotAt": "2026-09-11 15:00:00",
+      "snapshotAtLive": "2026-09-11 16:14:54",
+      "ourPremiumRate": 0.004543712705972425,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.01393891955049246
+        "avgAbsOurError30": 0.011092130955070416
       },
       "eastmoneyDailyValuations": [
         {
@@ -9716,12 +9728,12 @@
           "marketPrice": 2.003,
           "providerPremiumRate": 0.010391444713478748,
           "providerEstimatedNav": 1.9824,
-          "status": "pending",
-          "actualNav": null,
-          "providerNavError": null,
+          "status": "settled",
+          "actualNav": 1.9821,
+          "providerNavError": 0.00015135462388382592,
           "ourReportedPremiumRate": 0.010544372130568691,
           "ourEstimatedNav": 1.9821,
-          "ourNavError": null
+          "ourNavError": 0
         },
         {
           "date": "2026-07-16",
@@ -9938,11 +9950,11 @@
             "marketPrice": 2.003,
             "providerPremiumRate": 0.010391444713478748,
             "ourReportedPremiumRate": 0.010544372130568691,
-            "status": "pending",
-            "actualPremiumRate": null,
-            "providerPremiumError": null,
-            "ourPremiumError": null,
-            "premiumErrorDelta": null
+            "status": "settled",
+            "actualPremiumRate": 0.010544372130568691,
+            "providerPremiumError": -0.00015292741708994306,
+            "ourPremiumError": 0,
+            "premiumErrorDelta": -0.00015292741708994306
           },
           {
             "date": "2026-07-16",
@@ -10084,11 +10096,11 @@
             "marketPrice": 1.846,
             "providerPremiumRate": 0,
             "ourReportedPremiumRate": -0.007366779588105499,
-            "status": "pending",
-            "actualPremiumRate": null,
-            "providerPremiumError": null,
-            "ourPremiumError": null,
-            "premiumErrorDelta": null
+            "status": "settled",
+            "actualPremiumRate": 0.024941330568138298,
+            "providerPremiumError": -0.024941330568138298,
+            "ourPremiumError": -0.0323081101562438,
+            "premiumErrorDelta": 0.007366779588105499
           }
         ],
         "etfpro": [],
@@ -10102,24 +10114,24 @@
           "status": "gsz-unavailable",
           "premiumRateCurrent": 0.0446951616402691,
           "hitCount60": 18,
-          "avgAbsProviderError30": 0.011243398507379671,
-          "avgAbsOurError30": 0.01805467818416872,
-          "avgAbsDelta30": -0.006811279676789048,
-          "settledCount30": 13,
-          "sampleCount30": 13,
+          "avgAbsProviderError30": 0.010451222000930405,
+          "avgAbsOurError30": 0.016765058313870953,
+          "avgAbsDelta30": -0.006313836312940548,
+          "settledCount30": 14,
+          "sampleCount30": 14,
           "settledWindowSize": 30
         },
         {
           "provider": "eastmoney-quote",
-          "sourceUrl": "https://push2.eastmoney.com/api/qt/stock/get?secid=0.160807&fields=f57,f58,f193,f194",
-          "status": "ok",
+          "sourceUrl": "https://fund.eastmoney.com/160807.html",
+          "status": "premium-unavailable",
           "premiumRateCurrent": 0,
           "hitCount60": 10,
-          "avgAbsProviderError30": 0.01980700008338639,
-          "avgAbsOurError30": 0.020629922774396903,
-          "avgAbsDelta30": -0.0008229226910105129,
-          "settledCount30": 6,
-          "sampleCount30": 6,
+          "avgAbsProviderError30": 0.020540475866922377,
+          "avgAbsOurError30": 0.02229823525751789,
+          "avgAbsDelta30": -0.001757759390595512,
+          "settledCount30": 7,
+          "sampleCount30": 7,
           "settledWindowSize": 30
         },
         {
@@ -10166,13 +10178,13 @@
     "161039": {
       "code": "161039",
       "name": "富国中证1000指数增强(LOF)A(161039)",
-      "snapshotAt": "2026-09-03 15:00:00",
-      "snapshotAtLive": "2026-09-03 13:28:51",
-      "ourPremiumRate": -0.016037170263789036,
+      "snapshotAt": "2026-09-11 15:00:00",
+      "snapshotAtLive": "2026-09-11 16:14:18",
+      "ourPremiumRate": -0.02986767485822317,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.020720033448435596
+        "avgAbsOurError30": 0.01669851257323653
       },
       "eastmoneyDailyValuations": [
         {
@@ -10389,12 +10401,12 @@
           "marketPrice": 2.963,
           "providerPremiumRate": -0.0033300817383699055,
           "providerEstimatedNav": 2.9729,
-          "status": "pending",
-          "actualNav": null,
-          "providerNavError": null,
+          "status": "settled",
+          "actualNav": 2.9841,
+          "providerNavError": -0.0037532254281023025,
           "ourReportedPremiumRate": -0.007070808619014102,
           "ourEstimatedNav": 2.9841,
-          "ourNavError": null
+          "ourNavError": 0
         },
         {
           "date": "2026-07-16",
@@ -10623,11 +10635,11 @@
             "marketPrice": 2.963,
             "providerPremiumRate": -0.0033300817383699055,
             "ourReportedPremiumRate": -0.007070808619014102,
-            "status": "pending",
-            "actualPremiumRate": null,
-            "providerPremiumError": null,
-            "ourPremiumError": null,
-            "premiumErrorDelta": null
+            "status": "settled",
+            "actualPremiumRate": -0.007070808619014102,
+            "providerPremiumError": 0.0037407268806441962,
+            "ourPremiumError": 0,
+            "premiumErrorDelta": 0.0037407268806441962
           },
           {
             "date": "2026-07-16",
@@ -10769,11 +10781,11 @@
             "marketPrice": 2.626,
             "providerPremiumRate": 0,
             "ourReportedPremiumRate": -0.016037170263789036,
-            "status": "pending",
-            "actualPremiumRate": null,
-            "providerPremiumError": null,
-            "ourPremiumError": null,
-            "premiumErrorDelta": null
+            "status": "settled",
+            "actualPremiumRate": 0.0063324940871289925,
+            "providerPremiumError": -0.0063324940871289925,
+            "ourPremiumError": -0.022369664350918028,
+            "premiumErrorDelta": 0.016037170263789036
           }
         ],
         "etfpro": [],
@@ -10787,24 +10799,24 @@
           "status": "gsz-unavailable",
           "premiumRateCurrent": 0.05124569576665983,
           "hitCount60": 19,
-          "avgAbsProviderError30": 0.015271155603143571,
-          "avgAbsOurError30": 0.0204702649098655,
-          "avgAbsDelta30": -0.0051991093067219295,
-          "settledCount30": 14,
-          "sampleCount30": 14,
+          "avgAbsProviderError30": 0.014502460354976947,
+          "avgAbsOurError30": 0.019105580582541134,
+          "avgAbsDelta30": -0.004603120227564187,
+          "settledCount30": 15,
+          "sampleCount30": 15,
           "settledWindowSize": 30
         },
         {
           "provider": "eastmoney-quote",
-          "sourceUrl": "https://push2.eastmoney.com/api/qt/stock/get?invt=2&fltt=2&secid=0.161039&fields=f57,f58,f193,f194",
-          "status": "ok",
+          "sourceUrl": "https://fund.eastmoney.com/161039.html",
+          "status": "premium-unavailable",
           "premiumRateCurrent": 0,
           "hitCount60": 10,
-          "avgAbsProviderError30": 0.12395806201067566,
-          "avgAbsOurError30": 0.02565509468489537,
-          "avgAbsDelta30": 0.0983029673257803,
-          "settledCount30": 6,
-          "sampleCount30": 6,
+          "avgAbsProviderError30": 0.10715440945016899,
+          "avgAbsOurError30": 0.025185747494327178,
+          "avgAbsDelta30": 0.08196866195584182,
+          "settledCount30": 7,
+          "sampleCount30": 7,
           "settledWindowSize": 30
         },
         {
@@ -10851,13 +10863,13 @@
     "161116": {
       "code": "161116",
       "name": "易方达黄金主题人民币A(161116)",
-      "snapshotAt": "2026-09-03 15:00:00",
-      "snapshotAtLive": "2026-09-03 13:28:51",
-      "ourPremiumRate": -0.0035868441850568367,
+      "snapshotAt": "2026-09-11 15:00:00",
+      "snapshotAtLive": "2026-09-11 16:14:21",
+      "ourPremiumRate": -0.013643067846607626,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.06532244580440484
+        "avgAbsOurError30": 0.06167896869620984
       },
       "eastmoneyDailyValuations": [
         {
@@ -11074,12 +11086,12 @@
           "marketPrice": 1.551,
           "providerPremiumRate": 0.006619937694704037,
           "providerEstimatedNav": 1.5408,
-          "status": "pending",
-          "actualNav": null,
-          "providerNavError": null,
+          "status": "settled",
+          "actualNav": 1.5406,
+          "providerNavError": 0.00012981955082436158,
           "ourReportedPremiumRate": 0.007535403403923446,
           "ourEstimatedNav": 1.5394,
-          "ourNavError": null
+          "ourNavError": -0.0007789173049460585
         },
         {
           "date": "2026-07-16",
@@ -11308,11 +11320,11 @@
             "marketPrice": 1.551,
             "providerPremiumRate": 0.006619937694704037,
             "ourReportedPremiumRate": 0.007535403403923446,
-            "status": "pending",
-            "actualPremiumRate": null,
-            "providerPremiumError": null,
-            "ourPremiumError": null,
-            "premiumErrorDelta": null
+            "status": "settled",
+            "actualPremiumRate": 0.006750616642866358,
+            "providerPremiumError": -0.00013067894816232162,
+            "ourPremiumError": 0.000784786761057088,
+            "premiumErrorDelta": -0.0009154657092194096
           },
           {
             "date": "2026-07-16",
@@ -11514,11 +11526,11 @@
             "marketPrice": 1.639,
             "providerPremiumRate": 0.12179999999999999,
             "ourReportedPremiumRate": -0.0035868441850568367,
-            "status": "pending",
-            "actualPremiumRate": null,
-            "providerPremiumError": null,
-            "ourPremiumError": null,
-            "premiumErrorDelta": null
+            "status": "settled",
+            "actualPremiumRate": -0.00042690736110262417,
+            "providerPremiumError": 0.12222690736110262,
+            "ourPremiumError": -0.0031599368239542125,
+            "premiumErrorDelta": 0.12538684418505683
           }
         ],
         "etfpro": [],
@@ -11994,24 +12006,24 @@
           "status": "gsz-unavailable",
           "premiumRateCurrent": -0.0005387931034481763,
           "hitCount60": 19,
-          "avgAbsProviderError30": 0.01344587828745095,
-          "avgAbsOurError30": 0.015524936655599866,
-          "avgAbsDelta30": -0.002079058368148916,
-          "settledCount30": 14,
-          "sampleCount30": 14,
+          "avgAbsProviderError30": 0.012558198331498375,
+          "avgAbsOurError30": 0.01454225999596368,
+          "avgAbsDelta30": -0.0019840616644653045,
+          "settledCount30": 15,
+          "sampleCount30": 15,
           "settledWindowSize": 30
         },
         {
           "provider": "eastmoney-quote",
-          "sourceUrl": "https://push2.eastmoney.com/api/qt/stock/get?invt=2&fltt=2&secid=0.161116&fields=f57,f58,f193,f194",
-          "status": "ok",
+          "sourceUrl": "https://fund.eastmoney.com/161116.html",
+          "status": "premium-unavailable",
           "premiumRateCurrent": 0.12179999999999999,
           "hitCount60": 15,
-          "avgAbsProviderError30": 0.05932301151226527,
-          "avgAbsOurError30": 0.012141552540923962,
-          "avgAbsDelta30": 0.04718145897134131,
-          "settledCount30": 10,
-          "sampleCount30": 10,
+          "avgAbsProviderError30": 0.06504154749852321,
+          "avgAbsOurError30": 0.011325042021199438,
+          "avgAbsDelta30": 0.053716505477323775,
+          "settledCount30": 11,
+          "sampleCount30": 11,
           "settledWindowSize": 30
         },
         {
@@ -12175,13 +12187,13 @@
     "161124": {
       "code": "161124",
       "name": "易方达香港小型股指数A(161124)",
-      "snapshotAt": "2026-09-03 15:00:00",
-      "snapshotAtLive": "2026-09-03 13:27:42",
-      "ourPremiumRate": -0.0018958403033344506,
+      "snapshotAt": "2026-09-11 15:00:00",
+      "snapshotAtLive": "2026-09-11 16:14:33",
+      "ourPremiumRate": -0.004220371848979165,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.013695818394115015
+        "avgAbsOurError30": 0.013890618074259875
       },
       "eastmoneyDailyValuations": [
         {
@@ -12398,12 +12410,12 @@
           "marketPrice": 0.905,
           "providerPremiumRate": -0.008219178082191747,
           "providerEstimatedNav": 0.9125,
-          "status": "pending",
-          "actualNav": null,
-          "providerNavError": null,
+          "status": "settled",
+          "actualNav": 0.9132,
+          "providerNavError": -0.0007665352606219811,
           "ourReportedPremiumRate": -0.008979413053000429,
           "ourEstimatedNav": 0.9132,
-          "ourNavError": null
+          "ourNavError": 0
         },
         {
           "date": "2026-07-16",
@@ -12632,11 +12644,11 @@
             "marketPrice": 0.905,
             "providerPremiumRate": -0.008219178082191747,
             "ourReportedPremiumRate": -0.008979413053000429,
-            "status": "pending",
-            "actualPremiumRate": null,
-            "providerPremiumError": null,
-            "ourPremiumError": null,
-            "premiumErrorDelta": null
+            "status": "settled",
+            "actualPremiumRate": -0.008979413053000429,
+            "providerPremiumError": 0.000760234970808682,
+            "ourPremiumError": 0,
+            "premiumErrorDelta": 0.000760234970808682
           },
           {
             "date": "2026-07-16",
@@ -12796,11 +12808,11 @@
           "status": "gsz-unavailable",
           "premiumRateCurrent": -0.002081406105457928,
           "hitCount60": 19,
-          "avgAbsProviderError30": 0.01093094996608108,
-          "avgAbsOurError30": 0.018848006515939486,
-          "avgAbsDelta30": -0.007917056549858406,
-          "settledCount30": 14,
-          "sampleCount30": 14,
+          "avgAbsProviderError30": 0.010252902299729586,
+          "avgAbsOurError30": 0.01759147274821019,
+          "avgAbsDelta30": -0.0073385704484806025,
+          "settledCount30": 15,
+          "sampleCount30": 15,
           "settledWindowSize": 30
         },
         {
@@ -12860,13 +12872,13 @@
     "161125": {
       "code": "161125",
       "name": "易方达标普500指数人民币A(161125)",
-      "snapshotAt": "2026-09-03 15:00:00",
-      "snapshotAtLive": "2026-09-03 13:28:42",
-      "ourPremiumRate": 0.02676150680999001,
+      "snapshotAt": "2026-09-11 15:00:00",
+      "snapshotAtLive": "2026-09-11 16:14:24",
+      "ourPremiumRate": 0.03052339489044109,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.007180585457457223
+        "avgAbsOurError30": 0.007703377225529995
       },
       "eastmoneyDailyValuations": [
         {
@@ -13070,12 +13082,12 @@
           "marketPrice": 3.144,
           "providerPremiumRate": 0.0075308444159589705,
           "providerEstimatedNav": 3.1205000000000003,
-          "status": "pending",
-          "actualNav": null,
-          "providerNavError": null,
+          "status": "settled",
+          "actualNav": 3.0882,
+          "providerNavError": 0.010459167152386595,
           "ourReportedPremiumRate": 0.01747572815533993,
           "ourEstimatedNav": 3.09,
-          "ourNavError": null
+          "ourNavError": 0.0005828638041576184
         },
         {
           "date": "2026-07-16",
@@ -13292,11 +13304,11 @@
             "marketPrice": 3.144,
             "providerPremiumRate": 0.0075308444159589705,
             "ourReportedPremiumRate": 0.01747572815533993,
-            "status": "pending",
-            "actualPremiumRate": null,
-            "providerPremiumError": null,
-            "ourPremiumError": null,
-            "premiumErrorDelta": null
+            "status": "settled",
+            "actualPremiumRate": 0.01806877792889061,
+            "providerPremiumError": -0.010537933512931641,
+            "ourPremiumError": -0.0005930497735506801,
+            "premiumErrorDelta": -0.00994488373938096
           },
           {
             "date": "2026-07-16",
@@ -13486,11 +13498,11 @@
             "marketPrice": 3.219,
             "providerPremiumRate": 0.2014,
             "ourReportedPremiumRate": 0.02676150680999001,
-            "status": "pending",
-            "actualPremiumRate": null,
-            "providerPremiumError": null,
-            "ourPremiumError": null,
-            "premiumErrorDelta": null
+            "status": "settled",
+            "actualPremiumRate": 0.015970205782098068,
+            "providerPremiumError": 0.18542979421790193,
+            "ourPremiumError": 0.010791301027891942,
+            "premiumErrorDelta": 0.17463849319000999
           }
         ],
         "etfpro": [],
@@ -13990,24 +14002,24 @@
           "status": "gsz-unavailable",
           "premiumRateCurrent": 0.020739346337347087,
           "hitCount60": 18,
-          "avgAbsProviderError30": 0.008325896836830101,
-          "avgAbsOurError30": 0.008401547813569218,
-          "avgAbsDelta30": -0.00007565097673911669,
-          "settledCount30": 13,
-          "sampleCount30": 13,
+          "avgAbsProviderError30": 0.008483899456551638,
+          "avgAbsOurError30": 0.007843797953567893,
+          "avgAbsDelta30": 0.0006401015029837455,
+          "settledCount30": 14,
+          "sampleCount30": 14,
           "settledWindowSize": 30
         },
         {
           "provider": "eastmoney-quote",
-          "sourceUrl": "https://push2.eastmoney.com/api/qt/stock/get?invt=2&fltt=2&secid=0.161125&fields=f57,f58,f193,f194",
-          "status": "ok",
+          "sourceUrl": "https://fund.eastmoney.com/161125.html",
+          "status": "premium-unavailable",
           "premiumRateCurrent": 0.2014,
           "hitCount60": 14,
-          "avgAbsProviderError30": 0.11961806060049135,
-          "avgAbsOurError30": 0.01080687079397961,
-          "avgAbsDelta30": 0.10881118980651174,
-          "settledCount30": 9,
-          "sampleCount30": 9,
+          "avgAbsProviderError30": 0.1261992339622324,
+          "avgAbsOurError30": 0.010805313817370843,
+          "avgAbsDelta30": 0.11539392014486155,
+          "settledCount30": 10,
+          "sampleCount30": 10,
           "settledWindowSize": 30
         },
         {
@@ -14171,13 +14183,13 @@
     "161126": {
       "code": "161126",
       "name": "易方达标普医疗保健人民币A(161126)",
-      "snapshotAt": "2026-09-03 15:00:00",
-      "snapshotAtLive": "2026-09-03 13:28:42",
-      "ourPremiumRate": 0.006506991554755537,
+      "snapshotAt": "2026-09-11 15:00:00",
+      "snapshotAtLive": "2026-09-11 16:14:51",
+      "ourPremiumRate": 0.0030775149067125973,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.015225676435472131
+        "avgAbsOurError30": 0.014041966686222743
       },
       "eastmoneyDailyValuations": [
         {
@@ -14368,12 +14380,12 @@
           "marketPrice": 1.903,
           "providerPremiumRate": 0.003797868973520524,
           "providerEstimatedNav": 1.8957999999999997,
-          "status": "pending",
-          "actualNav": null,
-          "providerNavError": null,
+          "status": "settled",
+          "actualNav": 1.9619,
+          "providerNavError": -0.03369182934910053,
           "ourReportedPremiumRate": 0.005123329636085083,
           "ourEstimatedNav": 1.8933000000000002,
-          "ourNavError": null
+          "ourNavError": -0.034966104286660804
         },
         {
           "date": "2026-06-29",
@@ -14394,12 +14406,12 @@
           "marketPrice": 2.019,
           "providerPremiumRate": -0.008447107356841066,
           "providerEstimatedNav": 2.0362,
-          "status": "pending",
-          "actualNav": null,
-          "providerNavError": null,
+          "status": "settled",
+          "actualNav": 2.0133,
+          "providerNavError": 0.011374360502657277,
           "ourReportedPremiumRate": 0.0022338049143708627,
           "ourEstimatedNav": 2.0145,
-          "ourNavError": null
+          "ourNavError": 0.0005960363582178108
         },
         {
           "date": "2026-07-16",
@@ -14604,11 +14616,11 @@
             "marketPrice": 1.903,
             "providerPremiumRate": 0.003797868973520524,
             "ourReportedPremiumRate": 0.005123329636085083,
-            "status": "pending",
-            "actualPremiumRate": null,
-            "providerPremiumError": null,
-            "ourPremiumError": null,
-            "premiumErrorDelta": null
+            "status": "settled",
+            "actualPremiumRate": -0.030021917528926023,
+            "providerPremiumError": 0.03381978650244655,
+            "ourPremiumError": 0.035145247165011106,
+            "premiumErrorDelta": -0.0013254606625645593
           },
           {
             "date": "2026-06-29",
@@ -14628,11 +14640,11 @@
             "marketPrice": 2.019,
             "providerPremiumRate": -0.008447107356841066,
             "ourReportedPremiumRate": 0.0022338049143708627,
-            "status": "pending",
-            "actualPremiumRate": null,
-            "providerPremiumError": null,
-            "ourPremiumError": null,
-            "premiumErrorDelta": null
+            "status": "settled",
+            "actualPremiumRate": 0.0028311727015348787,
+            "providerPremiumError": -0.011278280058375945,
+            "ourPremiumError": -0.000597367787164016,
+            "premiumErrorDelta": -0.010680912271211929
           },
           {
             "date": "2026-07-16",
@@ -15204,11 +15216,11 @@
           "status": "gsz-unavailable",
           "premiumRateCurrent": -0.0007062146892654608,
           "hitCount60": 19,
-          "avgAbsProviderError30": 0.012092221964433457,
-          "avgAbsOurError30": 0.011096432052213147,
-          "avgAbsDelta30": 0.00099578991222031,
-          "settledCount30": 13,
-          "sampleCount30": 13,
+          "avgAbsProviderError30": 0.013486463473230495,
+          "avgAbsOurError30": 0.011999748775396401,
+          "avgAbsDelta30": 0.0014867146978340944,
+          "settledCount30": 15,
+          "sampleCount30": 15,
           "settledWindowSize": 30
         },
         {
@@ -15372,13 +15384,13 @@
     "161127": {
       "code": "161127",
       "name": "易方达标普生物科技人民币A(161127)",
-      "snapshotAt": "2026-09-03 15:00:00",
-      "snapshotAtLive": "2026-09-03 13:28:15",
-      "ourPremiumRate": 0.004407330085826944,
+      "snapshotAt": "2026-09-11 15:00:00",
+      "snapshotAtLive": "2026-09-11 16:14:39",
+      "ourPremiumRate": -0.0007716049382715529,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.019047128224503565
+        "avgAbsOurError30": 0.019371812896058622
       },
       "eastmoneyDailyValuations": [
         {
@@ -15595,12 +15607,12 @@
           "marketPrice": 2.16,
           "providerPremiumRate": 0.0007876569522309307,
           "providerEstimatedNav": 2.1583,
-          "status": "pending",
-          "actualNav": null,
-          "providerNavError": null,
+          "status": "settled",
+          "actualNav": 2.1339,
+          "providerNavError": 0.01143446272083981,
           "ourReportedPremiumRate": 0.011614837017609458,
           "ourEstimatedNav": 2.1352,
-          "ourNavError": null
+          "ourNavError": 0.0006092131777497567
         },
         {
           "date": "2026-07-16",
@@ -15829,11 +15841,11 @@
             "marketPrice": 2.16,
             "providerPremiumRate": 0.0007876569522309307,
             "ourReportedPremiumRate": 0.011614837017609458,
-            "status": "pending",
-            "actualPremiumRate": null,
-            "providerPremiumError": null,
-            "ourPremiumError": null,
-            "premiumErrorDelta": null
+            "status": "settled",
+            "actualPremiumRate": 0.012231126107127732,
+            "providerPremiumError": -0.011443469154896801,
+            "ourPremiumError": -0.0006162890895182738,
+            "premiumErrorDelta": -0.010827180065378528
           },
           {
             "date": "2026-07-16",
@@ -15987,11 +15999,11 @@
             "marketPrice": 2.165,
             "providerPremiumRate": -0.0128,
             "ourReportedPremiumRate": 0.004407330085826944,
-            "status": "pending",
-            "actualPremiumRate": null,
-            "providerPremiumError": null,
-            "ourPremiumError": null,
-            "premiumErrorDelta": null
+            "status": "settled",
+            "actualPremiumRate": 0.004534517860447895,
+            "providerPremiumError": -0.017334517860447894,
+            "ourPremiumError": -0.00012718777462095154,
+            "premiumErrorDelta": -0.017207330085826943
           }
         ],
         "etfpro": [],
@@ -16005,24 +16017,24 @@
           "status": "gsz-unavailable",
           "premiumRateCurrent": -0.010759115361625882,
           "hitCount60": 19,
-          "avgAbsProviderError30": 0.01675064851747712,
-          "avgAbsOurError30": 0.020477192413954435,
-          "avgAbsDelta30": -0.003726543896477315,
-          "settledCount30": 14,
-          "sampleCount30": 14,
+          "avgAbsProviderError30": 0.016396836559971765,
+          "avgAbsOurError30": 0.019153132192325357,
+          "avgAbsDelta30": -0.002756295632353592,
+          "settledCount30": 15,
+          "sampleCount30": 15,
           "settledWindowSize": 30
         },
         {
           "provider": "eastmoney-quote",
-          "sourceUrl": "https://push2.eastmoney.com/api/qt/stock/get?invt=2&fltt=2&secid=0.161127&fields=f57,f58,f193,f194",
-          "status": "ok",
+          "sourceUrl": "https://fund.eastmoney.com/161127.html",
+          "status": "premium-unavailable",
           "premiumRateCurrent": -0.0128,
           "hitCount60": 11,
-          "avgAbsProviderError30": 0.05555578126932593,
-          "avgAbsOurError30": 0.01900394517480099,
-          "avgAbsDelta30": 0.036551836094524934,
-          "settledCount30": 7,
-          "sampleCount30": 7,
+          "avgAbsProviderError30": 0.05077812334321617,
+          "avgAbsOurError30": 0.016644350499778485,
+          "avgAbsDelta30": 0.03413377284343769,
+          "settledCount30": 8,
+          "sampleCount30": 8,
           "settledWindowSize": 30
         },
         {
@@ -16069,13 +16081,13 @@
     "161128": {
       "code": "161128",
       "name": "易方达标普信息科技指数(QDII-LOF)A(人民币)(161128)",
-      "snapshotAt": "2026-09-03 15:00:00",
-      "snapshotAtLive": "2026-09-03 13:28:48",
-      "ourPremiumRate": 0.02450480790534848,
+      "snapshotAt": "2026-09-11 15:00:00",
+      "snapshotAtLive": "2026-09-11 16:14:45",
+      "ourPremiumRate": 0.05634425070688032,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.018115742174572777
+        "avgAbsOurError30": 0.01748330145250599
       },
       "eastmoneyDailyValuations": [
         {
@@ -16292,12 +16304,12 @@
           "marketPrice": 6.658,
           "providerPremiumRate": 0.02253006312103567,
           "providerEstimatedNav": 6.511300000000001,
-          "status": "pending",
-          "actualNav": null,
-          "providerNavError": null,
+          "status": "settled",
+          "actualNav": 6.4433,
+          "providerNavError": 0.01055359831142444,
           "ourReportedPremiumRate": 0.032712382311427035,
           "ourEstimatedNav": 6.447099999999999,
-          "ourNavError": null
+          "ourNavError": 0.0005897599056383651
         },
         {
           "date": "2026-07-16",
@@ -16526,11 +16538,11 @@
             "marketPrice": 6.658,
             "providerPremiumRate": 0.02253006312103567,
             "ourReportedPremiumRate": 0.032712382311427035,
-            "status": "pending",
-            "actualPremiumRate": null,
-            "providerPremiumError": null,
-            "ourPremiumError": null,
-            "premiumErrorDelta": null
+            "status": "settled",
+            "actualPremiumRate": 0.033321434668570626,
+            "providerPremiumError": -0.010791371547534956,
+            "ourPremiumError": -0.0006090523571435913,
+            "premiumErrorDelta": -0.010182319190391365
           },
           {
             "date": "2026-07-16",
@@ -16744,11 +16756,11 @@
             "marketPrice": 6.936,
             "providerPremiumRate": 0.046,
             "ourReportedPremiumRate": 0.02450480790534848,
-            "status": "pending",
-            "actualPremiumRate": null,
-            "providerPremiumError": null,
-            "ourPremiumError": null,
-            "premiumErrorDelta": null
+            "status": "settled",
+            "actualPremiumRate": 0.0194260226539118,
+            "providerPremiumError": 0.0265739773460882,
+            "ourPremiumError": 0.005078785251436679,
+            "premiumErrorDelta": 0.02149519209465152
           }
         ],
         "etfpro": [],
@@ -17248,24 +17260,24 @@
           "status": "gsz-unavailable",
           "premiumRateCurrent": 0.015795376658981786,
           "hitCount60": 19,
-          "avgAbsProviderError30": 0.025637097880333266,
-          "avgAbsOurError30": 0.028416101425794944,
-          "avgAbsDelta30": -0.002779003545461678,
-          "settledCount30": 14,
-          "sampleCount30": 14,
+          "avgAbsProviderError30": 0.024647382791480044,
+          "avgAbsOurError30": 0.02656229815455152,
+          "avgAbsDelta30": -0.0019149153630714753,
+          "settledCount30": 15,
+          "sampleCount30": 15,
           "settledWindowSize": 30
         },
         {
           "provider": "eastmoney-quote",
-          "sourceUrl": "https://push2.eastmoney.com/api/qt/stock/get?invt=2&fltt=2&secid=0.161128&fields=f57,f58,f193,f194",
-          "status": "ok",
+          "sourceUrl": "https://fund.eastmoney.com/161128.html",
+          "status": "premium-unavailable",
           "premiumRateCurrent": 0.046,
           "hitCount60": 16,
-          "avgAbsProviderError30": 0.061508033922983714,
-          "avgAbsOurError30": 0.03320837615321883,
-          "avgAbsDelta30": 0.028299657769764883,
-          "settledCount30": 11,
-          "sampleCount30": 11,
+          "avgAbsProviderError30": 0.058596862541575756,
+          "avgAbsOurError30": 0.030864243578070317,
+          "avgAbsDelta30": 0.02773261896350544,
+          "settledCount30": 12,
+          "sampleCount30": 12,
           "settledWindowSize": 30
         },
         {
@@ -17429,13 +17441,13 @@
     "161129": {
       "code": "161129",
       "name": "易方达原油A类人民币(161129)",
-      "snapshotAt": "2026-09-03 15:00:00",
-      "snapshotAtLive": "2026-09-03 13:28:51",
-      "ourPremiumRate": 0.0832608064984044,
+      "snapshotAt": "2026-09-11 15:00:00",
+      "snapshotAtLive": "2026-09-11 16:14:54",
+      "ourPremiumRate": 0.03500286056066981,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.030497242196097375
+        "avgAbsOurError30": 0.028880474530916148
       },
       "eastmoneyDailyValuations": [],
       "providerDailyComparisons": {
@@ -18213,13 +18225,13 @@
     "161130": {
       "code": "161130",
       "name": "易方达纳斯达克100ETF联接(QDII-LOF)A(人民币)(161130)",
-      "snapshotAt": "2026-09-03 15:00:00",
-      "snapshotAtLive": "2026-09-03 13:28:45",
-      "ourPremiumRate": 0.01967759365994226,
+      "snapshotAt": "2026-09-11 15:00:00",
+      "snapshotAtLive": "2026-09-11 16:14:42",
+      "ourPremiumRate": 0.03559059423988331,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.01666161789607857
+        "avgAbsOurError30": 0.01356537461269393
       },
       "eastmoneyDailyValuations": [
         {
@@ -18436,12 +18448,12 @@
           "marketPrice": 4.614,
           "providerPremiumRate": 0.056342864992330544,
           "providerEstimatedNav": 4.3679,
-          "status": "pending",
-          "actualNav": null,
-          "providerNavError": null,
+          "status": "settled",
+          "actualNav": 4.4332,
+          "providerNavError": -0.014729766308761327,
           "ourReportedPremiumRate": 0.040196586784498445,
           "ourEstimatedNav": 4.4357,
-          "ourNavError": null
+          "ourNavError": 0.0005639267346384536
         },
         {
           "date": "2026-07-16",
@@ -18670,11 +18682,11 @@
             "marketPrice": 4.614,
             "providerPremiumRate": 0.056342864992330544,
             "ourReportedPremiumRate": 0.040196586784498445,
-            "status": "pending",
-            "actualPremiumRate": null,
-            "providerPremiumError": null,
-            "ourPremiumError": null,
-            "premiumErrorDelta": null
+            "status": "settled",
+            "actualPremiumRate": 0.04078318144906601,
+            "providerPremiumError": 0.015559683543264535,
+            "ourPremiumError": -0.0005865946645675635,
+            "premiumErrorDelta": 0.0161462782078321
           },
           {
             "date": "2026-07-16",
@@ -18852,11 +18864,11 @@
             "marketPrice": 4.529,
             "providerPremiumRate": 0.0622,
             "ourReportedPremiumRate": 0.01967759365994226,
-            "status": "pending",
-            "actualPremiumRate": null,
-            "providerPremiumError": null,
-            "ourPremiumError": null,
-            "premiumErrorDelta": null
+            "status": "settled",
+            "actualPremiumRate": 0.01747450698531061,
+            "providerPremiumError": 0.04472549301468939,
+            "ourPremiumError": 0.002203086674631649,
+            "premiumErrorDelta": 0.04252240634005774
           }
         ],
         "etfpro": [],
@@ -19308,24 +19320,24 @@
           "status": "gsz-unavailable",
           "premiumRateCurrent": 0.03352472680125951,
           "hitCount60": 19,
-          "avgAbsProviderError30": 0.017734589002019137,
-          "avgAbsOurError30": 0.01944029997778166,
-          "avgAbsDelta30": -0.001705710975762522,
-          "settledCount30": 14,
-          "sampleCount30": 14,
+          "avgAbsProviderError30": 0.01758959530476883,
+          "avgAbsOurError30": 0.01818338629023405,
+          "avgAbsDelta30": -0.0005937909854652201,
+          "settledCount30": 15,
+          "sampleCount30": 15,
           "settledWindowSize": 30
         },
         {
           "provider": "eastmoney-quote",
-          "sourceUrl": "https://push2.eastmoney.com/api/qt/stock/get?invt=2&fltt=2&secid=0.161130&fields=f57,f58,f193,f194",
-          "status": "ok",
+          "sourceUrl": "https://fund.eastmoney.com/161130.html",
+          "status": "premium-unavailable",
           "premiumRateCurrent": 0.0622,
           "hitCount60": 13,
-          "avgAbsProviderError30": 0.08653478639474765,
-          "avgAbsOurError30": 0.017559353329719196,
-          "avgAbsDelta30": 0.06897543306502846,
-          "settledCount30": 8,
-          "sampleCount30": 8,
+          "avgAbsProviderError30": 0.08188930935251897,
+          "avgAbsOurError30": 0.015853101479153912,
+          "avgAbsDelta30": 0.06603620787336506,
+          "settledCount30": 9,
+          "sampleCount30": 9,
           "settledWindowSize": 30
         },
         {
@@ -19489,13 +19501,13 @@
     "161217": {
       "code": "161217",
       "name": "国投瑞银中证资源指数(LOF)A(161217)",
-      "snapshotAt": "2026-09-03 15:00:00",
-      "snapshotAtLive": "2026-09-03 13:27:54",
-      "ourPremiumRate": 0.004228329809724984,
+      "snapshotAt": "2026-09-11 15:00:00",
+      "snapshotAtLive": "2026-09-11 16:14:51",
+      "ourPremiumRate": -0.003908882598732899,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.016327637495625543
+        "avgAbsOurError30": 0.015199513690910013
       },
       "eastmoneyDailyValuations": [
         {
@@ -19712,12 +19724,12 @@
           "marketPrice": 2.22,
           "providerPremiumRate": -0.007111230377029321,
           "providerEstimatedNav": 2.2359,
-          "status": "pending",
-          "actualNav": null,
-          "providerNavError": null,
+          "status": "settled",
+          "actualNav": 2.233,
+          "providerNavError": 0.0012987012987013546,
           "ourReportedPremiumRate": -0.00582176444245408,
           "ourEstimatedNav": 2.233,
-          "ourNavError": null
+          "ourNavError": 0
         },
         {
           "date": "2026-07-16",
@@ -19946,11 +19958,11 @@
             "marketPrice": 2.22,
             "providerPremiumRate": -0.007111230377029321,
             "ourReportedPremiumRate": -0.00582176444245408,
-            "status": "pending",
-            "actualPremiumRate": null,
-            "providerPremiumError": null,
-            "ourPremiumError": null,
-            "premiumErrorDelta": null
+            "status": "settled",
+            "actualPremiumRate": -0.00582176444245408,
+            "providerPremiumError": -0.0012894659345752402,
+            "ourPremiumError": 0,
+            "premiumErrorDelta": -0.0012894659345752402
           },
           {
             "date": "2026-07-16",
@@ -20098,11 +20110,11 @@
           "status": "gsz-unavailable",
           "premiumRateCurrent": -0.0017271157167529916,
           "hitCount60": 19,
-          "avgAbsProviderError30": 0.01114090038916191,
-          "avgAbsOurError30": 0.017925126492260263,
-          "avgAbsDelta30": -0.006784226103098354,
-          "settledCount30": 14,
-          "sampleCount30": 14,
+          "avgAbsProviderError30": 0.010484138092189465,
+          "avgAbsOurError30": 0.01673011805944291,
+          "avgAbsDelta30": -0.006245979967253446,
+          "settledCount30": 15,
+          "sampleCount30": 15,
           "settledWindowSize": 30
         },
         {
@@ -20162,13 +20174,13 @@
     "161226": {
       "code": "161226",
       "name": "国投瑞银白银期货(LOF)A(161226)",
-      "snapshotAt": "2026-09-03 15:00:00",
-      "snapshotAtLive": "2026-09-03 13:28:51",
-      "ourPremiumRate": 0.07181719260065278,
+      "snapshotAt": "2026-09-11 15:00:00",
+      "snapshotAtLive": "2026-09-11 16:14:57",
+      "ourPremiumRate": 0.030045229377557714,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.018327453667031864
+        "avgAbsOurError30": 0.017424343600215927
       },
       "eastmoneyDailyValuations": [],
       "providerDailyComparisons": {
@@ -20348,18 +20360,6 @@
             "marketPrice": 1.789,
             "providerPremiumRate": -0.08689999999999999,
             "ourReportedPremiumRate": 0.16494106921924856,
-            "status": "pending",
-            "actualPremiumRate": null,
-            "providerPremiumError": null,
-            "ourPremiumError": null,
-            "premiumErrorDelta": null
-          },
-          {
-            "date": "2026-09-03",
-            "time": "13:28:51",
-            "marketPrice": 1.97,
-            "providerPremiumRate": 10.64,
-            "ourReportedPremiumRate": 0.07181719260065278,
             "status": "pending",
             "actualPremiumRate": null,
             "providerPremiumError": null,
@@ -20859,10 +20859,10 @@
         },
         {
           "provider": "eastmoney-quote",
-          "sourceUrl": "https://push2.eastmoney.com/api/qt/stock/get?secid=0.161226&fields=f57,f58,f193,f194",
-          "status": "ok",
-          "premiumRateCurrent": 10.64,
-          "hitCount60": 16,
+          "sourceUrl": "https://fund.eastmoney.com/161226.html",
+          "status": "premium-unavailable",
+          "premiumRateCurrent": -0.08689999999999999,
+          "hitCount60": 15,
           "avgAbsProviderError30": 0.26363437412458185,
           "avgAbsOurError30": 0.038547863210419135,
           "avgAbsDelta30": 0.2250865109141627,
@@ -21018,13 +21018,13 @@
     "161607": {
       "code": "161607",
       "name": "融通巨潮100指数A(LOF)(161607)",
-      "snapshotAt": "2026-09-03 15:00:00",
-      "snapshotAtLive": "2026-09-03 13:28:09",
-      "ourPremiumRate": -0.007601351351351315,
+      "snapshotAt": "2026-09-11 15:00:00",
+      "snapshotAtLive": "2026-09-11 16:14:54",
+      "ourPremiumRate": 0.00512820512820511,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.009822364872720524
+        "avgAbsOurError30": 0.008169584578825965
       },
       "eastmoneyDailyValuations": [
         {
@@ -21241,12 +21241,12 @@
           "marketPrice": 1.214,
           "providerPremiumRate": 0.00571617927263679,
           "providerEstimatedNav": 1.2071,
-          "status": "pending",
-          "actualNav": null,
-          "providerNavError": null,
+          "status": "settled",
+          "actualNav": 1.207,
+          "providerNavError": 0.00008285004142494223,
           "ourReportedPremiumRate": 0.005799502899751285,
           "ourEstimatedNav": 1.207,
-          "ourNavError": null
+          "ourNavError": 0
         },
         {
           "date": "2026-07-16",
@@ -21475,11 +21475,11 @@
             "marketPrice": 1.214,
             "providerPremiumRate": 0.00571617927263679,
             "ourReportedPremiumRate": 0.005799502899751285,
-            "status": "pending",
-            "actualPremiumRate": null,
-            "providerPremiumError": null,
-            "ourPremiumError": null,
-            "premiumErrorDelta": null
+            "status": "settled",
+            "actualPremiumRate": 0.005799502899751285,
+            "providerPremiumError": -0.00008332362711449548,
+            "ourPremiumError": 0,
+            "premiumErrorDelta": -0.00008332362711449548
           },
           {
             "date": "2026-07-16",
@@ -21621,11 +21621,11 @@
             "marketPrice": 1.175,
             "providerPremiumRate": 0,
             "ourReportedPremiumRate": -0.007601351351351315,
-            "status": "pending",
-            "actualPremiumRate": null,
-            "providerPremiumError": null,
-            "ourPremiumError": null,
-            "premiumErrorDelta": null
+            "status": "settled",
+            "actualPremiumRate": 0.00427350427350448,
+            "providerPremiumError": -0.00427350427350448,
+            "ourPremiumError": -0.011874855624855796,
+            "premiumErrorDelta": 0.007601351351351315
           }
         ],
         "etfpro": [],
@@ -21639,24 +21639,24 @@
           "status": "gsz-unavailable",
           "premiumRateCurrent": 0.003640145605824152,
           "hitCount60": 19,
-          "avgAbsProviderError30": 0.010504136610202053,
-          "avgAbsOurError30": 0.016328502045128996,
-          "avgAbsDelta30": -0.005824365434926943,
-          "settledCount30": 14,
-          "sampleCount30": 14,
+          "avgAbsProviderError30": 0.009809415744662882,
+          "avgAbsOurError30": 0.015239935242120395,
+          "avgAbsDelta30": -0.005430519497457513,
+          "settledCount30": 15,
+          "sampleCount30": 15,
           "settledWindowSize": 30
         },
         {
           "provider": "eastmoney-quote",
-          "sourceUrl": "https://push2.eastmoney.com/api/qt/stock/get?secid=0.161607&fields=f57,f58,f193,f194",
-          "status": "ok",
+          "sourceUrl": "https://fund.eastmoney.com/161607.html",
+          "status": "premium-unavailable",
           "premiumRateCurrent": 0,
           "hitCount60": 10,
-          "avgAbsProviderError30": 0.017708930395445854,
-          "avgAbsOurError30": 0.020169775855506073,
-          "avgAbsDelta30": -0.002460845460060219,
-          "settledCount30": 6,
-          "sampleCount30": 6,
+          "avgAbsProviderError30": 0.015789583806597087,
+          "avgAbsOurError30": 0.018984787251127462,
+          "avgAbsDelta30": -0.003195203444530375,
+          "settledCount30": 7,
+          "sampleCount30": 7,
           "settledWindowSize": 30
         },
         {
@@ -21703,13 +21703,13 @@
     "161725": {
       "code": "161725",
       "name": "招商中证白酒指数(LOF)A(161725)",
-      "snapshotAt": "2026-09-03 15:00:00",
-      "snapshotAtLive": "2026-09-03 13:28:51",
-      "ourPremiumRate": -0.023255813953488413,
+      "snapshotAt": "2026-09-11 15:00:00",
+      "snapshotAtLive": "2026-09-11 16:14:36",
+      "ourPremiumRate": -0.016423694408562506,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.016978824647457882
+        "avgAbsOurError30": 0.012953530299706003
       },
       "eastmoneyDailyValuations": [
         {
@@ -21913,12 +21913,12 @@
           "marketPrice": 0.512,
           "providerPremiumRate": 0.0003907776475184921,
           "providerEstimatedNav": 0.5118,
-          "status": "pending",
-          "actualNav": null,
-          "providerNavError": null,
+          "status": "settled",
+          "actualNav": 0.5119,
+          "providerNavError": -0.00019535065442466415,
           "ourReportedPremiumRate": 0.00019535065442477517,
           "ourEstimatedNav": 0.5119,
-          "ourNavError": null
+          "ourNavError": 0
         },
         {
           "date": "2026-07-16",
@@ -22135,11 +22135,11 @@
             "marketPrice": 0.512,
             "providerPremiumRate": 0.0003907776475184921,
             "ourReportedPremiumRate": 0.00019535065442477517,
-            "status": "pending",
-            "actualPremiumRate": null,
-            "providerPremiumError": null,
-            "ourPremiumError": null,
-            "premiumErrorDelta": null
+            "status": "settled",
+            "actualPremiumRate": 0.00019535065442477517,
+            "providerPremiumError": 0.00019542699309371692,
+            "ourPremiumError": 0,
+            "premiumErrorDelta": 0.00019542699309371692
           },
           {
             "date": "2026-07-16",
@@ -22365,11 +22365,11 @@
             "marketPrice": 0.546,
             "providerPremiumRate": -0.22870000000000001,
             "ourReportedPremiumRate": -0.023255813953488413,
-            "status": "pending",
-            "actualPremiumRate": null,
-            "providerPremiumError": null,
-            "ourPremiumError": null,
-            "premiumErrorDelta": null
+            "status": "settled",
+            "actualPremiumRate": -0.005476064299593908,
+            "providerPremiumError": -0.2232239357004061,
+            "ourPremiumError": -0.017779749653894505,
+            "premiumErrorDelta": -0.2054441860465116
           }
         ],
         "etfpro": [],
@@ -22383,24 +22383,24 @@
           "status": "gsz-unavailable",
           "premiumRateCurrent": 0.00018871485185889547,
           "hitCount60": 18,
-          "avgAbsProviderError30": 0.007395354635103486,
-          "avgAbsOurError30": 0.01094263281158864,
-          "avgAbsDelta30": -0.0035472781764851547,
-          "settledCount30": 13,
-          "sampleCount30": 13,
+          "avgAbsProviderError30": 0.006881074089245646,
+          "avgAbsOurError30": 0.010161016182189453,
+          "avgAbsDelta30": -0.0032799420929438073,
+          "settledCount30": 14,
+          "sampleCount30": 14,
           "settledWindowSize": 30
         },
         {
           "provider": "eastmoney-quote",
-          "sourceUrl": "https://push2.eastmoney.com/api/qt/stock/get?invt=2&fltt=2&secid=0.161725&fields=f57,f58,f193,f194",
-          "status": "ok",
+          "sourceUrl": "https://fund.eastmoney.com/161725.html",
+          "status": "premium-unavailable",
           "premiumRateCurrent": -0.22870000000000001,
           "hitCount60": 17,
-          "avgAbsProviderError30": 0.1358870629722857,
-          "avgAbsOurError30": 0.009120219488732225,
-          "avgAbsDelta30": 0.12676684348355347,
-          "settledCount30": 12,
-          "sampleCount30": 12,
+          "avgAbsProviderError30": 0.14260528395137187,
+          "avgAbsOurError30": 0.009786337193744709,
+          "avgAbsDelta30": 0.13281894675762715,
+          "settledCount30": 13,
+          "sampleCount30": 13,
           "settledWindowSize": 30
         },
         {
@@ -22447,13 +22447,13 @@
     "162411": {
       "code": "162411",
       "name": "华宝标普油气上游股票人民币A(162411)",
-      "snapshotAt": "2026-09-03 15:00:00",
-      "snapshotAtLive": "2026-09-03 13:28:51",
-      "ourPremiumRate": 0.015341138473960347,
+      "snapshotAt": "2026-09-11 15:00:00",
+      "snapshotAtLive": "2026-09-11 16:14:12",
+      "ourPremiumRate": -0.011354737666405712,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.017349215552628753
+        "avgAbsOurError30": 0.018224116313181653
       },
       "eastmoneyDailyValuations": [
         {
@@ -22670,12 +22670,12 @@
           "marketPrice": 0.82,
           "providerPremiumRate": -0.015724402832793194,
           "providerEstimatedNav": 0.8331,
-          "status": "pending",
-          "actualNav": null,
-          "providerNavError": null,
+          "status": "settled",
+          "actualNav": 0.8238,
+          "providerNavError": 0.011289147851420323,
           "ourReportedPremiumRate": -0.005337214944201918,
           "ourEstimatedNav": 0.8244,
-          "ourNavError": null
+          "ourNavError": 0.0007283321194464509
         },
         {
           "date": "2026-07-16",
@@ -22904,11 +22904,11 @@
             "marketPrice": 0.82,
             "providerPremiumRate": -0.015724402832793194,
             "ourReportedPremiumRate": -0.005337214944201918,
-            "status": "pending",
-            "actualPremiumRate": null,
-            "providerPremiumError": null,
-            "ourPremiumError": null,
-            "premiumErrorDelta": null
+            "status": "settled",
+            "actualPremiumRate": -0.004612770089827634,
+            "providerPremiumError": -0.01111163274296556,
+            "ourPremiumError": -0.0007244448543742843,
+            "premiumErrorDelta": -0.010387187888591276
           },
           {
             "date": "2026-07-16",
@@ -23086,18 +23086,6 @@
             "marketPrice": 0.877,
             "providerPremiumRate": 0.03,
             "ourReportedPremiumRate": -0.00420120358805498,
-            "status": "pending",
-            "actualPremiumRate": null,
-            "providerPremiumError": null,
-            "ourPremiumError": null,
-            "premiumErrorDelta": null
-          },
-          {
-            "date": "2026-09-03",
-            "time": "13:28:51",
-            "marketPrice": 1.006,
-            "providerPremiumRate": -2.5,
-            "ourReportedPremiumRate": 0.015341138473960347,
             "status": "pending",
             "actualPremiumRate": null,
             "providerPremiumError": null,
@@ -23588,19 +23576,19 @@
           "status": "gsz-unavailable",
           "premiumRateCurrent": 0.002973467520585693,
           "hitCount60": 19,
-          "avgAbsProviderError30": 0.02733401782070218,
-          "avgAbsOurError30": 0.024019786967577044,
-          "avgAbsDelta30": 0.0033142308531251344,
-          "settledCount30": 14,
-          "sampleCount30": 14,
+          "avgAbsProviderError30": 0.026252525482186404,
+          "avgAbsOurError30": 0.022466764160030194,
+          "avgAbsDelta30": 0.00378576132215621,
+          "settledCount30": 15,
+          "sampleCount30": 15,
           "settledWindowSize": 30
         },
         {
           "provider": "eastmoney-quote",
-          "sourceUrl": "https://push2his.eastmoney.com/api/qt/stock/get?secid=0.162411&fields=f57,f58,f193,f194",
-          "status": "ok",
-          "premiumRateCurrent": -2.5,
-          "hitCount60": 14,
+          "sourceUrl": "https://fund.eastmoney.com/162411.html",
+          "status": "premium-unavailable",
+          "premiumRateCurrent": 0.03,
+          "hitCount60": 13,
           "avgAbsProviderError30": 0.05782293820312931,
           "avgAbsOurError30": 0.02875121622716006,
           "avgAbsDelta30": 0.029071721975969248,
@@ -23756,13 +23744,13 @@
     "162415": {
       "code": "162415",
       "name": "华宝标普美国消费人民币A(162415)",
-      "snapshotAt": "2026-09-03 15:00:00",
-      "snapshotAtLive": "2026-09-03 13:28:48",
-      "ourPremiumRate": -0.0007109847138286884,
+      "snapshotAt": "2026-09-11 15:00:00",
+      "snapshotAtLive": "2026-09-11 16:14:15",
+      "ourPremiumRate": 0.004728992360858442,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.011662013118241877
+        "avgAbsOurError30": 0.012750776669904602
       },
       "eastmoneyDailyValuations": [
         {
@@ -23979,12 +23967,12 @@
           "marketPrice": 2.886,
           "providerPremiumRate": -0.013063401956090459,
           "providerEstimatedNav": 2.9242,
-          "status": "pending",
-          "actualNav": null,
-          "providerNavError": null,
+          "status": "settled",
+          "actualNav": 2.891,
+          "providerNavError": 0.011483915600138284,
           "ourReportedPremiumRate": -0.0024196335983407424,
           "ourEstimatedNav": 2.893,
-          "ourNavError": null
+          "ourNavError": 0.0006918021445865286
         },
         {
           "date": "2026-07-16",
@@ -24213,11 +24201,11 @@
             "marketPrice": 2.886,
             "providerPremiumRate": -0.013063401956090459,
             "ourReportedPremiumRate": -0.0024196335983407424,
-            "status": "pending",
-            "actualPremiumRate": null,
-            "providerPremiumError": null,
-            "ourPremiumError": null,
-            "premiumErrorDelta": null
+            "status": "settled",
+            "actualPremiumRate": -0.0017295053614665434,
+            "providerPremiumError": -0.011333896594623916,
+            "ourPremiumError": -0.000690128236874199,
+            "premiumErrorDelta": -0.010643768357749717
           },
           {
             "date": "2026-07-16",
@@ -24789,11 +24777,11 @@
           "status": "gsz-unavailable",
           "premiumRateCurrent": -0.007606950938655932,
           "hitCount60": 19,
-          "avgAbsProviderError30": 0.012642646057068043,
-          "avgAbsOurError30": 0.014720805516949455,
-          "avgAbsDelta30": -0.002078159459881412,
-          "settledCount30": 14,
-          "sampleCount30": 14,
+          "avgAbsProviderError30": 0.012555396092905102,
+          "avgAbsOurError30": 0.013785427031611104,
+          "avgAbsDelta30": -0.0012300309387060018,
+          "settledCount30": 15,
+          "sampleCount30": 15,
           "settledWindowSize": 30
         },
         {
@@ -24957,13 +24945,13 @@
     "162719": {
       "code": "162719",
       "name": "广发道琼斯石油指数人民币A(162719)",
-      "snapshotAt": "2026-09-03 15:00:00",
-      "snapshotAtLive": "2026-09-03 13:28:48",
-      "ourPremiumRate": 0.016685061351684682,
+      "snapshotAt": "2026-09-11 15:00:00",
+      "snapshotAtLive": "2026-09-11 16:14:18",
+      "ourPremiumRate": -0.013681396445981986,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.017257604823927596
+        "avgAbsOurError30": 0.017044949324716428
       },
       "eastmoneyDailyValuations": [
         {
@@ -25180,12 +25168,12 @@
           "marketPrice": 2.528,
           "providerPremiumRate": -0.013886721797472301,
           "providerEstimatedNav": 2.5636,
-          "status": "pending",
-          "actualNav": null,
-          "providerNavError": null,
+          "status": "settled",
+          "actualNav": 2.5357,
+          "providerNavError": 0.011002878889458723,
           "ourReportedPremiumRate": -0.0036260444584580442,
           "ourEstimatedNav": 2.5372,
-          "ourNavError": null
+          "ourNavError": 0.0005915526284654415
         },
         {
           "date": "2026-07-16",
@@ -25367,9 +25355,9 @@
             "providerPremiumRate": -0.004204386197492527,
             "ourReportedPremiumRate": -0.029638652050344994,
             "status": "settled",
-            "actualPremiumRate": 0.006337039426251412,
-            "providerPremiumError": -0.010541425623743939,
-            "ourPremiumError": -0.035975691476596405,
+            "actualPremiumRate": -0.0023906196637953903,
+            "providerPremiumError": -0.0018137665336971365,
+            "ourPremiumError": -0.027248032386549603,
             "premiumErrorDelta": 0.025434265852852467
           },
           {
@@ -25414,11 +25402,11 @@
             "marketPrice": 2.528,
             "providerPremiumRate": -0.013886721797472301,
             "ourReportedPremiumRate": -0.0036260444584580442,
-            "status": "pending",
-            "actualPremiumRate": null,
-            "providerPremiumError": null,
-            "ourPremiumError": null,
-            "premiumErrorDelta": null
+            "status": "settled",
+            "actualPremiumRate": -0.0030366368261228738,
+            "providerPremiumError": -0.010850084971349427,
+            "ourPremiumError": -0.0005894076323351705,
+            "premiumErrorDelta": -0.010260677339014257
           },
           {
             "date": "2026-07-16",
@@ -26038,11 +26026,11 @@
           "status": "gsz-unavailable",
           "premiumRateCurrent": 0.005750324615099167,
           "hitCount60": 19,
-          "avgAbsProviderError30": 0.027775999747400266,
-          "avgAbsOurError30": 0.024227286415164122,
-          "avgAbsDelta30": 0.0035487133322361433,
-          "settledCount30": 14,
-          "sampleCount30": 14,
+          "avgAbsProviderError30": 0.026065761489660423,
+          "avgAbsOurError30": 0.02206958389030574,
+          "avgAbsDelta30": 0.003996177599354684,
+          "settledCount30": 15,
+          "sampleCount30": 15,
           "settledWindowSize": 30
         },
         {
@@ -26206,13 +26194,13 @@
     "163208": {
       "code": "163208",
       "name": "诺安油气能源(163208)",
-      "snapshotAt": "2026-09-03 15:00:00",
-      "snapshotAtLive": "2026-09-03 13:28:42",
-      "ourPremiumRate": -0.0055749128919860835,
+      "snapshotAt": "2026-09-11 15:00:00",
+      "snapshotAtLive": "2026-09-11 16:14:12",
+      "ourPremiumRate": -0.012303485987696483,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.023900121183611303
+        "avgAbsOurError30": 0.02129058154794173
       },
       "eastmoneyDailyValuations": [],
       "providerDailyComparisons": {
@@ -26344,11 +26332,11 @@
             "marketPrice": 1.427,
             "providerPremiumRate": -0.1925,
             "ourReportedPremiumRate": -0.0055749128919860835,
-            "status": "pending",
-            "actualPremiumRate": null,
-            "providerPremiumError": null,
-            "ourPremiumError": null,
-            "premiumErrorDelta": null
+            "status": "settled",
+            "actualPremiumRate": 0.0028109627547434624,
+            "providerPremiumError": -0.19531096275474347,
+            "ourPremiumError": -0.008385875646729546,
+            "premiumErrorDelta": -0.18692508710801392
           }
         ],
         "etfpro": [],
@@ -26757,15 +26745,15 @@
         },
         {
           "provider": "eastmoney-quote",
-          "sourceUrl": "https://push2.eastmoney.com/api/qt/stock/get?invt=2&fltt=2&secid=0.163208&fields=f57,f58,f193,f194",
-          "status": "ok",
+          "sourceUrl": "https://fund.eastmoney.com/163208.html",
+          "status": "premium-unavailable",
           "premiumRateCurrent": -0.1925,
           "hitCount60": 11,
-          "avgAbsProviderError30": 0.09756170870784843,
-          "avgAbsOurError30": 0.01692160218799957,
-          "avgAbsDelta30": 0.08064010651984886,
-          "settledCount30": 7,
-          "sampleCount30": 7,
+          "avgAbsProviderError30": 0.10978036546371031,
+          "avgAbsOurError30": 0.01585463637034082,
+          "avgAbsDelta30": 0.09392572909336949,
+          "settledCount30": 8,
+          "sampleCount30": 8,
           "settledWindowSize": 30
         },
         {
@@ -26903,13 +26891,13 @@
     "164701": {
       "code": "164701",
       "name": "汇添富黄金及贵金属(QDII-LOF-FOF)A(164701)",
-      "snapshotAt": "2026-09-03 15:00:00",
-      "snapshotAtLive": "2026-09-03 13:28:51",
-      "ourPremiumRate": -0.009826589595375634,
+      "snapshotAt": "2026-09-11 15:00:00",
+      "snapshotAtLive": "2026-09-11 16:14:42",
+      "ourPremiumRate": -0.014645577035735324,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.0537683413203921
+        "avgAbsOurError30": 0.051284297079485675
       },
       "eastmoneyDailyValuations": [],
       "providerDailyComparisons": {
@@ -27089,11 +27077,11 @@
             "marketPrice": 1.713,
             "providerPremiumRate": 0.08869999999999999,
             "ourReportedPremiumRate": -0.009826589595375634,
-            "status": "pending",
-            "actualPremiumRate": null,
-            "providerPremiumError": null,
-            "ourPremiumError": null,
-            "premiumErrorDelta": null
+            "status": "settled",
+            "actualPremiumRate": -0.004065040650406471,
+            "providerPremiumError": 0.09276504065040646,
+            "ourPremiumError": -0.005761548944969164,
+            "premiumErrorDelta": 0.09852658959537562
           }
         ],
         "etfpro": [],
@@ -27528,15 +27516,15 @@
         },
         {
           "provider": "eastmoney-quote",
-          "sourceUrl": "https://push2.eastmoney.com/api/qt/stock/get?invt=2&fltt=2&secid=0.164701&fields=f57,f58,f193,f194",
-          "status": "ok",
+          "sourceUrl": "https://fund.eastmoney.com/164701.html",
+          "status": "premium-unavailable",
           "premiumRateCurrent": 0.08869999999999999,
           "hitCount60": 15,
-          "avgAbsProviderError30": 0.06621655176942912,
-          "avgAbsOurError30": 0.012298831290641521,
-          "avgAbsDelta30": 0.053917720478787595,
-          "settledCount30": 10,
-          "sampleCount30": 10,
+          "avgAbsProviderError30": 0.06863005075860888,
+          "avgAbsOurError30": 0.011704532895580398,
+          "avgAbsDelta30": 0.056925517863028484,
+          "settledCount30": 11,
+          "sampleCount30": 11,
           "settledWindowSize": 30
         },
         {
@@ -27687,13 +27675,13 @@
     "164824": {
       "code": "164824",
       "name": "工银印度基金人民币(164824)",
-      "snapshotAt": "2026-09-03 15:00:00",
-      "snapshotAtLive": "2026-09-03 13:28:51",
-      "ourPremiumRate": -0.0013700715481809178,
+      "snapshotAt": "2026-09-11 15:00:00",
+      "snapshotAtLive": "2026-09-11 16:14:24",
+      "ourPremiumRate": -0.002973861324150895,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.0069384706165394345
+        "avgAbsOurError30": 0.006117312890107374
       },
       "eastmoneyDailyValuations": [],
       "providerDailyComparisons": {
@@ -27895,13 +27883,13 @@
     "165520": {
       "code": "165520",
       "name": "中信保诚有色指数A(165520)",
-      "snapshotAt": "2026-09-03 15:00:00",
-      "snapshotAtLive": "2026-09-03 13:28:45",
-      "ourPremiumRate": -0.020557901294386394,
+      "snapshotAt": "2026-09-11 15:00:00",
+      "snapshotAtLive": "2026-09-11 16:14:33",
+      "ourPremiumRate": -0.041201386214863356,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.02651102015746348
+        "avgAbsOurError30": 0.02511801343217613
       },
       "eastmoneyDailyValuations": [
         {
@@ -28118,12 +28106,12 @@
           "marketPrice": 2.793,
           "providerPremiumRate": -0.003176416003426108,
           "providerEstimatedNav": 2.8019,
-          "status": "pending",
-          "actualNav": null,
-          "providerNavError": null,
+          "status": "settled",
+          "actualNav": 2.8001,
+          "providerNavError": 0.0006428341844932906,
           "ourReportedPremiumRate": -0.002535623727723979,
           "ourEstimatedNav": 2.8001,
-          "ourNavError": null
+          "ourNavError": 0
         },
         {
           "date": "2026-07-16",
@@ -28352,11 +28340,11 @@
             "marketPrice": 2.793,
             "providerPremiumRate": -0.003176416003426108,
             "ourReportedPremiumRate": -0.002535623727723979,
-            "status": "pending",
-            "actualPremiumRate": null,
-            "providerPremiumError": null,
-            "ourPremiumError": null,
-            "premiumErrorDelta": null
+            "status": "settled",
+            "actualPremiumRate": -0.002535623727723979,
+            "providerPremiumError": -0.0006407922757021289,
+            "ourPremiumError": 0,
+            "premiumErrorDelta": -0.0006407922757021289
           },
           {
             "date": "2026-07-16",
@@ -28642,11 +28630,11 @@
             "marketPrice": 2.83,
             "providerPremiumRate": 0,
             "ourReportedPremiumRate": -0.020557901294386394,
-            "status": "pending",
-            "actualPremiumRate": null,
-            "providerPremiumError": null,
-            "ourPremiumError": null,
-            "premiumErrorDelta": null
+            "status": "settled",
+            "actualPremiumRate": 0.0006380263717566947,
+            "providerPremiumError": -0.0006380263717566947,
+            "ourPremiumError": -0.02119592766614309,
+            "premiumErrorDelta": 0.020557901294386394
           }
         ],
         "etfpro": [],
@@ -28660,24 +28648,24 @@
           "status": "gsz-unavailable",
           "premiumRateCurrent": -0.0011364558811592929,
           "hitCount60": 19,
-          "avgAbsProviderError30": 0.015493362393486762,
-          "avgAbsOurError30": 0.03032642399214025,
-          "avgAbsDelta30": -0.014833061598653488,
-          "settledCount30": 14,
-          "sampleCount30": 14,
+          "avgAbsProviderError30": 0.014503191052301119,
+          "avgAbsOurError30": 0.028304662392664232,
+          "avgAbsDelta30": -0.013801471340363114,
+          "settledCount30": 15,
+          "sampleCount30": 15,
           "settledWindowSize": 30
         },
         {
           "provider": "eastmoney-quote",
-          "sourceUrl": "https://push2.eastmoney.com/api/qt/stock/get?invt=2&fltt=2&secid=0.165520&fields=f57,f58,f193,f194",
-          "status": "ok",
+          "sourceUrl": "https://fund.eastmoney.com/165520.html",
+          "status": "premium-unavailable",
           "premiumRateCurrent": 0,
           "hitCount60": 22,
-          "avgAbsProviderError30": 0.0362726934863832,
-          "avgAbsOurError30": 0.028645312402952813,
-          "avgAbsDelta30": 0.007627381083430387,
-          "settledCount30": 17,
-          "sampleCount30": 17,
+          "avgAbsProviderError30": 0.03429298975779284,
+          "avgAbsOurError30": 0.028231457695352274,
+          "avgAbsDelta30": 0.0060615320624405646,
+          "settledCount30": 18,
+          "sampleCount30": 18,
           "settledWindowSize": 30
         },
         {
@@ -28724,13 +28712,13 @@
     "167301": {
       "code": "167301",
       "name": "方正富邦中证保险A(167301)",
-      "snapshotAt": "2026-09-03 15:00:00",
-      "snapshotAtLive": "2026-09-03 13:28:48",
-      "ourPremiumRate": 0.005434782608695565,
+      "snapshotAt": "2026-09-11 15:00:00",
+      "snapshotAtLive": "2026-09-11 16:14:36",
+      "ourPremiumRate": -0.019125683060109422,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.014122300341290802
+        "avgAbsOurError30": 0.012656137477977373
       },
       "eastmoneyDailyValuations": [
         {
@@ -28934,12 +28922,12 @@
           "marketPrice": 0.994,
           "providerPremiumRate": 0.0014104372355430161,
           "providerEstimatedNav": 0.9926,
-          "status": "pending",
-          "actualNav": null,
-          "providerNavError": null,
+          "status": "settled",
+          "actualNav": 0.992,
+          "providerNavError": 0.0006048387096775354,
           "ourReportedPremiumRate": 0.002016129032258007,
           "ourEstimatedNav": 0.9920000000000001,
-          "ourNavError": null
+          "ourNavError": 2.220446049250313e-16
         },
         {
           "date": "2026-07-16",
@@ -29156,11 +29144,11 @@
             "marketPrice": 0.994,
             "providerPremiumRate": 0.0014104372355430161,
             "ourReportedPremiumRate": 0.002016129032258007,
-            "status": "pending",
-            "actualPremiumRate": null,
-            "providerPremiumError": null,
-            "ourPremiumError": null,
-            "premiumErrorDelta": null
+            "status": "settled",
+            "actualPremiumRate": 0.002016129032258007,
+            "providerPremiumError": -0.0006056917967149911,
+            "ourPremiumError": 0,
+            "premiumErrorDelta": -0.0006056917967149911
           },
           {
             "date": "2026-07-16",
@@ -29374,11 +29362,11 @@
             "marketPrice": 1.11,
             "providerPremiumRate": 0.1229,
             "ourReportedPremiumRate": 0.005434782608695565,
-            "status": "pending",
-            "actualPremiumRate": null,
-            "providerPremiumError": null,
-            "ourPremiumError": null,
-            "premiumErrorDelta": null
+            "status": "settled",
+            "actualPremiumRate": -0.0035714285714285587,
+            "providerPremiumError": 0.12647142857142857,
+            "ourPremiumError": 0.009006211180124124,
+            "premiumErrorDelta": 0.11746521739130444
           }
         ],
         "etfpro": [],
@@ -29392,24 +29380,24 @@
           "status": "gsz-unavailable",
           "premiumRateCurrent": 0.009563245588090297,
           "hitCount60": 18,
-          "avgAbsProviderError30": 0.006863077473537615,
-          "avgAbsOurError30": 0.010718681289469392,
-          "avgAbsDelta30": -0.003855603815931777,
-          "settledCount30": 13,
-          "sampleCount30": 13,
+          "avgAbsProviderError30": 0.00641612135376457,
+          "avgAbsOurError30": 0.009953061197364435,
+          "avgAbsDelta30": -0.0035369398435998647,
+          "settledCount30": 14,
+          "sampleCount30": 14,
           "settledWindowSize": 30
         },
         {
           "provider": "eastmoney-quote",
-          "sourceUrl": "https://push2.eastmoney.com/api/qt/stock/get?invt=2&fltt=2&secid=0.167301&fields=f57,f58,f193,f194",
-          "status": "ok",
+          "sourceUrl": "https://fund.eastmoney.com/167301.html",
+          "status": "premium-unavailable",
           "premiumRateCurrent": 0.1229,
           "hitCount60": 16,
-          "avgAbsProviderError30": 0.11922700829358414,
-          "avgAbsOurError30": 0.010484924232918398,
-          "avgAbsDelta30": 0.10874208406066574,
-          "settledCount30": 11,
-          "sampleCount30": 11,
+          "avgAbsProviderError30": 0.1198307099834045,
+          "avgAbsOurError30": 0.010361698145185541,
+          "avgAbsDelta30": 0.10946901183821896,
+          "settledCount30": 12,
+          "sampleCount30": 12,
           "settledWindowSize": 30
         },
         {
@@ -29456,13 +29444,13 @@
     "168204": {
       "code": "168204",
       "name": "国联中证煤炭指数(LOF)A(168204)",
-      "snapshotAt": "2026-09-03 15:00:00",
-      "snapshotAtLive": "2026-09-03 13:28:24",
-      "ourPremiumRate": -0.037217545414266806,
+      "snapshotAt": "2026-09-11 15:00:00",
+      "snapshotAtLive": "2026-09-11 16:14:45",
+      "ourPremiumRate": -0.007349563619660104,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.0150833099090185
+        "avgAbsOurError30": 0.01244203239219485
       },
       "eastmoneyDailyValuations": [
         {
@@ -29679,12 +29667,12 @@
           "marketPrice": 1.88,
           "providerPremiumRate": -0.003973509933774877,
           "providerEstimatedNav": 1.8875,
-          "status": "pending",
-          "actualNav": null,
-          "providerNavError": null,
+          "status": "settled",
+          "actualNav": 1.888,
+          "providerNavError": -0.00026483050847458944,
           "ourReportedPremiumRate": -0.004237288135593209,
           "ourEstimatedNav": 1.888,
-          "ourNavError": null
+          "ourNavError": 0
         },
         {
           "date": "2026-07-16",
@@ -29913,11 +29901,11 @@
             "marketPrice": 1.88,
             "providerPremiumRate": -0.003973509933774877,
             "ourReportedPremiumRate": -0.004237288135593209,
-            "status": "pending",
-            "actualPremiumRate": null,
-            "providerPremiumError": null,
-            "ourPremiumError": null,
-            "premiumErrorDelta": null
+            "status": "settled",
+            "actualPremiumRate": -0.004237288135593209,
+            "providerPremiumError": 0.0002637782018183321,
+            "ourPremiumError": 0,
+            "premiumErrorDelta": 0.0002637782018183321
           },
           {
             "date": "2026-07-16",
@@ -30040,18 +30028,6 @@
             "providerPremiumError": null,
             "ourPremiumError": null,
             "premiumErrorDelta": null
-          },
-          {
-            "date": "2026-09-03",
-            "time": "13:28:24",
-            "marketPrice": 2.173,
-            "providerPremiumRate": 5.15,
-            "ourReportedPremiumRate": -0.037217545414266806,
-            "status": "pending",
-            "actualPremiumRate": null,
-            "providerPremiumError": null,
-            "ourPremiumError": null,
-            "premiumErrorDelta": null
           }
         ],
         "etfpro": [],
@@ -30065,19 +30041,19 @@
           "status": "gsz-unavailable",
           "premiumRateCurrent": -0.007736642608650479,
           "hitCount60": 19,
-          "avgAbsProviderError30": 0.013367332705644306,
-          "avgAbsOurError30": 0.026222764686955218,
-          "avgAbsDelta30": -0.012855431981310911,
-          "settledCount30": 14,
-          "sampleCount30": 14,
+          "avgAbsProviderError30": 0.012493762405389242,
+          "avgAbsOurError30": 0.024474580374491534,
+          "avgAbsDelta30": -0.011980817969102293,
+          "settledCount30": 15,
+          "sampleCount30": 15,
           "settledWindowSize": 30
         },
         {
           "provider": "eastmoney-quote",
-          "sourceUrl": "https://push2his.eastmoney.com/api/qt/stock/get?secid=0.168204&fields=f57,f58,f193,f194",
-          "status": "ok",
-          "premiumRateCurrent": 5.15,
-          "hitCount60": 9,
+          "sourceUrl": "https://fund.eastmoney.com/168204.html",
+          "status": "premium-unavailable",
+          "premiumRateCurrent": 0,
+          "hitCount60": 8,
           "avgAbsProviderError30": 0.04622247835251349,
           "avgAbsOurError30": 0.008846383227818989,
           "avgAbsDelta30": 0.0373760951246945,
@@ -30129,13 +30105,13 @@
     "501011": {
       "code": "501011",
       "name": "汇添富中证中药ETF联接(LOF)A(501011)",
-      "snapshotAt": "2026-09-03 15:00:00",
-      "snapshotAtLive": "2026-09-03 13:28:24",
-      "ourPremiumRate": -0.012600905690096642,
+      "snapshotAt": "2026-09-11 15:00:00",
+      "snapshotAtLive": "2026-09-11 16:14:05",
+      "ourPremiumRate": -0.013031619355490465,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.012780461803885267
+        "avgAbsOurError30": 0.010614377909300405
       },
       "eastmoneyDailyValuations": [
         {
@@ -30352,12 +30328,12 @@
           "marketPrice": 0.974,
           "providerPremiumRate": -0.0033766499539547024,
           "providerEstimatedNav": 0.9773,
-          "status": "pending",
-          "actualNav": null,
-          "providerNavError": null,
+          "status": "settled",
+          "actualNav": 0.9766,
+          "providerNavError": 0.0007167724759369332,
           "ourReportedPremiumRate": -0.00266229776776572,
           "ourEstimatedNav": 0.9766,
-          "ourNavError": null
+          "ourNavError": 0
         },
         {
           "date": "2026-07-16",
@@ -30586,11 +30562,11 @@
             "marketPrice": 0.974,
             "providerPremiumRate": -0.0033766499539547024,
             "ourReportedPremiumRate": -0.00266229776776572,
-            "status": "pending",
-            "actualPremiumRate": null,
-            "providerPremiumError": null,
-            "ourPremiumError": null,
-            "premiumErrorDelta": null
+            "status": "settled",
+            "actualPremiumRate": -0.00266229776776572,
+            "providerPremiumError": -0.0007143521861889823,
+            "ourPremiumError": 0,
+            "premiumErrorDelta": -0.0007143521861889823
           },
           {
             "date": "2026-07-16",
@@ -30798,11 +30774,11 @@
           "status": "gsz-unavailable",
           "premiumRateCurrent": -0.00019153418885264895,
           "hitCount60": 19,
-          "avgAbsProviderError30": 0.008780282268525437,
-          "avgAbsOurError30": 0.010673080397400154,
-          "avgAbsDelta30": -0.0018927981288747175,
-          "settledCount30": 14,
-          "sampleCount30": 14,
+          "avgAbsProviderError30": 0.008242553596369672,
+          "avgAbsOurError30": 0.009961541704240144,
+          "avgAbsDelta30": -0.0017189881078704724,
+          "settledCount30": 15,
+          "sampleCount30": 15,
           "settledWindowSize": 30
         },
         {
@@ -30862,13 +30838,13 @@
     "501018": {
       "code": "501018",
       "name": "南方原油A(501018)",
-      "snapshotAt": "2026-09-03 15:00:00",
-      "snapshotAtLive": "2026-09-03 13:28:50",
-      "ourPremiumRate": 0.042278495040727115,
+      "snapshotAt": "2026-09-11 15:00:00",
+      "snapshotAtLive": "2026-09-11 16:14:01",
+      "ourPremiumRate": 0.028130944038442296,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.02727542465621088
+        "avgAbsOurError30": 0.0282776465451163
       },
       "eastmoneyDailyValuations": [],
       "providerDailyComparisons": {
@@ -31048,11 +31024,11 @@
             "marketPrice": 1.881,
             "providerPremiumRate": -0.0447,
             "ourReportedPremiumRate": 0.042278495040727115,
-            "status": "pending",
-            "actualPremiumRate": null,
-            "providerPremiumError": null,
-            "ourPremiumError": null,
-            "premiumErrorDelta": null
+            "status": "settled",
+            "actualPremiumRate": -0.01475762827582583,
+            "providerPremiumError": -0.029942371724174167,
+            "ourPremiumError": 0.057036123316552945,
+            "premiumErrorDelta": -0.0869784950407271
           }
         ],
         "etfpro": [],
@@ -31487,15 +31463,15 @@
         },
         {
           "provider": "eastmoney-quote",
-          "sourceUrl": "https://push2.eastmoney.com/api/qt/stock/get?invt=2&fltt=2&secid=1.501018&fields=f57,f58,f193,f194",
-          "status": "ok",
+          "sourceUrl": "https://fund.eastmoney.com/501018.html",
+          "status": "premium-unavailable",
           "premiumRateCurrent": -0.0447,
           "hitCount60": 15,
-          "avgAbsProviderError30": 0.2307131156970903,
-          "avgAbsOurError30": 0.03549080230102734,
-          "avgAbsDelta30": 0.19522231339606297,
-          "settledCount30": 10,
-          "sampleCount30": 10,
+          "avgAbsProviderError30": 0.21246122988137064,
+          "avgAbsOurError30": 0.0374494678478933,
+          "avgAbsDelta30": 0.17501176203347735,
+          "settledCount30": 11,
+          "sampleCount30": 11,
           "settledWindowSize": 30
         },
         {
@@ -31646,13 +31622,13 @@
     "501036": {
       "code": "501036",
       "name": "汇添富中证500ETF联接(LOF)A(501036)",
-      "snapshotAt": "2026-09-03 15:00:00",
-      "snapshotAtLive": "2026-09-03 13:28:08",
-      "ourPremiumRate": -0.015331747290510234,
+      "snapshotAt": "2026-09-11 15:00:00",
+      "snapshotAtLive": "2026-09-11 16:14:12",
+      "ourPremiumRate": -0.019212683057906688,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.017519024965381016
+        "avgAbsOurError30": 0.01365271491948284
       },
       "eastmoneyDailyValuations": [
         {
@@ -31843,12 +31819,12 @@
           "marketPrice": 1.669,
           "providerPremiumRate": 0.004211793020457266,
           "providerEstimatedNav": 1.6620000000000001,
-          "status": "pending",
-          "actualNav": null,
-          "providerNavError": null,
+          "status": "settled",
+          "actualNav": 1.6616,
+          "providerNavError": 0.0002407318247472645,
           "ourReportedPremiumRate": 0.004453538757823727,
           "ourEstimatedNav": 1.6616000000000002,
-          "ourNavError": null
+          "ourNavError": 2.220446049250313e-16
         },
         {
           "date": "2026-07-16",
@@ -32053,11 +32029,11 @@
             "marketPrice": 1.669,
             "providerPremiumRate": 0.004211793020457266,
             "ourReportedPremiumRate": 0.004453538757823727,
-            "status": "pending",
-            "actualPremiumRate": null,
-            "providerPremiumError": null,
-            "ourPremiumError": null,
-            "premiumErrorDelta": null
+            "status": "settled",
+            "actualPremiumRate": 0.004453538757823727,
+            "providerPremiumError": -0.0002417457373664611,
+            "ourPremiumError": 0,
+            "premiumErrorDelta": -0.0002417457373664611
           },
           {
             "date": "2026-07-16",
@@ -32199,11 +32175,11 @@
             "marketPrice": 1.49,
             "providerPremiumRate": 0,
             "ourReportedPremiumRate": -0.015331747290510234,
-            "status": "pending",
-            "actualPremiumRate": null,
-            "providerPremiumError": null,
-            "ourPremiumError": null,
-            "premiumErrorDelta": null
+            "status": "settled",
+            "actualPremiumRate": 0.008266702805258097,
+            "providerPremiumError": -0.008266702805258097,
+            "ourPremiumError": -0.02359845009576833,
+            "premiumErrorDelta": 0.015331747290510234
           }
         ],
         "etfpro": [],
@@ -32217,24 +32193,24 @@
           "status": "gsz-unavailable",
           "premiumRateCurrent": 0.059289636477375396,
           "hitCount60": 17,
-          "avgAbsProviderError30": 0.015052715752986853,
-          "avgAbsOurError30": 0.018367601155823005,
-          "avgAbsDelta30": -0.0033148854028361516,
-          "settledCount30": 12,
-          "sampleCount30": 12,
+          "avgAbsProviderError30": 0.0139134103671699,
+          "avgAbsOurError30": 0.016954708759221233,
+          "avgAbsDelta30": -0.0030412983920513337,
+          "settledCount30": 13,
+          "sampleCount30": 13,
           "settledWindowSize": 30
         },
         {
           "provider": "eastmoney-quote",
-          "sourceUrl": "https://push2.eastmoney.com/api/qt/stock/get?invt=2&fltt=2&secid=1.501036&fields=f57,f58,f193,f194",
-          "status": "ok",
+          "sourceUrl": "https://fund.eastmoney.com/501036.html",
+          "status": "premium-unavailable",
           "premiumRateCurrent": 0,
           "hitCount60": 10,
-          "avgAbsProviderError30": 0.08776942798390892,
-          "avgAbsOurError30": 0.028838484699937033,
-          "avgAbsDelta30": 0.05893094328397189,
-          "settledCount30": 6,
-          "sampleCount30": 6,
+          "avgAbsProviderError30": 0.07641189581553023,
+          "avgAbsOurError30": 0.028089908327912933,
+          "avgAbsDelta30": 0.048321987487617304,
+          "settledCount30": 7,
+          "sampleCount30": 7,
           "settledWindowSize": 30
         },
         {
@@ -32281,13 +32257,13 @@
     "501043": {
       "code": "501043",
       "name": "汇添富沪深300指数(LOF)A(501043)",
-      "snapshotAt": "2026-09-03 15:00:00",
-      "snapshotAtLive": "2026-09-03 13:28:41",
-      "ourPremiumRate": -0.012438748586505843,
+      "snapshotAt": "2026-09-11 15:00:00",
+      "snapshotAtLive": "2026-09-11 16:14:26",
+      "ourPremiumRate": -0.005661937782301729,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.01104563979122081
+        "avgAbsOurError30": 0.009062252183589425
       },
       "eastmoneyDailyValuations": [
         {
@@ -32797,11 +32773,11 @@
             "marketPrice": 1.572,
             "providerPremiumRate": 0,
             "ourReportedPremiumRate": -0.012438748586505843,
-            "status": "pending",
-            "actualPremiumRate": null,
-            "providerPremiumError": null,
-            "ourPremiumError": null,
-            "premiumErrorDelta": null
+            "status": "settled",
+            "actualPremiumRate": 0.0012093437718796451,
+            "providerPremiumError": -0.0012093437718796451,
+            "ourPremiumError": -0.013648092358385489,
+            "premiumErrorDelta": 0.012438748586505843
           }
         ],
         "etfpro": [],
@@ -32824,15 +32800,15 @@
         },
         {
           "provider": "eastmoney-quote",
-          "sourceUrl": "https://push2.eastmoney.com/api/qt/stock/get?secid=1.501043&fields=f57,f58,f193,f194",
-          "status": "ok",
+          "sourceUrl": "https://fund.eastmoney.com/501043.html",
+          "status": "premium-unavailable",
           "premiumRateCurrent": 0,
           "hitCount60": 9,
-          "avgAbsProviderError30": 0.11602418065992019,
-          "avgAbsOurError30": 0.012127744239110606,
-          "avgAbsDelta30": 0.10389643642080959,
-          "settledCount30": 5,
-          "sampleCount30": 5,
+          "avgAbsProviderError30": 0.09688837451191344,
+          "avgAbsOurError30": 0.012381135592323086,
+          "avgAbsDelta30": 0.08450723891959036,
+          "settledCount30": 6,
+          "sampleCount30": 6,
           "settledWindowSize": 30
         },
         {
@@ -32879,13 +32855,13 @@
     "501050": {
       "code": "501050",
       "name": "华夏上证50AH优选指数A(501050)",
-      "snapshotAt": "2026-09-03 15:00:00",
-      "snapshotAtLive": "2026-09-03 13:28:25",
-      "ourPremiumRate": -0.015349630471859,
+      "snapshotAt": "2026-09-11 15:00:00",
+      "snapshotAtLive": "2026-09-11 16:14:06",
+      "ourPremiumRate": -0.016657093624353858,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.018545254902965713
+        "avgAbsOurError30": 0.014525728631090947
       },
       "eastmoneyDailyValuations": [
         {
@@ -33089,12 +33065,12 @@
           "marketPrice": 1.723,
           "providerPremiumRate": -0.007374121442562442,
           "providerEstimatedNav": 1.7358,
-          "status": "pending",
-          "actualNav": null,
-          "providerNavError": null,
+          "status": "settled",
+          "actualNav": 1.736,
+          "providerNavError": -0.00011520737327186392,
           "ourReportedPremiumRate": -0.007488479262672709,
           "ourEstimatedNav": 1.736,
-          "ourNavError": null
+          "ourNavError": 0
         },
         {
           "date": "2026-07-16",
@@ -33311,11 +33287,11 @@
             "marketPrice": 1.723,
             "providerPremiumRate": -0.007374121442562442,
             "ourReportedPremiumRate": -0.007488479262672709,
-            "status": "pending",
-            "actualPremiumRate": null,
-            "providerPremiumError": null,
-            "ourPremiumError": null,
-            "premiumErrorDelta": null
+            "status": "settled",
+            "actualPremiumRate": -0.007488479262672709,
+            "providerPremiumError": 0.00011435782011026685,
+            "ourPremiumError": 0,
+            "premiumErrorDelta": 0.00011435782011026685
           },
           {
             "date": "2026-07-16",
@@ -33535,11 +33511,11 @@
           "status": "gsz-unavailable",
           "premiumRateCurrent": -0.0006009615384614531,
           "hitCount60": 18,
-          "avgAbsProviderError30": 0.007221274186615018,
-          "avgAbsOurError30": 0.013922649809890731,
-          "avgAbsDelta30": -0.006701375623275713,
-          "settledCount30": 13,
-          "sampleCount30": 13,
+          "avgAbsProviderError30": 0.0067136373032932505,
+          "avgAbsOurError30": 0.012928174823469965,
+          "avgAbsDelta30": -0.006214537520176714,
+          "settledCount30": 14,
+          "sampleCount30": 14,
           "settledWindowSize": 30
         },
         {
@@ -33599,13 +33575,13 @@
     "501225": {
       "code": "501225",
       "name": "景顺长城全球半导体芯片股票A(QDII-LOF)(人民币)(501225)",
-      "snapshotAt": "2026-09-03 15:00:00",
-      "snapshotAtLive": "2026-09-03 13:28:26",
-      "ourPremiumRate": 0.11943841562669566,
+      "snapshotAt": "2026-09-11 15:00:00",
+      "snapshotAtLive": "2026-09-11 16:14:24",
+      "ourPremiumRate": 0.14209383870429115,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.03441719416304211
+        "avgAbsOurError30": 0.02724096290151644
       },
       "eastmoneyDailyValuations": [],
       "providerDailyComparisons": {
@@ -33773,11 +33749,11 @@
             "marketPrice": 3.301,
             "providerPremiumRate": 0.0044,
             "ourReportedPremiumRate": 0.11943841562669566,
-            "status": "pending",
-            "actualPremiumRate": null,
-            "providerPremiumError": null,
-            "ourPremiumError": null,
-            "premiumErrorDelta": null
+            "status": "settled",
+            "actualPremiumRate": 0.1246860788705626,
+            "providerPremiumError": -0.1202860788705626,
+            "ourPremiumError": -0.00524766324386694,
+            "premiumErrorDelta": -0.11503841562669566
           }
         ],
         "etfpro": [],
@@ -34186,15 +34162,15 @@
         },
         {
           "provider": "eastmoney-quote",
-          "sourceUrl": "https://push2.eastmoney.com/api/qt/stock/get?invt=2&fltt=2&secid=1.501225&fields=f57,f58,f193,f194",
-          "status": "ok",
+          "sourceUrl": "https://fund.eastmoney.com/501225.html",
+          "status": "premium-unavailable",
           "premiumRateCurrent": 0.0044,
           "hitCount60": 14,
-          "avgAbsProviderError30": 0.29950472655223304,
-          "avgAbsOurError30": 0.05151455443082536,
-          "avgAbsDelta30": 0.24799017212140767,
-          "settledCount30": 9,
-          "sampleCount30": 9,
+          "avgAbsProviderError30": 0.281582861784066,
+          "avgAbsOurError30": 0.04688786531212952,
+          "avgAbsDelta30": 0.23469499647193648,
+          "settledCount30": 10,
+          "sampleCount30": 10,
           "settledWindowSize": 30
         },
         {
@@ -34332,13 +34308,13 @@
     "501227": {
       "code": "501227",
       "name": "泓德红利优选混合(LOF)A(501227)",
-      "snapshotAt": "2026-09-03 15:00:00",
-      "snapshotAtLive": "2026-09-03 13:28:21",
-      "ourPremiumRate": -0.01934201012292125,
+      "snapshotAt": "2026-09-11 15:00:00",
+      "snapshotAtLive": "2026-09-11 16:14:02",
+      "ourPremiumRate": -0.021075984470327325,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.005622268784567741
+        "avgAbsOurError30": 0.004396807333271513
       },
       "eastmoneyDailyValuations": [
         {
@@ -34923,11 +34899,11 @@
             "marketPrice": 1.085,
             "providerPremiumRate": 0.0355,
             "ourReportedPremiumRate": -0.01934201012292125,
-            "status": "pending",
-            "actualPremiumRate": null,
-            "providerPremiumError": null,
-            "ourPremiumError": null,
-            "premiumErrorDelta": null
+            "status": "settled",
+            "actualPremiumRate": -0.01067810532079938,
+            "providerPremiumError": 0.04617810532079938,
+            "ourPremiumError": -0.008663904802121869,
+            "premiumErrorDelta": 0.054842010122921246
           }
         ],
         "etfpro": [],
@@ -34950,15 +34926,15 @@
         },
         {
           "provider": "eastmoney-quote",
-          "sourceUrl": "https://push2.eastmoney.com/api/qt/stock/get?invt=2&fltt=2&secid=1.501227&fields=f57,f58,f193,f194",
-          "status": "ok",
+          "sourceUrl": "https://fund.eastmoney.com/501227.html",
+          "status": "premium-unavailable",
           "premiumRateCurrent": 0.0355,
           "hitCount60": 9,
-          "avgAbsProviderError30": 0.20995591549240117,
-          "avgAbsOurError30": 0.00173111253509442,
-          "avgAbsDelta30": 0.20822480295730675,
-          "settledCount30": 8,
-          "sampleCount30": 8,
+          "avgAbsProviderError30": 0.19175838102888987,
+          "avgAbsOurError30": 0.002501422786986359,
+          "avgAbsDelta30": 0.1892569582419035,
+          "settledCount30": 9,
+          "sampleCount30": 9,
           "settledWindowSize": 30
         },
         {
@@ -35005,13 +34981,13 @@
     "501300": {
       "code": "501300",
       "name": "海富通全球收益债券人民币(501300)",
-      "snapshotAt": "2026-09-03 15:00:00",
-      "snapshotAtLive": "2026-09-03 13:28:27",
-      "ourPremiumRate": -0.009741997644791778,
+      "snapshotAt": "2026-09-11 15:00:00",
+      "snapshotAtLive": "2026-09-11 16:14:04",
+      "ourPremiumRate": -0.00915455035002688,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.001988837042783853
+        "avgAbsOurError30": 0.002102487171351771
       },
       "eastmoneyDailyValuations": [],
       "providerDailyComparisons": {
@@ -35201,13 +35177,13 @@
     "501312": {
       "code": "501312",
       "name": "华宝海外科技股票(QDII-LOF)A(501312)",
-      "snapshotAt": "2026-09-03 15:00:00",
-      "snapshotAtLive": "2026-09-03 13:28:50",
-      "ourPremiumRate": -0.008986096982027791,
+      "snapshotAt": "2026-09-11 15:00:00",
+      "snapshotAtLive": "2026-09-11 16:14:24",
+      "ourPremiumRate": -0.00021281123643313027,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.026359681552445606
+        "avgAbsOurError30": 0.02436290319099046
       },
       "eastmoneyDailyValuations": [
         {
@@ -35411,12 +35387,12 @@
           "marketPrice": 2.367,
           "providerPremiumRate": -0.0012236803240642802,
           "providerEstimatedNav": 2.3699,
-          "status": "pending",
-          "actualNav": null,
-          "providerNavError": null,
+          "status": "settled",
+          "actualNav": 2.3694,
+          "providerNavError": 0.00021102388790406046,
           "ourReportedPremiumRate": -0.0012236803240642802,
           "ourEstimatedNav": 2.3699,
-          "ourNavError": null
+          "ourNavError": 0.00021102388790406046
         },
         {
           "date": "2026-07-16",
@@ -35633,11 +35609,11 @@
             "marketPrice": 2.367,
             "providerPremiumRate": -0.0012236803240642802,
             "ourReportedPremiumRate": -0.0012236803240642802,
-            "status": "pending",
-            "actualPremiumRate": null,
-            "providerPremiumError": null,
-            "ourPremiumError": null,
-            "premiumErrorDelta": null
+            "status": "settled",
+            "actualPremiumRate": -0.0010129146619397567,
+            "providerPremiumError": -0.00021076566212452352,
+            "ourPremiumError": -0.00021076566212452352,
+            "premiumErrorDelta": 0
           },
           {
             "date": "2026-07-16",
@@ -35827,11 +35803,11 @@
             "marketPrice": 2.338,
             "providerPremiumRate": -0.1322,
             "ourReportedPremiumRate": -0.008986096982027791,
-            "status": "pending",
-            "actualPremiumRate": null,
-            "providerPremiumError": null,
-            "ourPremiumError": null,
-            "premiumErrorDelta": null
+            "status": "settled",
+            "actualPremiumRate": -0.02633546564758671,
+            "providerPremiumError": -0.1058645343524133,
+            "ourPremiumError": 0.017349368665558917,
+            "premiumErrorDelta": -0.12321390301797222
           }
         ],
         "etfpro": [],
@@ -36317,24 +36293,24 @@
           "status": "gsz-unavailable",
           "premiumRateCurrent": -0.025109462961308227,
           "hitCount60": 18,
-          "avgAbsProviderError30": 0.023304744819724887,
-          "avgAbsOurError30": 0.023274273681021203,
-          "avgAbsDelta30": 0.00003047113870368462,
-          "settledCount30": 13,
-          "sampleCount30": 13,
+          "avgAbsProviderError30": 0.02165517487989629,
+          "avgAbsOurError30": 0.021626880251100013,
+          "avgAbsDelta30": 0.000028294628796277088,
+          "settledCount30": 14,
+          "sampleCount30": 14,
           "settledWindowSize": 30
         },
         {
           "provider": "eastmoney-quote",
-          "sourceUrl": "https://push2.eastmoney.com/api/qt/stock/get?invt=2&fltt=2&secid=1.501312&fields=f57,f58,f193,f194",
-          "status": "ok",
+          "sourceUrl": "https://fund.eastmoney.com/501312.html",
+          "status": "premium-unavailable",
           "premiumRateCurrent": -0.1322,
           "hitCount60": 14,
-          "avgAbsProviderError30": 0.08950312142580157,
-          "avgAbsOurError30": 0.030608089192332193,
-          "avgAbsDelta30": 0.05889503223346937,
-          "settledCount30": 9,
-          "sampleCount30": 9,
+          "avgAbsProviderError30": 0.09113926271846273,
+          "avgAbsOurError30": 0.029282217139654863,
+          "avgAbsDelta30": 0.06185704557880787,
+          "settledCount30": 10,
+          "sampleCount30": 10,
           "settledWindowSize": 30
         },
         {
@@ -36485,13 +36461,13 @@
     "513030": {
       "code": "513030",
       "name": "德国ETF华安(513030)",
-      "snapshotAt": "2026-09-03 15:00:00",
-      "snapshotAtLive": "2026-09-03 13:28:49",
-      "ourPremiumRate": 0.0009692009476631736,
+      "snapshotAt": "2026-09-11 15:00:00",
+      "snapshotAtLive": "2026-09-11 16:15:00",
+      "ourPremiumRate": 0.0068889501240010365,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.010219511078034146
+        "avgAbsOurError30": 0.009288371127393068
       },
       "eastmoneyDailyValuations": [],
       "providerDailyComparisons": {
@@ -36693,13 +36669,13 @@
     "513080": {
       "code": "513080",
       "name": "法国ETF华安(513080)",
-      "snapshotAt": "2026-09-03 15:00:00",
-      "snapshotAtLive": "2026-09-03 13:28:52",
-      "ourPremiumRate": 0.015132408575031508,
+      "snapshotAt": "2026-09-11 15:00:00",
+      "snapshotAtLive": "2026-09-11 16:15:00",
+      "ourPremiumRate": 0.026843277458680204,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.01025092961609892
+        "avgAbsOurError30": 0.009006528495037414
       },
       "eastmoneyDailyValuations": [],
       "providerDailyComparisons": {
@@ -36889,13 +36865,13 @@
     "513100": {
       "code": "513100",
       "name": "纳指ETF国泰(513100)",
-      "snapshotAt": "2026-09-03 15:00:00",
-      "snapshotAtLive": "2026-09-03 13:28:49",
-      "ourPremiumRate": 0.11744351719926738,
+      "snapshotAt": "2026-09-11 15:00:00",
+      "snapshotAtLive": "2026-09-11 16:15:00",
+      "ourPremiumRate": 0.11958899231903963,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.015729861175125027
+        "avgAbsOurError30": 0.01464554653742464
       },
       "eastmoneyDailyValuations": [
         {
@@ -37112,12 +37088,12 @@
           "marketPrice": 2.167,
           "providerPremiumRate": 0.10476676013255148,
           "providerEstimatedNav": 1.9615,
-          "status": "pending",
-          "actualNav": null,
-          "providerNavError": null,
+          "status": "settled",
+          "actualNav": 1.9908,
+          "providerNavError": -0.014717701426562146,
           "ourReportedPremiumRate": 0.08785140562248994,
           "ourEstimatedNav": 1.9919999999999998,
-          "ourNavError": null
+          "ourNavError": 0.0006027727546713546
         },
         {
           "date": "2026-07-16",
@@ -37346,11 +37322,11 @@
             "marketPrice": 2.167,
             "providerPremiumRate": 0.10476676013255148,
             "ourReportedPremiumRate": 0.08785140562248994,
-            "status": "pending",
-            "actualPremiumRate": null,
-            "providerPremiumError": null,
-            "ourPremiumError": null,
-            "premiumErrorDelta": null
+            "status": "settled",
+            "actualPremiumRate": 0.08850713281093014,
+            "providerPremiumError": 0.01625962732162134,
+            "ourPremiumError": -0.0006557271884402027,
+            "premiumErrorDelta": 0.016915354510061542
           },
           {
             "date": "2026-07-16",
@@ -37498,11 +37474,11 @@
           "status": "gsz-unavailable",
           "premiumRateCurrent": 0.0872033023735812,
           "hitCount60": 19,
-          "avgAbsProviderError30": 0.019574814680233747,
-          "avgAbsOurError30": 0.026209837787531227,
-          "avgAbsDelta30": -0.00663502310729748,
-          "settledCount30": 14,
-          "sampleCount30": 14,
+          "avgAbsProviderError30": 0.019353802189659586,
+          "avgAbsOurError30": 0.024506230414258492,
+          "avgAbsDelta30": -0.005152428224598906,
+          "settledCount30": 15,
+          "sampleCount30": 15,
           "settledWindowSize": 30
         },
         {
@@ -37562,13 +37538,13 @@
     "513290": {
       "code": "513290",
       "name": "纳指生物科技ETF汇添富(513290)",
-      "snapshotAt": "2026-09-03 15:00:00",
-      "snapshotAtLive": "2026-09-03 13:28:50",
-      "ourPremiumRate": 0.06000574217628474,
+      "snapshotAt": "2026-09-11 15:00:00",
+      "snapshotAtLive": "2026-09-11 16:15:00",
+      "ourPremiumRate": 0.021820117083555024,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.016835434711438932
+        "avgAbsOurError30": 0.01707181012578828
       },
       "eastmoneyDailyValuations": [
         {
@@ -37746,12 +37722,12 @@
           "marketPrice": 1.795,
           "providerPremiumRate": 0.06711848284881983,
           "providerEstimatedNav": 1.6821000000000002,
-          "status": "pending",
-          "actualNav": null,
-          "providerNavError": null,
+          "status": "settled",
+          "actualNav": 1.6623,
+          "providerNavError": 0.011911207363291876,
           "ourReportedPremiumRate": 0.07917994348584134,
           "ourEstimatedNav": 1.6633,
-          "ourNavError": null
+          "ourNavError": 0.0006015761294591027
         },
         {
           "date": "2026-07-16",
@@ -37944,11 +37920,11 @@
             "marketPrice": 1.795,
             "providerPremiumRate": 0.06711848284881983,
             "ourReportedPremiumRate": 0.07917994348584134,
-            "status": "pending",
-            "actualPremiumRate": null,
-            "providerPremiumError": null,
-            "ourPremiumError": null,
-            "premiumErrorDelta": null
+            "status": "settled",
+            "actualPremiumRate": 0.07982915237923338,
+            "providerPremiumError": -0.012710669530413554,
+            "ourPremiumError": -0.0006492088933920392,
+            "premiumErrorDelta": -0.012061460637021515
           },
           {
             "date": "2026-07-16",
@@ -38096,11 +38072,11 @@
           "status": "gsz-unavailable",
           "premiumRateCurrent": -0.004837595024187902,
           "hitCount60": 16,
-          "avgAbsProviderError30": 0.014835516014650338,
-          "avgAbsOurError30": 0.01855988821473602,
-          "avgAbsDelta30": -0.0037243722000856825,
-          "settledCount30": 12,
-          "sampleCount30": 12,
+          "avgAbsProviderError30": 0.014672066285093663,
+          "avgAbsOurError30": 0.017182143651555716,
+          "avgAbsDelta30": -0.002510077366462053,
+          "settledCount30": 13,
+          "sampleCount30": 13,
           "settledWindowSize": 30
         },
         {
@@ -38160,13 +38136,13 @@
     "513300": {
       "code": "513300",
       "name": "纳斯达克ETF华夏(513300)",
-      "snapshotAt": "2026-09-03 15:00:00",
-      "snapshotAtLive": "2026-09-03 13:28:50",
-      "ourPremiumRate": 0.09033371691599545,
+      "snapshotAt": "2026-09-11 15:00:00",
+      "snapshotAtLive": "2026-09-11 16:15:00",
+      "ourPremiumRate": 0.09510679451829307,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.016623531370745438
+        "avgAbsOurError30": 0.01372388547454834
       },
       "eastmoneyDailyValuations": [
         {
@@ -38383,12 +38359,12 @@
           "marketPrice": 2.669,
           "providerPremiumRate": 0.09295659295659298,
           "providerEstimatedNav": 2.442,
-          "status": "pending",
-          "actualNav": null,
-          "providerNavError": null,
+          "status": "settled",
+          "actualNav": 2.4774,
+          "providerNavError": -0.014289174134172744,
           "ourReportedPremiumRate": 0.07625307472075482,
           "ourEstimatedNav": 2.4799,
-          "ourNavError": null
+          "ourNavError": 0.0010091224671027188
         },
         {
           "date": "2026-07-16",
@@ -38617,11 +38593,11 @@
             "marketPrice": 2.669,
             "providerPremiumRate": 0.09295659295659298,
             "ourReportedPremiumRate": 0.07625307472075482,
-            "status": "pending",
-            "actualPremiumRate": null,
-            "providerPremiumError": null,
-            "ourPremiumError": null,
-            "premiumErrorDelta": null
+            "status": "settled",
+            "actualPremiumRate": 0.07733914587874402,
+            "providerPremiumError": 0.015617447077848956,
+            "ourPremiumError": -0.001086071157989199,
+            "premiumErrorDelta": 0.016703518235838155
           },
           {
             "date": "2026-07-16",
@@ -38775,11 +38751,11 @@
             "marketPrice": 2.653,
             "providerPremiumRate": -0.040999999999999995,
             "ourReportedPremiumRate": 0.09033371691599545,
-            "status": "pending",
-            "actualPremiumRate": null,
-            "providerPremiumError": null,
-            "ourPremiumError": null,
-            "premiumErrorDelta": null
+            "status": "settled",
+            "actualPremiumRate": 0.07555195462831654,
+            "providerPremiumError": -0.11655195462831654,
+            "ourPremiumError": 0.014781762287678912,
+            "premiumErrorDelta": -0.13133371691599544
           }
         ],
         "etfpro": [],
@@ -38793,24 +38769,24 @@
           "status": "gsz-unavailable",
           "premiumRateCurrent": 0.0643502778008127,
           "hitCount60": 19,
-          "avgAbsProviderError30": 0.01864450903758541,
-          "avgAbsOurError30": 0.025331457007405023,
-          "avgAbsDelta30": -0.006686947969819612,
-          "settledCount30": 14,
-          "sampleCount30": 14,
+          "avgAbsProviderError30": 0.018442704906936315,
+          "avgAbsOurError30": 0.0237150979507773,
+          "avgAbsDelta30": -0.005272393043840987,
+          "settledCount30": 15,
+          "sampleCount30": 15,
           "settledWindowSize": 30
         },
         {
           "provider": "eastmoney-quote",
-          "sourceUrl": "https://push2.eastmoney.com/api/qt/stock/get?invt=2&fltt=2&secid=1.513300&fields=f57,f58,f193,f194",
-          "status": "ok",
+          "sourceUrl": "https://fund.eastmoney.com/513300.html",
+          "status": "premium-unavailable",
           "premiumRateCurrent": -0.040999999999999995,
           "hitCount60": 11,
-          "avgAbsProviderError30": 0.08800984961945156,
-          "avgAbsOurError30": 0.02362921233890217,
-          "avgAbsDelta30": 0.0643806372805494,
-          "settledCount30": 7,
-          "sampleCount30": 7,
+          "avgAbsProviderError30": 0.09157761274555969,
+          "avgAbsOurError30": 0.022523281082499264,
+          "avgAbsDelta30": 0.06905433166306042,
+          "settledCount30": 8,
+          "sampleCount30": 8,
           "settledWindowSize": 30
         },
         {
@@ -38857,13 +38833,13 @@
     "513310": {
       "code": "513310",
       "name": "中韩半导体ETF华泰柏瑞(513310)",
-      "snapshotAt": "2026-09-03 15:00:00",
-      "snapshotAtLive": "2026-09-03 13:28:52",
-      "ourPremiumRate": 0.07091839085756413,
+      "snapshotAt": "2026-09-11 15:00:00",
+      "snapshotAtLive": "2026-09-11 16:15:00",
+      "ourPremiumRate": 0.05830760281022074,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.04454174763132301
+        "avgAbsOurError30": 0.029867576230454957
       },
       "eastmoneyDailyValuations": [],
       "providerDailyComparisons": {
@@ -38995,11 +38971,11 @@
             "marketPrice": 4.648,
             "providerPremiumRate": -0.0273,
             "ourReportedPremiumRate": 0.07091839085756413,
-            "status": "pending",
-            "actualPremiumRate": null,
-            "providerPremiumError": null,
-            "ourPremiumError": null,
-            "premiumErrorDelta": null
+            "status": "settled",
+            "actualPremiumRate": 0.09214856605547728,
+            "providerPremiumError": -0.11944856605547728,
+            "ourPremiumError": -0.021230175197913148,
+            "premiumErrorDelta": -0.09821839085756413
           }
         ],
         "etfpro": [],
@@ -39022,15 +38998,15 @@
         },
         {
           "provider": "eastmoney-quote",
-          "sourceUrl": "https://push2.eastmoney.com/api/qt/stock/get?invt=2&fltt=2&secid=1.513310&fields=f57,f58,f193,f194",
-          "status": "ok",
+          "sourceUrl": "https://fund.eastmoney.com/513310.html",
+          "status": "premium-unavailable",
           "premiumRateCurrent": -0.0273,
           "hitCount60": 11,
-          "avgAbsProviderError30": 0.17899884120135467,
-          "avgAbsOurError30": 0.03232577966086747,
-          "avgAbsDelta30": 0.1466730615404872,
-          "settledCount30": 6,
-          "sampleCount30": 6,
+          "avgAbsProviderError30": 0.17049165903765792,
+          "avgAbsOurError30": 0.030740693309016853,
+          "avgAbsDelta30": 0.13975096572864107,
+          "settledCount30": 7,
+          "sampleCount30": 7,
           "settledWindowSize": 30
         },
         {
@@ -39077,13 +39053,13 @@
     "513400": {
       "code": "513400",
       "name": "道琼斯ETF鹏华(513400)",
-      "snapshotAt": "2026-09-03 15:00:00",
-      "snapshotAtLive": "2026-09-03 13:28:47",
-      "ourPremiumRate": 0.02266615443718778,
+      "snapshotAt": "2026-09-11 15:00:00",
+      "snapshotAtLive": "2026-09-11 16:15:00",
+      "ourPremiumRate": 0.028277634961439535,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.007104509118446193
+        "avgAbsOurError30": 0.007570273927798676
       },
       "eastmoneyDailyValuations": [
         {
@@ -39300,12 +39276,12 @@
           "marketPrice": 1.333,
           "providerPremiumRate": 0.007710916238282461,
           "providerEstimatedNav": 1.3228,
-          "status": "pending",
-          "actualNav": null,
-          "providerNavError": null,
+          "status": "settled",
+          "actualNav": 1.3079,
+          "providerNavError": 0.011392308280449459,
           "ourReportedPremiumRate": 0.01856804462443651,
           "ourEstimatedNav": 1.3087,
-          "ourNavError": null
+          "ourNavError": 0.0006116675586818054
         },
         {
           "date": "2026-07-16",
@@ -39534,11 +39510,11 @@
             "marketPrice": 1.333,
             "providerPremiumRate": 0.007710916238282461,
             "ourReportedPremiumRate": 0.01856804462443651,
-            "status": "pending",
-            "actualPremiumRate": null,
-            "providerPremiumError": null,
-            "ourPremiumError": null,
-            "premiumErrorDelta": null
+            "status": "settled",
+            "actualPremiumRate": 0.019191069653643256,
+            "providerPremiumError": -0.011480153415360794,
+            "ourPremiumError": -0.0006230250292067474,
+            "premiumErrorDelta": -0.010857128386154047
           },
           {
             "date": "2026-07-16",
@@ -39698,11 +39674,11 @@
           "status": "gsz-unavailable",
           "premiumRateCurrent": 0.004505904288377938,
           "hitCount60": 19,
-          "avgAbsProviderError30": 0.006361189473323274,
-          "avgAbsOurError30": 0.005039118543918824,
-          "avgAbsDelta30": 0.0013220709294044508,
-          "settledCount30": 14,
-          "sampleCount30": 14,
+          "avgAbsProviderError30": 0.006702453736125776,
+          "avgAbsOurError30": 0.0047447123096046855,
+          "avgAbsDelta30": 0.001957741426521091,
+          "settledCount30": 15,
+          "sampleCount30": 15,
           "settledWindowSize": 30
         },
         {
@@ -39762,13 +39738,13 @@
     "513500": {
       "code": "513500",
       "name": "标普500ETF博时(513500)",
-      "snapshotAt": "2026-09-03 15:00:00",
-      "snapshotAtLive": "2026-09-03 13:28:50",
-      "ourPremiumRate": 0.0840518122012015,
+      "snapshotAt": "2026-09-11 15:00:00",
+      "snapshotAtLive": "2026-09-11 16:15:00",
+      "ourPremiumRate": 0.09326211996713218,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.00744259555147857
+        "avgAbsOurError30": 0.007234298473593085
       },
       "eastmoneyDailyValuations": [
         {
@@ -39985,12 +39961,12 @@
           "marketPrice": 2.503,
           "providerPremiumRate": 0.027546286793382224,
           "providerEstimatedNav": 2.4359,
-          "status": "pending",
-          "actualNav": null,
-          "providerNavError": null,
+          "status": "settled",
+          "actualNav": 2.4081,
+          "providerNavError": 0.01154437108093509,
           "ourReportedPremiumRate": 0.038761620185922885,
           "ourEstimatedNav": 2.4096,
-          "ourNavError": null
+          "ourNavError": 0.0006228977201943042
         },
         {
           "date": "2026-07-16",
@@ -40219,11 +40195,11 @@
             "marketPrice": 2.503,
             "providerPremiumRate": 0.027546286793382224,
             "ourReportedPremiumRate": 0.038761620185922885,
-            "status": "pending",
-            "actualPremiumRate": null,
-            "providerPremiumError": null,
-            "ourPremiumError": null,
-            "premiumErrorDelta": null
+            "status": "settled",
+            "actualPremiumRate": 0.039408662430962194,
+            "providerPremiumError": -0.01186237563757997,
+            "ourPremiumError": -0.0006470422450393087,
+            "premiumErrorDelta": -0.01121533339254066
           },
           {
             "date": "2026-07-16",
@@ -40395,11 +40371,11 @@
           "status": "gsz-unavailable",
           "premiumRateCurrent": 0.04196153525934565,
           "hitCount60": 19,
-          "avgAbsProviderError30": 0.011441519488952714,
-          "avgAbsOurError30": 0.012440158346338366,
-          "avgAbsDelta30": -0.0009986388573856517,
-          "settledCount30": 14,
-          "sampleCount30": 14,
+          "avgAbsProviderError30": 0.011469576565527865,
+          "avgAbsOurError30": 0.011653950606251762,
+          "avgAbsDelta30": -0.00018437404072389751,
+          "settledCount30": 15,
+          "sampleCount30": 15,
           "settledWindowSize": 30
         },
         {
@@ -40459,13 +40435,13 @@
     "513520": {
       "code": "513520",
       "name": "华夏日经225ETF",
-      "snapshotAt": "2026-09-03 15:00:00",
-      "snapshotAtLive": "2026-09-03 13:28:51",
-      "ourPremiumRate": 0.04866963355742815,
+      "snapshotAt": "2026-09-11 15:00:00",
+      "snapshotAtLive": "2026-09-11 16:15:00",
+      "ourPremiumRate": 0.038931227619135145,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.01773626814941173
+        "avgAbsOurError30": 0.014360248145911273
       },
       "eastmoneyDailyValuations": [],
       "providerDailyComparisons": {
@@ -40597,11 +40573,11 @@
             "marketPrice": 2.215,
             "providerPremiumRate": -0.0322,
             "ourReportedPremiumRate": 0.04866963355742815,
-            "status": "pending",
-            "actualPremiumRate": null,
-            "providerPremiumError": null,
-            "ourPremiumError": null,
-            "premiumErrorDelta": null
+            "status": "settled",
+            "actualPremiumRate": 0.018959516394944087,
+            "providerPremiumError": -0.051159516394944086,
+            "ourPremiumError": 0.029710117162484062,
+            "premiumErrorDelta": -0.08086963355742816
           }
         ],
         "etfpro": [],
@@ -40624,15 +40600,15 @@
         },
         {
           "provider": "eastmoney-quote",
-          "sourceUrl": "https://push2.eastmoney.com/api/qt/stock/get?invt=2&fltt=2&secid=1.513520&fields=f57,f58,f193,f194",
-          "status": "ok",
+          "sourceUrl": "https://fund.eastmoney.com/513520.html",
+          "status": "premium-unavailable",
           "premiumRateCurrent": -0.0322,
           "hitCount60": 11,
-          "avgAbsProviderError30": 0.0727551978466808,
-          "avgAbsOurError30": 0.023774560983212227,
-          "avgAbsDelta30": 0.048980636863468575,
-          "settledCount30": 7,
-          "sampleCount30": 7,
+          "avgAbsProviderError30": 0.07005573766521371,
+          "avgAbsOurError30": 0.024516505505621206,
+          "avgAbsDelta30": 0.045539232159592505,
+          "settledCount30": 8,
+          "sampleCount30": 8,
           "settledWindowSize": 30
         },
         {
@@ -40679,13 +40655,13 @@
     "513730": {
       "code": "513730",
       "name": "东南亚科技ETF华泰柏瑞(513730)",
-      "snapshotAt": "2026-09-03 15:00:00",
-      "snapshotAtLive": "2026-09-03 13:28:52",
-      "ourPremiumRate": -0.018325733459520044,
+      "snapshotAt": "2026-09-11 15:00:00",
+      "snapshotAtLive": "2026-09-11 16:15:00",
+      "ourPremiumRate": -0.00655215158491218,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.011640533573827168
+        "avgAbsOurError30": 0.01206505604053002
       },
       "eastmoneyDailyValuations": [],
       "providerDailyComparisons": {
@@ -40887,13 +40863,13 @@
     "513800": {
       "code": "513800",
       "name": "日本东证指数ETF南方(513800)",
-      "snapshotAt": "2026-09-03 15:00:00",
-      "snapshotAtLive": "2026-09-03 13:28:51",
-      "ourPremiumRate": 0.01381497607912685,
+      "snapshotAt": "2026-09-11 15:00:00",
+      "snapshotAtLive": "2026-09-11 16:15:00",
+      "ourPremiumRate": 0.000369139904023541,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.012566630177012905
+        "avgAbsOurError30": 0.010958215603750246
       },
       "eastmoneyDailyValuations": [],
       "providerDailyComparisons": {
@@ -41025,11 +41001,11 @@
             "marketPrice": 1.886,
             "providerPremiumRate": 0.0222,
             "ourReportedPremiumRate": 0.01381497607912685,
-            "status": "pending",
-            "actualPremiumRate": null,
-            "providerPremiumError": null,
-            "ourPremiumError": null,
-            "premiumErrorDelta": null
+            "status": "settled",
+            "actualPremiumRate": -0.01215250612840979,
+            "providerPremiumError": 0.03435250612840979,
+            "ourPremiumError": 0.02596748220753664,
+            "premiumErrorDelta": 0.008385023920873147
           }
         ],
         "etfpro": [],
@@ -41052,15 +41028,15 @@
         },
         {
           "provider": "eastmoney-quote",
-          "sourceUrl": "https://push2.eastmoney.com/api/qt/stock/get?invt=2&fltt=2&secid=1.513800&fields=f57,f58,f193,f194",
-          "status": "ok",
+          "sourceUrl": "https://fund.eastmoney.com/513800.html",
+          "status": "premium-unavailable",
           "premiumRateCurrent": 0.0222,
           "hitCount60": 11,
-          "avgAbsProviderError30": 0.09851946951537573,
-          "avgAbsOurError30": 0.017272913148352092,
-          "avgAbsDelta30": 0.08124655636702363,
-          "settledCount30": 7,
-          "sampleCount30": 7,
+          "avgAbsProviderError30": 0.09049859909200499,
+          "avgAbsOurError30": 0.018359734280750162,
+          "avgAbsDelta30": 0.07213886481125482,
+          "settledCount30": 8,
+          "sampleCount30": 8,
           "settledWindowSize": 30
         },
         {
@@ -41107,13 +41083,13 @@
     "513850": {
       "code": "513850",
       "name": "美国50ETF易方达(513850)",
-      "snapshotAt": "2026-09-03 15:00:00",
-      "snapshotAtLive": "2026-09-03 13:28:50",
-      "ourPremiumRate": 0.05047355047355051,
+      "snapshotAt": "2026-09-11 15:00:00",
+      "snapshotAtLive": "2026-09-11 16:15:00",
+      "ourPremiumRate": 0.055061756897148983,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.009095639278429468
+        "avgAbsOurError30": 0.00869546448792342
       },
       "eastmoneyDailyValuations": [
         {
@@ -41304,12 +41280,12 @@
           "marketPrice": 1.706,
           "providerPremiumRate": 0.017414122137404453,
           "providerEstimatedNav": 1.6768,
-          "status": "pending",
-          "actualNav": null,
-          "providerNavError": null,
+          "status": "settled",
+          "actualNav": 1.6664,
+          "providerNavError": 0.006240998559769562,
           "ourReportedPremiumRate": 0.01868991461157221,
           "ourEstimatedNav": 1.6747,
-          "ourNavError": null
+          "ourNavError": 0.004980796927508413
         },
         {
           "date": "2026-06-29",
@@ -41330,12 +41306,12 @@
           "marketPrice": 1.758,
           "providerPremiumRate": 0.02149912841371293,
           "providerEstimatedNav": 1.721,
-          "status": "pending",
-          "actualNav": null,
-          "providerNavError": null,
+          "status": "settled",
+          "actualNav": 1.7022,
+          "providerNavError": 0.011044530607449365,
           "ourReportedPremiumRate": 0.03217472992015025,
           "ourEstimatedNav": 1.7032,
-          "ourNavError": null
+          "ourNavError": 0.0005874750323111577
         },
         {
           "date": "2026-07-16",
@@ -41540,11 +41516,11 @@
             "marketPrice": 1.706,
             "providerPremiumRate": 0.017414122137404453,
             "ourReportedPremiumRate": 0.01868991461157221,
-            "status": "pending",
-            "actualPremiumRate": null,
-            "providerPremiumError": null,
-            "ourPremiumError": null,
-            "premiumErrorDelta": null
+            "status": "settled",
+            "actualPremiumRate": 0.02376380220835328,
+            "providerPremiumError": -0.006349680070948827,
+            "ourPremiumError": -0.005073887596781068,
+            "premiumErrorDelta": -0.0012757924741677584
           },
           {
             "date": "2026-06-29",
@@ -41564,11 +41540,11 @@
             "marketPrice": 1.758,
             "providerPremiumRate": 0.02149912841371293,
             "ourReportedPremiumRate": 0.03217472992015025,
-            "status": "pending",
-            "actualPremiumRate": null,
-            "providerPremiumError": null,
-            "ourPremiumError": null,
-            "premiumErrorDelta": null
+            "status": "settled",
+            "actualPremiumRate": 0.03278110680296087,
+            "providerPremiumError": -0.011281978389247937,
+            "ourPremiumError": -0.000606376882810622,
+            "premiumErrorDelta": -0.010675601506437316
           },
           {
             "date": "2026-07-16",
@@ -41728,11 +41704,11 @@
           "status": "gsz-unavailable",
           "premiumRateCurrent": 0.01916427357440087,
           "hitCount60": 19,
-          "avgAbsProviderError30": 0.015857985120762752,
-          "avgAbsOurError30": 0.016480979336769168,
-          "avgAbsDelta30": -0.0006229942160064159,
-          "settledCount30": 13,
-          "sampleCount30": 13,
+          "avgAbsProviderError30": 0.014919031002007503,
+          "avgAbsOurError30": 0.01466219972383939,
+          "avgAbsDelta30": 0.0002568312781681126,
+          "settledCount30": 15,
+          "sampleCount30": 15,
           "settledWindowSize": 30
         },
         {
@@ -41792,13 +41768,13 @@
     "513880": {
       "code": "513880",
       "name": "华安日经225ETF",
-      "snapshotAt": "2026-09-03 15:00:00",
-      "snapshotAtLive": "2026-09-03 13:28:51",
-      "ourPremiumRate": 0.05369602588734956,
+      "snapshotAt": "2026-09-11 15:00:00",
+      "snapshotAtLive": "2026-09-11 16:15:00",
+      "ourPremiumRate": 0.042528056704075556,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.016249505396765552
+        "avgAbsOurError30": 0.014795894494677131
       },
       "eastmoneyDailyValuations": [],
       "providerDailyComparisons": {
@@ -41942,11 +41918,11 @@
             "marketPrice": 2.084,
             "providerPremiumRate": -0.0333,
             "ourReportedPremiumRate": 0.05369602588734956,
-            "status": "pending",
-            "actualPremiumRate": null,
-            "providerPremiumError": null,
-            "ourPremiumError": null,
-            "premiumErrorDelta": null
+            "status": "settled",
+            "actualPremiumRate": 0.024612222929001337,
+            "providerPremiumError": -0.05791222292900134,
+            "ourPremiumError": 0.029083802958348226,
+            "premiumErrorDelta": -0.08699602588734956
           }
         ],
         "etfpro": [],
@@ -41969,15 +41945,15 @@
         },
         {
           "provider": "eastmoney-quote",
-          "sourceUrl": "https://push2.eastmoney.com/api/qt/stock/get?invt=2&fltt=2&secid=1.513880&fields=f57,f58,f193,f194",
-          "status": "ok",
+          "sourceUrl": "https://fund.eastmoney.com/513880.html",
+          "status": "premium-unavailable",
           "premiumRateCurrent": -0.0333,
           "hitCount60": 12,
-          "avgAbsProviderError30": 0.052148981723326944,
-          "avgAbsOurError30": 0.022797995894165396,
-          "avgAbsDelta30": 0.029350985829161548,
-          "settledCount30": 8,
-          "sampleCount30": 8,
+          "avgAbsProviderError30": 0.05278934185729076,
+          "avgAbsOurError30": 0.02349641890129682,
+          "avgAbsDelta30": 0.029292922955993943,
+          "settledCount30": 9,
+          "sampleCount30": 9,
           "settledWindowSize": 30
         },
         {
@@ -42024,13 +42000,13 @@
     "520580": {
       "code": "520580",
       "name": "新兴亚洲ETF招商(520580)",
-      "snapshotAt": "2026-09-03 15:00:00",
-      "snapshotAtLive": "2026-09-03 13:28:50",
-      "ourPremiumRate": -0.001996007984031989,
+      "snapshotAt": "2026-09-11 15:00:00",
+      "snapshotAtLive": "2026-09-11 16:15:00",
+      "ourPremiumRate": -0.005835543766578244,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.003289658969725162
+        "avgAbsOurError30": 0.0034303831767993082
       },
       "eastmoneyDailyValuations": [],
       "providerDailyComparisons": {
@@ -42150,11 +42126,11 @@
             "marketPrice": 0.95,
             "providerPremiumRate": 0.0026,
             "ourReportedPremiumRate": -0.001996007984031989,
-            "status": "pending",
-            "actualPremiumRate": null,
-            "providerPremiumError": null,
-            "ourPremiumError": null,
-            "premiumErrorDelta": null
+            "status": "settled",
+            "actualPremiumRate": -0.0024152052924499845,
+            "providerPremiumError": 0.005015205292449984,
+            "ourPremiumError": 0.00041919730841799563,
+            "premiumErrorDelta": 0.004596007984031989
           }
         ],
         "etfpro": [],
@@ -42177,15 +42153,15 @@
         },
         {
           "provider": "eastmoney-quote",
-          "sourceUrl": "https://push2.eastmoney.com/api/qt/stock/get?invt=2&fltt=2&secid=1.520580&fields=f57,f58,f193,f194",
-          "status": "ok",
+          "sourceUrl": "https://fund.eastmoney.com/520580.html",
+          "status": "premium-unavailable",
           "premiumRateCurrent": 0.0026,
           "hitCount60": 10,
-          "avgAbsProviderError30": 0.11723797085893992,
-          "avgAbsOurError30": 0.007175202187874523,
-          "avgAbsDelta30": 0.11006276867106539,
-          "settledCount30": 9,
-          "sampleCount30": 9,
+          "avgAbsProviderError30": 0.10601569430229092,
+          "avgAbsOurError30": 0.00649960169992887,
+          "avgAbsDelta30": 0.09951609260236205,
+          "settledCount30": 10,
+          "sampleCount30": 10,
           "settledWindowSize": 30
         },
         {
@@ -42232,13 +42208,13 @@
     "520830": {
       "code": "520830",
       "name": "沙特ETF华泰柏瑞(520830)",
-      "snapshotAt": "2026-09-03 15:00:00",
-      "snapshotAtLive": "2026-09-03 13:28:51",
-      "ourPremiumRate": -0.016285932888840282,
+      "snapshotAt": "2026-09-11 15:00:00",
+      "snapshotAtLive": "2026-09-11 16:15:00",
+      "ourPremiumRate": -0.010940435407227334,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.007571966535198345
+        "avgAbsOurError30": 0.007457984858689434
       },
       "eastmoneyDailyValuations": [],
       "providerDailyComparisons": {
@@ -42370,11 +42346,11 @@
             "marketPrice": 0.9,
             "providerPremiumRate": -0.207,
             "ourReportedPremiumRate": -0.016285932888840282,
-            "status": "pending",
-            "actualPremiumRate": null,
-            "providerPremiumError": null,
-            "ourPremiumError": null,
-            "premiumErrorDelta": null
+            "status": "settled",
+            "actualPremiumRate": -0.009693765146508104,
+            "providerPremiumError": -0.19730623485349189,
+            "ourPremiumError": -0.006592167742332178,
+            "premiumErrorDelta": -0.1907140671111597
           }
         ],
         "etfpro": [],
@@ -42397,15 +42373,15 @@
         },
         {
           "provider": "eastmoney-quote",
-          "sourceUrl": "https://push2.eastmoney.com/api/qt/stock/get?invt=2&fltt=2&secid=1.520830&fields=f57,f58,f193,f194",
-          "status": "ok",
+          "sourceUrl": "https://fund.eastmoney.com/520830.html",
+          "status": "premium-unavailable",
           "premiumRateCurrent": -0.207,
           "hitCount60": 11,
-          "avgAbsProviderError30": 0.07873879820918084,
-          "avgAbsOurError30": 0.009008315408020193,
-          "avgAbsDelta30": 0.06973048280116065,
-          "settledCount30": 7,
-          "sampleCount30": 7,
+          "avgAbsProviderError30": 0.09355972778971972,
+          "avgAbsOurError30": 0.008706296949809192,
+          "avgAbsDelta30": 0.08485343083991052,
+          "settledCount30": 8,
+          "sampleCount30": 8,
           "settledWindowSize": 30
         },
         {
@@ -42452,13 +42428,13 @@
     "520870": {
       "code": "520870",
       "name": "巴西ETF易方达(520870)",
-      "snapshotAt": "2026-09-03 15:00:00",
-      "snapshotAtLive": "2026-09-03 13:28:52",
-      "ourPremiumRate": 0.03954195741635358,
+      "snapshotAt": "2026-09-11 15:00:00",
+      "snapshotAtLive": "2026-09-11 16:15:00",
+      "ourPremiumRate": 0.009749894022891059,
       "ourPremiumSummary": {
         "settledCount30": 30,
         "settledWindowSize": 30,
-        "avgAbsOurError30": 0.011523465348600319
+        "avgAbsOurError30": 0.013095657429028563
       },
       "eastmoneyDailyValuations": [],
       "providerDailyComparisons": {
@@ -42583,18 +42559,6 @@
             "providerPremiumError": 0.09895259313367412,
             "ourPremiumError": -0.0005409458332906736,
             "premiumErrorDelta": 0.09949353896696479
-          },
-          {
-            "date": "2026-09-03",
-            "time": "13:28:52",
-            "marketPrice": 1.162,
-            "providerPremiumRate": 5.38,
-            "ourReportedPremiumRate": 0.03954195741635358,
-            "status": "pending",
-            "actualPremiumRate": null,
-            "providerPremiumError": null,
-            "ourPremiumError": null,
-            "premiumErrorDelta": null
           }
         ],
         "etfpro": [],
@@ -42617,10 +42581,10 @@
         },
         {
           "provider": "eastmoney-quote",
-          "sourceUrl": "https://push2.eastmoney.com/api/qt/stock/get?secid=1.520870&fields=f57,f58,f193,f194",
-          "status": "ok",
-          "premiumRateCurrent": 5.38,
-          "hitCount60": 11,
+          "sourceUrl": "https://fund.eastmoney.com/520870.html",
+          "status": "premium-unavailable",
+          "premiumRateCurrent": 0.08689999999999999,
+          "hitCount60": 10,
           "avgAbsProviderError30": 0.08122134964448995,
           "avgAbsOurError30": 0.008287198234650872,
           "avgAbsDelta30": 0.07293415140983907,
