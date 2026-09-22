@@ -1,5 +1,5 @@
 {
-  "syncedAt": "2026-09-22T13:45:05.355Z",
+  "syncedAt": "2026-09-22T17:23:29.335Z",
   "funds": [
     {
       "code": "160221",
@@ -37306,9 +37306,17 @@
       "name": "华宝海外科技股票(QDII-LOF)A(501312)",
       "fundType": "QDII-普通股票",
       "benchmark": "经人民币汇率调整的纳斯达克100指数收益率*80%+恒生科技指数收益率*10%+中证综合债指数收益率*10%",
-      "officialNavT1": 2.4366,
-      "navDate": "2026-09-16",
+      "officialNavT1": 2.5005,
+      "navDate": "2026-09-20",
       "navHistory": [
+        {
+          "date": "2026-09-20",
+          "nav": 2.5005
+        },
+        {
+          "date": "2026-09-17",
+          "nav": 2.4465
+        },
         {
           "date": "2026-09-16",
           "nav": 2.4366
@@ -38980,14 +38988,6 @@
         {
           "date": "2024-12-29",
           "nav": 1.6268
-        },
-        {
-          "date": "2024-12-26",
-          "nav": 1.6584
-        },
-        {
-          "date": "2024-12-25",
-          "nav": 1.6841
         }
       ],
       "marketPrice": 2.477,
@@ -39003,8 +39003,8 @@
         {
           "ticker": "NVDA",
           "name": "英伟达",
-          "currentPrice": 222.27,
-          "changeRate": 0.01335825658794576,
+          "currentPrice": 229.62,
+          "changeRate": 0.009851350162723316,
           "weight": 0.08,
           "shares": 0.01,
           "marketValue": 34.04
@@ -39012,50 +39012,50 @@
       ],
       "fx": {
         "pair": "USD/CNY",
-        "currentRate": 6.697,
-        "previousCloseRate": 6.6984,
-        "quoteDate": "2026-09-19",
-        "quoteTime": "02:56:00",
+        "currentRate": 6.6996,
+        "previousCloseRate": 6.7005,
+        "quoteDate": "2026-09-23",
+        "quoteTime": "00:10:00",
         "source": "新浪外汇"
       },
       "holdingQuotes": [
         {
           "ticker": "NVDA",
           "name": "英伟达",
-          "currentPrice": 222.27,
-          "previousClose": 219.33999999999997,
-          "quoteDate": "2026-09-18",
-          "quoteTime": "16:14:12",
+          "currentPrice": 229.62,
+          "previousClose": 227.37999999999997,
+          "quoteDate": "2026-09-22",
+          "quoteTime": "16:14:21",
           "currency": "USD"
         }
       ],
-      "holdingsQuoteDate": "2026-09-18",
-      "holdingsQuoteTime": "16:14:12",
+      "holdingsQuoteDate": "2026-09-22",
+      "holdingsQuoteTime": "16:14:21",
       "proxyBasketName": "海外科技篮子",
       "proxyQuotes": [
         {
           "ticker": "IXN",
           "name": "iShares Global Tech ETF",
-          "currentPrice": 143.64,
-          "previousClose": 142.52,
-          "quoteDate": "2026-09-18",
-          "quoteTime": "16:00:01",
+          "currentPrice": 148.6,
+          "previousClose": 147.9,
+          "quoteDate": "2026-09-22",
+          "quoteTime": "13:22:34",
           "currency": "USD",
           "weight": 0.35
         },
         {
           "ticker": "XLK",
           "name": "Technology Select Sector SPDR",
-          "currentPrice": 189.6,
-          "previousClose": 188.06,
-          "quoteDate": "2026-09-18",
-          "quoteTime": "16:00:01",
+          "currentPrice": 195.51,
+          "previousClose": 194.85,
+          "quoteDate": "2026-09-22",
+          "quoteTime": "13:22:59",
           "currency": "USD",
           "weight": 0.65
         }
       ],
-      "proxyQuoteDate": "2026-09-18",
-      "proxyQuoteTime": "16:00:01",
+      "proxyQuoteDate": "2026-09-22",
+      "proxyQuoteTime": "13:22:34",
       "goldContinuousReturn": null,
       "goldContinuousSymbol": "",
       "goldContinuousSource": "",
@@ -196144,6 +196144,22 @@
             "adaptiveUsed": true,
             "adaptiveShockTriggered": false,
             "createdAt": "2026-09-20T18:33:50.154Z"
+          },
+          {
+            "estimateDate": "2026-09-22",
+            "estimatedNav": 2.5189326991550307,
+            "marketPrice": 2.477,
+            "premiumRate": -0.016647010525170813,
+            "marketPriceDate": "2026-09-22",
+            "marketPriceTime": "16:14:21",
+            "marketPriceType": "intraday",
+            "anchorNav": 2.5005,
+            "leadReturn": 0.009851350162723316,
+            "closeGapReturn": -0.0001343183344526544,
+            "impliedReturn": 0.007371605340944111,
+            "adaptiveUsed": true,
+            "adaptiveShockTriggered": false,
+            "createdAt": "2026-09-22T17:23:28.545Z"
           }
         ],
         "errors": [
@@ -196157,10 +196173,7 @@
             "premiumError": 0.03085538890993289,
             "absPremiumError": 0.03085538890993289,
             "error": -0.030341620517333356,
-            "absError": 0.030341620517333356,
-            "futuresProxyPremiumRate": 0.015685074552447498,
-            "futuresProxyPremiumError": 0.020625998290363823,
-            "absFuturesProxyPremiumError": 0.020625998290363823
+            "absError": 0.030341620517333356
           },
           {
             "date": "2026-06-25",
@@ -196172,10 +196185,7 @@
             "premiumError": 0.016034960347730554,
             "absPremiumError": 0.016034960347730554,
             "error": -0.015732858700943875,
-            "absError": 0.015732858700943875,
-            "futuresProxyPremiumRate": 0.013156946010896453,
-            "futuresProxyPremiumError": 0.015158053006255612,
-            "absFuturesProxyPremiumError": 0.015158053006255612
+            "absError": 0.015732858700943875
           },
           {
             "date": "2026-06-26",
@@ -196202,10 +196212,7 @@
             "premiumError": 0.012790165150577182,
             "absPremiumError": 0.012790165150577182,
             "error": -0.013247146573201807,
-            "absError": 0.013247146573201807,
-            "futuresProxyPremiumRate": -0.03225301094106514,
-            "futuresProxyPremiumError": 0.0010261760304871581,
-            "absFuturesProxyPremiumError": 0.0010261760304871581
+            "absError": 0.013247146573201807
           },
           {
             "date": "2026-06-30",
@@ -196217,10 +196224,7 @@
             "premiumError": -0.006413383533995343,
             "absPremiumError": 0.006413383533995343,
             "error": 0.006568693896787714,
-            "absError": 0.006568693896787714,
-            "futuresProxyPremiumRate": -0.029958662676663028,
-            "futuresProxyPremiumError": -0.0015537698107243036,
-            "absFuturesProxyPremiumError": 0.0015537698107243036
+            "absError": 0.006568693896787714
           },
           {
             "date": "2026-07-01",
@@ -196232,10 +196236,7 @@
             "premiumError": -0.006438301981340766,
             "absPremiumError": 0.006438301981340766,
             "error": 0.006444170317265963,
-            "absError": 0.006444170317265963,
-            "futuresProxyPremiumRate": 0.002815392022531782,
-            "futuresProxyPremiumError": 0.013402894617507988,
-            "absFuturesProxyPremiumError": 0.013402894617507988
+            "absError": 0.006444170317265963
           },
           {
             "date": "2026-07-02",
@@ -196247,10 +196248,7 @@
             "premiumError": -0.021084578359963135,
             "absPremiumError": 0.021084578359963135,
             "error": 0.021505334670789633,
-            "absError": 0.021505334670789633,
-            "futuresProxyPremiumRate": -0.0038366883453048173,
-            "futuresProxyPremiumError": -0.000925173091496645,
-            "absFuturesProxyPremiumError": 0.000925173091496645
+            "absError": 0.021505334670789633
           },
           {
             "date": "2026-07-03",
@@ -196277,10 +196275,7 @@
             "premiumError": -0.020483950209105428,
             "absPremiumError": 0.020483950209105428,
             "error": 0.020735866852081175,
-            "absError": 0.020735866852081175,
-            "futuresProxyPremiumRate": -0.019154097442178553,
-            "futuresProxyPremiumError": 0.004398201907960142,
-            "absFuturesProxyPremiumError": 0.004398201907960142
+            "absError": 0.020735866852081175
           },
           {
             "date": "2026-07-07",
@@ -196292,10 +196287,7 @@
             "premiumError": -0.038642232659168,
             "absPremiumError": 0.038642232659168,
             "error": 0.039482073263916284,
-            "absError": 0.039482073263916284,
-            "futuresProxyPremiumRate": 0.0073268368746775,
-            "futuresProxyPremiumError": -0.006565020359774243,
-            "absFuturesProxyPremiumError": 0.006565020359774243
+            "absError": 0.039482073263916284
           },
           {
             "date": "2026-07-08",
@@ -196307,10 +196299,7 @@
             "premiumError": -0.006797358849904622,
             "absPremiumError": 0.006797358849904622,
             "error": 0.007012162075678674,
-            "absError": 0.007012162075678674,
-            "futuresProxyPremiumRate": -0.04749124634655344,
-            "futuresProxyPremiumError": -0.04170098256787014,
-            "absFuturesProxyPremiumError": 0.04170098256787014
+            "absError": 0.007012162075678674
           },
           {
             "date": "2026-07-09",
@@ -196322,10 +196311,7 @@
             "premiumError": 0.013316044580394593,
             "absPremiumError": 0.013316044580394593,
             "error": -0.01324967252788567,
-            "absError": 0.01324967252788567,
-            "futuresProxyPremiumRate": -0.019567805559010387,
-            "futuresProxyPremiumError": 0.00005655222756428824,
-            "absFuturesProxyPremiumError": 0.00005655222756428824
+            "absError": 0.01324967252788567
           },
           {
             "date": "2026-07-10",
@@ -196511,10 +196497,7 @@
             "premiumError": 0.028228684755407185,
             "absPremiumError": 0.028228684755407185,
             "error": -0.029079030623465507,
-            "absError": 0.029079030623465507,
-            "futuresProxyPremiumRate": -0.016708126597337003,
-            "futuresProxyPremiumError": 0.0029174091572309324,
-            "absFuturesProxyPremiumError": 0.0029174091572309324
+            "absError": 0.029079030623465507
           },
           {
             "date": "2026-08-04",
@@ -196526,10 +196509,7 @@
             "premiumError": 0.017931737140246207,
             "absPremiumError": 0.017931737140246207,
             "error": -0.0181573753528792,
-            "absError": 0.0181573753528792,
-            "futuresProxyPremiumRate": -0.033327232144007346,
-            "futuresProxyPremiumError": 0.0024567626510479945,
-            "absFuturesProxyPremiumError": 0.0024567626510479945
+            "absError": 0.0181573753528792
           },
           {
             "date": "2026-08-05",
@@ -196541,10 +196521,7 @@
             "premiumError": -0.04884361024690609,
             "absPremiumError": 0.04884361024690609,
             "error": 0.050787884006005646,
-            "absError": 0.050787884006005646,
-            "futuresProxyPremiumRate": 0.05229520414434918,
-            "futuresProxyPremiumError": 0.046450311882288764,
-            "absFuturesProxyPremiumError": 0.046450311882288764
+            "absError": 0.050787884006005646
           },
           {
             "date": "2026-08-06",
@@ -196556,10 +196533,7 @@
             "premiumError": 0.030627032049836633,
             "absPremiumError": 0.030627032049836633,
             "error": -0.030860265013771926,
-            "absError": 0.030860265013771926,
-            "futuresProxyPremiumRate": -0.0014240118318575856,
-            "futuresProxyPremiumError": 0.002914478023087863,
-            "absFuturesProxyPremiumError": 0.002914478023087863
+            "absError": 0.030860265013771926
           },
           {
             "date": "2026-08-07",
@@ -196730,10 +196704,7 @@
             "premiumError": -0.004696351319257941,
             "absPremiumError": 0.004696351319257941,
             "error": 0.004691820053247531,
-            "absError": 0.004691820053247531,
-            "futuresProxyPremiumRate": 0.0050355562255415265,
-            "futuresProxyPremiumError": -0.003780991756825447,
-            "absFuturesProxyPremiumError": 0.003780991756825447
+            "absError": 0.004691820053247531
           },
           {
             "date": "2026-09-02",
@@ -196745,10 +196716,7 @@
             "premiumError": 0.025772954812474103,
             "absPremiumError": 0.025772954812474103,
             "error": -0.02585956432224845,
-            "absError": 0.02585956432224845,
-            "futuresProxyPremiumRate": -0.027989998562714558,
-            "futuresProxyPremiumError": -0.015482603988219545,
-            "absFuturesProxyPremiumError": 0.015482603988219545
+            "absError": 0.02585956432224845
           },
           {
             "date": "2026-09-03",
@@ -196760,10 +196728,7 @@
             "premiumError": 0.006827585493032529,
             "absPremiumError": 0.006827585493032529,
             "error": -0.006963427196241767,
-            "absError": 0.006963427196241767,
-            "futuresProxyPremiumRate": -0.017551705480829294,
-            "futuresProxyPremiumError": 0.008662411090979094,
-            "absFuturesProxyPremiumError": 0.008662411090979094
+            "absError": 0.006963427196241767
           },
           {
             "date": "2026-09-07",
